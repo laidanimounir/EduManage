@@ -263,8 +263,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<double> getStudentBalance(String studentId) {
     final query = customSelect(
-      'SELECT COALESCE(SUM(CASE WHEN type IN (\'session_charge\') THEN amount ELSE 0 END), 0) - '
-      'COALESCE(SUM(CASE WHEN type IN (\'student_payment\', \'discount\') THEN amount ELSE 0 END), 0) '
+      'SELECT COALESCE(SUM(CASE '
+      'WHEN type IN (\'session_charge\', \'correction\') THEN amount '
+      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\') THEN -amount '
+      'ELSE 0 END), 0) AS balance '
       'FROM transactions WHERE student_id = ?',
       variables: [Variable.withString(studentId)],
     );
@@ -273,7 +275,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<double> getTeacherPayoutBalance(String teacherId) {
     final query = customSelect(
-      'SELECT COALESCE(SUM(CASE WHEN type = \'teacher_payout\' THEN amount ELSE 0 END), 0) '
+      'SELECT COALESCE(SUM(CASE '
+      'WHEN type IN (\'teacher_payout\', \'correction\') THEN amount '
+      'WHEN type IN (\'reversal\') THEN -amount '
+      'ELSE 0 END), 0) AS balance '
       'FROM transactions WHERE teacher_id = ?',
       variables: [Variable.withString(teacherId)],
     );

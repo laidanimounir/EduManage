@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'students/student_list_screen.dart';
+import 'students/student_balances_screen.dart';
 import 'teachers/teacher_list_screen.dart';
 import 'sessions/session_list_screen.dart';
 import 'groups/subject_group_list_screen.dart';
@@ -60,6 +61,7 @@ class _MainShellState extends State<MainShell> {
         _NavItem(Icons.meeting_room, l10n.classrooms),
         _NavItem(Icons.assignment, l10n.enrollments),
         _NavItem(Icons.payment, l10n.payments),
+        _NavItem(Icons.account_balance_wallet, l10n.outstandingDebts),
         _NavItem(Icons.bar_chart, l10n.reports),
         _NavItem(Icons.credit_card, l10n.cards),
         _NavItem(Icons.history, l10n.auditLog),
@@ -78,6 +80,7 @@ class _MainShellState extends State<MainShell> {
         ClassroomListScreen(database: widget.database),
         EnrollmentScreen(database: widget.database),
         PaymentScreen(database: widget.database),
+        StudentBalancesScreen(database: widget.database),
         ProfitReportScreen(database: widget.database),
         StudentCardScreen(database: widget.database),
         AuditLogScreen(database: widget.database),
