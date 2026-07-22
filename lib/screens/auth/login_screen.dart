@@ -5,8 +5,13 @@ import '../../repositories/user_repository.dart';
 
 class LoginScreen extends StatefulWidget {
   final AppDatabase database;
+  final void Function(User user)? onLoginSuccess;
 
-  const LoginScreen({super.key, required this.database});
+  const LoginScreen({
+    super.key,
+    required this.database,
+    this.onLoginSuccess,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -44,7 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (user != null) {
-        Navigator.pop(context, user);
+        if (widget.onLoginSuccess != null) {
+          widget.onLoginSuccess!(user);
+        } else {
+          Navigator.pop(context, user);
+        }
       } else {
         setState(() => _errorMessage = l10n.invalidCredentials);
       }

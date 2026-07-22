@@ -3,18 +3,37 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'constants/app_theme.dart';
 import 'constants/app_constants.dart';
+import 'database/app_database.dart';
+import 'database/database_provider.dart';
+import 'database/database_initializer.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/main_shell.dart';
 import 'widgets/language_switcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final provider = DatabaseProvider();
+  await provider.initialize();
+  await DatabaseInitializer.initialize(provider);
+
   final savedLocale = await LanguageSwitcher.loadSavedLocale();
-  runApp(EduManageApp(initialLocale: savedLocale));
+
+  runApp(EduManageApp(
+    initialLocale: savedLocale,
+    databaseProvider: provider,
+  ));
 }
 
 class EduManageApp extends StatefulWidget {
   final Locale initialLocale;
+  final DatabaseProvider databaseProvider;
 
-  const EduManageApp({super.key, required this.initialLocale});
+  const EduManageApp({
+    super.key,
+    required this.initialLocale,
+    required this.databaseProvider,
+  });
 
   @override
   State<EduManageApp> createState() => _EduManageAppState();
@@ -26,6 +45,7 @@ class EduManageApp extends StatefulWidget {
 
 class _EduManageAppState extends State<EduManageApp> {
   late Locale _locale;
+  User? _currentUser;
 
   @override
   void initState() {
@@ -36,6 +56,18 @@ class _EduManageAppState extends State<EduManageApp> {
   void changeLocale(Locale locale) {
     setState(() {
       _locale = locale;
+    });
+  }
+
+  void _onLoginSuccess(User user) {
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  void _onLogout() {
+    setState(() {
+      _currentUser = null;
     });
   }
 
@@ -60,11 +92,32 @@ class _EduManageAppState extends State<EduManageApp> {
         }
         return supportedLocales.first;
       },
-      home: const Scaffold(
-        body: Center(
-          child: Text('EduManage'),
-        ),
-      ),
+      home: _currentUser != null
+          ? MainShell(
+              database: widget.databaseProvider.database,
+              userId: _currentUser!.id,
+              userRole: _currentUser!.role,
+            )
+          : Scaffold(
+              appBar: AppBar(
+                title: const Text('EduManage'),
+                actions: [
+                  LanguageSwitcher(
+                    currentLocale: _locale,
+                    onLocaleChanged: changeLocale,
+                  ),
+                ],
+              ),
+              body: Center(
+                child: SizedBox(
+                  width: 400,
+                  child: LoginScreen(
+                    database: widget.databaseProvider.database,
+                    onLoginSuccess: _onLoginSuccess,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }
