@@ -154,8 +154,26 @@ class Transactions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Attendance extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().nullable().references(Students, #id)();
+  TextColumn get teacherId => text().nullable().references(Teachers, #id)();
+  TextColumn get sessionId => text().references(Sessions, #id)();
+  DateTimeColumn get attendanceDate => dateTime()();
+  DateTimeColumn get checkInTime => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get personType => text()();
+  TextColumn get checkInMethod => text().withDefault(const Constant('barcode'))();
+  BoolColumn get isManualEntry => boolean().withDefault(const Constant(false))();
+  TextColumn get checkedInByUserId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
