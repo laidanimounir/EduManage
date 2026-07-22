@@ -98,25 +98,10 @@ class _EduManageAppState extends State<EduManageApp> {
               userId: _currentUser!.id,
               userRole: _currentUser!.role,
             )
-          : Scaffold(
-              appBar: AppBar(
-                title: const Text('EduManage'),
-                actions: [
-                  LanguageSwitcher(
-                    currentLocale: _locale,
-                    onLocaleChanged: changeLocale,
-                  ),
-                ],
-              ),
-              body: Center(
-                child: SizedBox(
-                  width: 400,
-                  child: LoginScreen(
-                    database: widget.databaseProvider.database,
-                    onLoginSuccess: _onLoginSuccess,
-                  ),
-                ),
-              ),
+          : LoginScreen(
+              database: widget.databaseProvider.database,
+              onLoginSuccess: _onLoginSuccess,
+              onLocaleChanged: changeLocale,
             ),
     );
   }

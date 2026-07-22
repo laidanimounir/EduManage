@@ -39,6 +39,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
     await _txService.createStudentPayment(studentId: _selectedStudent!.id, amount: amount, note: _noteCtrl.text);
+    if (!mounted) return;
     _amountCtrl.clear(); _noteCtrl.clear();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.operationSuccessful)));
     _loadPayments();
