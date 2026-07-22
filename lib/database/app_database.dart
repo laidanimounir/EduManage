@@ -105,8 +105,25 @@ class Sessions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Enrollments extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().references(Students, #id)();
+  TextColumn get subjectGroupId => text().references(SubjectGroups, #id)();
+  DateTimeColumn get enrollmentDate => dateTime().withDefault(currentDateAndTime)();
+  RealColumn get customPriceOverride => real().nullable()();
+  RealColumn get customDiscount => real().nullable()();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
