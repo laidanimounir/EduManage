@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "appName": "EduManage",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "add": "Add",
+  "search": "Search",
+  "confirm": "Confirm",
+  "close": "Close",
+  "back": "Back",
+  "yes": "Yes",
+  "no": "No",
+  "loading": "Loading...",
+  "noData": "No data available",
+  "errorOccurred": "An error occurred",
+  "operationSuccessful": "Operation completed successfully",
+  "confirmDelete": "Are you sure you want to delete?",
+  "fieldRequired": "This field is required"
+}
