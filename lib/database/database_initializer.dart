@@ -5,6 +5,7 @@ import '../utils/uuid_helper.dart';
 import '../utils/device_id.dart';
 import 'app_database.dart';
 import 'database_provider.dart';
+import 'sample_data_seeder.dart';
 import 'package:drift/drift.dart';
 
 class DatabaseInitializer {
@@ -59,5 +60,7 @@ class DatabaseInitializer {
     if (timeout == null) {
       await settingsRepo.set('session_timeout', '30');
     }
+
+    await SampleDataSeeder.seed(db);
   }
 }

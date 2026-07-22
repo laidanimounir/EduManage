@@ -3,6 +3,7 @@ import '../repositories/teacher_repository.dart';
 import '../repositories/subject_group_repository.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/enrollment_repository.dart';
+import '../repositories/classroom_repository.dart';
 import '../database/app_database.dart';
 import 'package:drift/drift.dart';
 
@@ -11,6 +12,10 @@ class SampleDataSeeder {
     final studentRepo = StudentRepository(db);
     final existingStudents = await studentRepo.getAll();
     if (existingStudents.isNotEmpty) return;
+
+    final roomRepo = ClassroomRepository(db);
+    final rooms = await roomRepo.getAll();
+    final classroomId = rooms.isNotEmpty ? rooms.first.id : '';
 
     final s1Id = await studentRepo.create(StudentsCompanion(
       code: const Value('STU-001'),
@@ -86,20 +91,22 @@ class SampleDataSeeder {
     ));
 
     final sessionRepo = SessionRepository(db);
-    final startTime = DateTime(2026, 1, 1, 9, 0);
-    final endTime = DateTime(2026, 1, 1, 11, 0);
+    final startTime = DateTime(2026, 1, 1, 0, 0);
+    final endTime = DateTime(2026, 1, 1, 23, 59);
 
-    await sessionRepo.create(SessionsCompanion(
-      subjectGroupId: Value(g1Id),
-      teacherId: Value(t1Id),
-      classroomId: const Value(''),
-      dayOfWeek: const Value(1),
-      startTime: Value(startTime),
-      endTime: Value(endTime),
-      monthlyPrice: const Value(5000),
-      sessionsPerMonth: const Value(8),
-      teacherSharePct: const Value(70),
-    ));
+    for (int day = 1; day <= 7; day++) {
+      await sessionRepo.create(SessionsCompanion(
+        subjectGroupId: Value(g1Id),
+        teacherId: Value(t1Id),
+        classroomId: Value(classroomId),
+        dayOfWeek: Value(day),
+        startTime: Value(startTime),
+        endTime: Value(endTime),
+        monthlyPrice: const Value(5000),
+        sessionsPerMonth: const Value(8),
+        teacherSharePct: const Value(70),
+      ));
+    }
 
     final enrollingRepo = EnrollmentRepository(db);
     await enrollingRepo.create(EnrollmentsCompanion(
