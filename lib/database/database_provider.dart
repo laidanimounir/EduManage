@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/uuid_helper.dart';
+import '../utils/device_id.dart';
 import 'app_database.dart';
 
 class DatabaseProvider extends ChangeNotifier {
@@ -27,21 +26,9 @@ class DatabaseProvider extends ChangeNotifier {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    _deviceId = await _loadOrGenerateDeviceId();
+    _deviceId = await DeviceId.get();
     _database = await AppDatabase.getInstance();
     _initialized = true;
     notifyListeners();
-  }
-
-  Future<String> _loadOrGenerateDeviceId() async {
-    const key = 'device_id';
-    final prefs = await SharedPreferences.getInstance();
-    final existing = prefs.getString(key);
-    if (existing != null && existing.isNotEmpty) {
-      return existing;
-    }
-    final newId = UuidHelper.generate();
-    await prefs.setString(key, newId);
-    return newId;
   }
 }
