@@ -84,8 +84,29 @@ class SubjectGroups extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Sessions extends Table {
+  TextColumn get id => text()();
+  TextColumn get subjectGroupId => text().references(SubjectGroups, #id)();
+  TextColumn get teacherId => text().references(Teachers, #id)();
+  TextColumn get classroomId => text().references(Classrooms, #id)();
+  IntColumn get dayOfWeek => integer()();
+  DateTimeColumn get startTime => dateTime()();
+  DateTimeColumn get endTime => dateTime()();
+  RealColumn get monthlyPrice => real()();
+  IntColumn get sessionsPerMonth => integer()();
+  RealColumn get teacherSharePct => real().nullable()();
+  RealColumn get teacherFixedAmount => real().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
