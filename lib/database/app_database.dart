@@ -29,8 +29,32 @@ class Students extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Teachers extends Table {
+  TextColumn get id => text()();
+  TextColumn get code => text().unique()();
+  TextColumn get firstNameAr => text()();
+  TextColumn get lastNameAr => text()();
+  TextColumn get firstNameFr => text().nullable()();
+  TextColumn get lastNameFr => text().nullable()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+  TextColumn get email => text().nullable()();
+  TextColumn get idCard => text().nullable()();
+  DateTimeColumn get employmentStartDate => dateTime().nullable()();
+  DateTimeColumn get employmentEndDate => dateTime().nullable()();
+  TextColumn get salaryType => text().withDefault(const Constant('percentage'))();
+  RealColumn get teacherSharePct => real().nullable()();
+  RealColumn get teacherFixedAmount => real().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students],
+  tables: [Students, Teachers],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
