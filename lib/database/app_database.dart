@@ -172,8 +172,24 @@ class Attendance extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Users extends Table {
+  TextColumn get id => text()();
+  TextColumn get username => text().unique()();
+  TextColumn get passwordHash => text()();
+  TextColumn get role => text().withDefault(const Constant('teacher'))();
+  TextColumn get firstName => text()();
+  TextColumn get lastName => text()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
