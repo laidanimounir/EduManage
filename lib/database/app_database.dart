@@ -259,4 +259,23 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  Future<double> getStudentBalance(String studentId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(CASE WHEN type IN (\'session_charge\') THEN amount ELSE 0 END), 0) - '
+      'COALESCE(SUM(CASE WHEN type IN (\'student_payment\', \'discount\') THEN amount ELSE 0 END), 0) '
+      'FROM transactions WHERE student_id = ?',
+      variables: [Variable.withString(studentId)],
+    );
+    return query.map((row) => row.read<double>('balance')).getSingle();
+  }
+
+  Future<double> getTeacherPayoutBalance(String teacherId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(CASE WHEN type = \'teacher_payout\' THEN amount ELSE 0 END), 0) '
+      'FROM transactions WHERE teacher_id = ?',
+      variables: [Variable.withString(teacherId)],
+    );
+    return query.map((row) => row.read<double>('balance')).getSingle();
+  }
 }
