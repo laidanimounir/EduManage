@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/user_repository.dart';
+import '../../widgets/language_switcher.dart';
 
 class LoginScreen extends StatefulWidget {
   final AppDatabase database;
   final void Function(User user)? onLoginSuccess;
+  final ValueChanged<Locale>? onLocaleChanged;
 
   const LoginScreen({
     super.key,
     required this.database,
     this.onLoginSuccess,
+    this.onLocaleChanged,
   });
 
   @override
@@ -24,11 +27,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
   String? _errorMessage;
+  Locale? _locale;
 
   @override
   void initState() {
     super.initState();
     _userRepo = UserRepository(widget.database);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _locale = Localizations.localeOf(context);
   }
 
   Future<void> _login() async {
@@ -71,6 +81,16 @@ class _LoginScreenState extends State<LoginScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.appName),
+        actions: [
+          if (widget.onLocaleChanged != null && _locale != null)
+            LanguageSwitcher(
+              currentLocale: _locale!,
+              onLocaleChanged: widget.onLocaleChanged!,
+            ),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
