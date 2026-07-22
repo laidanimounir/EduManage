@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/subject_group_repository.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class EnrollmentScreen extends StatefulWidget {
   final AppDatabase database;

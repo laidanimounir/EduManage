@@ -14,7 +14,7 @@ class AuditLogScreen extends StatefulWidget {
 class _AuditLogScreenState extends State<AuditLogScreen> {
   late final AuditLogRepository _auditRepo;
   late final UserRepository _userRepo;
-  List<AuditLogEntry> _entries = [];
+  List<AuditLogData> _entries = [];
   List<User> _users = [];
   bool _loading = true;
   int _currentPage = 0;
@@ -44,7 +44,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     _currentPage = 0;
     _hasMore = true;
 
-    List<AuditLogEntry> allEntries;
+    List<AuditLogData> allEntries;
     if (_filterStartDate != null && _filterEndDate != null) {
       allEntries = await _auditRepo.getByDateRange(
           _filterStartDate!, _filterEndDate!);
@@ -71,7 +71,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     setState(() => _loading = true);
 
     _currentPage++;
-    List<AuditLogEntry> allEntries;
+    List<AuditLogData> allEntries;
     if (_filterStartDate != null && _filterEndDate != null) {
       allEntries = await _auditRepo.getByDateRange(
           _filterStartDate!, _filterEndDate!);

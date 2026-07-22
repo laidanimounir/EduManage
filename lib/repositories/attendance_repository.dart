@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
@@ -15,7 +16,7 @@ class AttendanceRepository extends BaseRepository {
     return id;
   }
 
-  Future<List<Attendance>> getBySessionDate(
+  Future<List<AttendanceData>> getBySessionDate(
       String sessionId, DateTime date) {
     final dateStart = DateTime(date.year, date.month, date.day);
     final dateEnd = dateStart.add(const Duration(days: 1));
@@ -27,21 +28,21 @@ class AttendanceRepository extends BaseRepository {
         .get();
   }
 
-  Future<List<Attendance>> getByStudent(String studentId) {
+  Future<List<AttendanceData>> getByStudent(String studentId) {
     return (db.select(db.attendance)
       ..where((t) => t.studentId.equals(studentId))
       ..orderBy([(t) => OrderingTerm.desc(t.attendanceDate)]))
         .get();
   }
 
-  Future<List<Attendance>> getByTeacher(String teacherId) {
+  Future<List<AttendanceData>> getByTeacher(String teacherId) {
     return (db.select(db.attendance)
       ..where((t) => t.teacherId.equals(teacherId))
       ..orderBy([(t) => OrderingTerm.desc(t.attendanceDate)]))
         .get();
   }
 
-  Future<List<Attendance>> getTodayAttendance() {
+  Future<List<AttendanceData>> getTodayAttendance() {
     final today = DateTime.now();
     final dateStart = DateTime(today.year, today.month, today.day);
     final dateEnd = dateStart.add(const Duration(days: 1));
@@ -53,7 +54,7 @@ class AttendanceRepository extends BaseRepository {
         .get();
   }
 
-  Future<List<Attendance>> getAbsences(
+  Future<List<AttendanceData>> getAbsences(
       String sessionId, DateTime date) {
     return (db.select(db.attendance)
       ..where((t) =>

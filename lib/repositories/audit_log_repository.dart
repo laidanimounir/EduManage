@@ -2,6 +2,7 @@ import '../database/app_database.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
 import 'base_repository.dart';
+import 'package:drift/drift.dart';
 
 class AuditLogRepository extends BaseRepository {
   AuditLogRepository(super.db);
@@ -15,20 +16,20 @@ class AuditLogRepository extends BaseRepository {
     return id;
   }
 
-  Future<List<AuditLogEntry>> getAll() {
+  Future<List<AuditLogData>> getAll() {
     return (db.select(db.auditLog)
       ..orderBy([(t) => OrderingTerm.desc(t.timestamp)]))
         .get();
   }
 
-  Future<List<AuditLogEntry>> getByUser(String userId) {
+  Future<List<AuditLogData>> getByUser(String userId) {
     return (db.select(db.auditLog)
       ..where((t) => t.userId.equals(userId))
       ..orderBy([(t) => OrderingTerm.desc(t.timestamp)]))
         .get();
   }
 
-  Future<List<AuditLogEntry>> getByEntity(String entityType, String entityId) {
+  Future<List<AuditLogData>> getByEntity(String entityType, String entityId) {
     return (db.select(db.auditLog)
       ..where((t) =>
           t.entityType.equals(entityType) & t.entityId.equals(entityId))
@@ -36,7 +37,7 @@ class AuditLogRepository extends BaseRepository {
         .get();
   }
 
-  Future<List<AuditLogEntry>> getByDateRange(
+  Future<List<AuditLogData>> getByDateRange(
       DateTime start, DateTime end) {
     return (db.select(db.auditLog)
       ..where((t) =>
@@ -46,7 +47,7 @@ class AuditLogRepository extends BaseRepository {
         .get();
   }
 
-  Future<List<AuditLogEntry>> getRecentActions({int limit = 50}) {
+  Future<List<AuditLogData>> getRecentActions({int limit = 50}) {
     return (db.select(db.auditLog)
       ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
       ..limit(limit))

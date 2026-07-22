@@ -63,309 +63,728 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fieldRequired => 'Ce champ est obligatoire';
 
   @override
-  String get login => 'Connexion';
-  @override
-  String get username => 'Nom d\'utilisateur';
-  @override
-  String get password => 'Mot de passe';
-  @override
-  String get invalidCredentials => 'Nom d\'utilisateur ou mot de passe incorrect';
-  @override
-  String get users => 'Utilisateurs';
-  @override
-  String get role => 'Rôle';
-  @override
-  String get firstName => 'Prénom';
-  @override
-  String get lastName => 'Nom';
-  @override
-  String get active => 'Actif';
-  @override
-  String get inactive => 'Inactif';
-  @override
-  String get admin => 'Administrateur';
-  @override
-  String get teacher => 'Enseignant';
-  @override
-  String get addUser => 'Ajouter un utilisateur';
-  @override
-  String get editUser => 'Modifier l\'utilisateur';
-  @override
-  String get settings => 'Paramètres';
-  @override
-  String get language => 'Langue';
-  @override
-  String get arabic => 'Arabe';
-  @override
-  String get francais => 'Français';
-  @override
-  String get sessionTimeout => 'Délai d\'expiration';
-  @override
-  String get about => 'À propos';
-  @override
-  String get version => 'Version';
-  @override
-  String get minutes => 'minutes';
-  @override
   String get dashboard => 'Tableau de bord';
-  @override
-  String get totalStudents => 'Total Étudiants';
-  @override
-  String get totalTeachers => 'Total Enseignants';
-  @override
-  String get todaySessions => 'Séances du jour';
-  @override
-  String get todayAttendance => 'Présences du jour';
-  @override
-  String get monthlyRevenue => 'Revenu Mensuel';
-  @override
-  String get outstandingDebts => 'Dettes Impayées';
-  @override
-  String get quickActions => 'Actions Rapides';
-  @override
-  String get scanBarcode => 'Scanner le code-barres';
+
   @override
   String get checkIn => 'Pointage';
-  @override
-  String get checkInSuccess => 'Pointage réussi';
-  @override
-  String get checkInFailed => 'Échec du pointage';
-  @override
-  String get studentNotFound => 'Élève introuvable';
-  @override
-  String get noActiveSession => 'Aucune séance active';
-  @override
-  String get multipleSessionsFound => 'Plusieurs séances trouvées';
-  @override
-  String get selectSession => 'Sélectionner une séance';
-  @override
-  String get alreadyCheckedIn => 'Déjà pointé';
-  @override
-  String get searchStudent => 'Rechercher un élève';
-  @override
-  String get teacherCheckin => 'Pointage enseignant';
-  @override
-  String get scanTeacherBarcode => 'Scanner le code-barres enseignant';
-  @override
-  String get teacherNotFound => 'Enseignant introuvable';
-  @override
-  String get teacherCheckinSuccess => 'Pointage enseignant réussi';
-  @override
-  String get teacherAlreadyCheckedIn => 'Enseignant déjà pointé aujourd\'hui';
-  @override
-  String get noActiveSessionForTeacher => 'Aucune séance active pour cet enseignant';
-  @override
-  String get name => 'Nom';
-  @override
-  String get floor => 'Étage';
-  @override
-  String get capacity => 'Capacité';
-  @override
-  String get note => 'Note';
-  @override
-  String get status => 'Statut';
-  @override
-  String get all => 'Tout';
-  @override
-  String get classrooms => 'Salles de classe';
-  @override
-  String get enrollStudent => 'Inscrire un élève';
+
   @override
   String get students => 'Élèves';
-  @override
-  String get groups => 'Groupes';
-  @override
-  String get customPrice => 'Prix personnalisé';
-  @override
-  String get discount => 'Remise';
-  @override
-  String get enrollments => 'Inscriptions';
-  @override
-  String get noEnrollments => 'Aucune inscription';
-  @override
-  String get dropEnrollment => 'Annuler l\'inscription';
-  @override
-  String get subject => 'Matière';
-  @override
-  String get schoolLevel => 'Niveau scolaire';
-  @override
-  String get description => 'Description';
-  @override
-  String get amountMustBePositive => 'Le montant doit être positif';
-  @override
-  String get saveSuccess => 'Enregistrement réussi';
-  @override
-  String get financialStatus => 'Situation financière';
-  @override
-  String get income => 'Revenus';
-  @override
-  String get payments => 'Paiements';
-  @override
-  String get expenses => 'Dépenses';
-  @override
-  String get teacherPayouts => 'Paiements enseignants';
-  @override
-  String get amount => 'Montant';
-  @override
-  String get category => 'Catégorie';
-  @override
-  String get rent => 'Loyer';
-  @override
-  String get salary => 'Salaire';
-  @override
-  String get materials => 'Fournitures';
-  @override
-  String get utilities => 'Factures';
-  @override
-  String get other => 'Autre';
-  @override
-  String get expense => 'Dépense';
-  @override
-  String get paymentHistory => 'Historique des paiements';
+
   @override
   String get teachers => 'Enseignants';
+
   @override
-  String get code => 'Code';
+  String get sessions => 'Séances';
+
   @override
-  String get phone => 'Téléphone';
+  String get groups => 'Groupes';
+
   @override
-  String get address => 'Adresse';
+  String get classrooms => 'Salles';
+
   @override
-  String get email => 'Email';
+  String get payments => 'Paiements';
+
   @override
-  String get idCard => 'Carte d\'identité';
+  String get reports => 'Rapports';
+
   @override
-  String get salaryType => 'Type de salaire';
-  @override
-  String get percentage => 'Pourcentage';
-  @override
-  String get fixed => 'Fixe';
-  @override
-  String get teacherShare => 'Part enseignant %';
-  @override
-  String get teacherFixedAmount => 'Montant fixe enseignant';
-  @override
-  String get employmentStartDate => 'Date de début d\'emploi';
-  @override
-  String get sessionCancellation => 'Annulation de séance';
-  @override
-  String get selectDate => 'Sélectionner une date';
-  @override
-  String get reason => 'Raison';
-  @override
-  String get cancellationCreated => 'Annulation créée';
-  @override
-  String get reactivate => 'Réactiver';
-  @override
-  String get upcomingCancellations => 'Annulations à venir';
-  @override
-  String get noActiveSessions => 'Aucune séance active';
-  @override
-  String get cancelConfirmation => 'Êtes-vous sûr de vouloir annuler cette séance ?';
-  @override
-  String get session => 'Séance';
-  @override
-  String get cancelledOn => 'Annulée le';
-  @override
-  String get checkedIn => 'Pointé';
-  @override
-  String get missing => 'Absent';
-  @override
-  String get expected => 'Attendu';
-  @override
-  String get noAttendanceToday => 'Aucun enregistrement de présence aujourd\'hui';
-  @override
-  String get attendanceTime => 'Heure';
-  @override
-  String get presentCount => 'Présents';
-  @override
-  String get absentCount => 'Absents';
+  String get cards => 'Cartes';
+
   @override
   String get auditLog => 'Journal d\'audit';
+
   @override
-  String get filterByDate => 'Filtrer par date';
+  String get users => 'Utilisateurs';
+
   @override
-  String get filterByUser => 'Filtrer par utilisateur';
+  String get settings => 'Paramètres';
+
   @override
-  String get allUsers => 'Tous les utilisateurs';
+  String get firstName => 'Prénom';
+
   @override
-  String get startDate => 'Date de début';
+  String get lastName => 'Nom';
+
   @override
-  String get endDate => 'Date de fin';
+  String get phone => 'Téléphone';
+
   @override
-  String get action => 'Action';
+  String get address => 'Adresse';
+
   @override
-  String get entity => 'Entité';
+  String get email => 'Email';
+
   @override
-  String get timestamp => 'Horodatage';
+  String get gender => 'Genre';
+
   @override
-  String get details => 'Détails';
+  String get male => 'Masculin';
+
   @override
-  String get previous => 'Précédent';
+  String get female => 'Féminin';
+
   @override
-  String get next => 'Suivant';
+  String get birthDate => 'Date de naissance';
+
   @override
-  String get user => 'Utilisateur';
+  String get birthPlace => 'Lieu de naissance';
+
   @override
-  String get noAuditEntries => 'Aucune entrée d\'audit trouvée';
+  String get registrationDate => 'Date d\'inscription';
+
   @override
-  String get profitReport => 'Rapport de bénéfices';
+  String get status => 'Statut';
+
   @override
-  String get netProfit => 'Bénéfice net';
+  String get active => 'Actif';
+
   @override
-  String get sessionCharges => 'Frais de séance';
+  String get inactive => 'Inactif';
+
   @override
-  String get studentPayments => 'Paiements des élèves';
+  String get graduated => 'Diplômé';
+
   @override
-  String get selectMonth => 'Sélectionner le mois';
+  String get code => 'Code';
+
   @override
-  String get selectYear => 'Sélectionner l\'année';
+  String get subject => 'Matière';
+
   @override
-  String get month => 'Mois';
+  String get schoolLevel => 'Niveau scolaire';
+
   @override
-  String get year => 'Année';
+  String get description => 'Description';
+
   @override
-  String get noStudentsFound => 'Aucun élève trouvé';
+  String get name => 'Nom';
+
   @override
-  String get studentCard => 'Carte d\'élève';
+  String get floor => 'Étage';
+
   @override
-  String get studentCards => 'Cartes d\'élève';
+  String get capacity => 'Capacité';
+
   @override
-  String get selectStudent => 'Sélectionner un élève';
+  String get dayOfWeek => 'Jour de la semaine';
+
   @override
-  String get generateCard => 'Générer la carte';
+  String get startTime => 'Heure de début';
+
   @override
-  String get reissueCard => 'Réémettre la carte';
+  String get endTime => 'Heure de fin';
+
   @override
-  String get confirmReissue => 'Confirmer la réémission';
+  String get monthlyPrice => 'Prix mensuel';
+
   @override
-  String get reissueConfirmMessage => 'Cela va révoquer la carte actuelle et en générer une nouvelle. Continuer ?';
+  String get sessionsPerMonth => 'Séances par mois';
+
   @override
-  String get cardNotFound => 'Aucune carte active trouvée';
+  String get teacherShare => 'Part enseignant (%)';
+
   @override
-  String get cardRevoked => 'Carte révoquée';
+  String get teacherFixedAmount => 'Montant fixe enseignant';
+
   @override
-  String get cardActive => 'Carte active';
+  String get salaryType => 'Type de rémunération';
+
   @override
-  String get studentCode => 'Code élève';
+  String get percentage => 'Pourcentage';
+
   @override
-  String get qrCode => 'Code QR';
+  String get fixed => 'Fixe';
+
   @override
-  String get print => 'Imprimer';
+  String get enrollments => 'Inscriptions';
+
   @override
-  String get cardPreview => 'Aperçu de la carte';
+  String get enrollmentDate => 'Date d\'inscription';
+
   @override
-  String get issuedDate => 'Date d\'émission';
+  String get customPrice => 'Prix personnalisé';
+
   @override
-  String get secureToken => 'Jeton sécurisé';
+  String get discount => 'Remise';
+
   @override
-  String get barcode => 'Code-barres';
-  @override
-  String get student => 'Élève';
+  String get balance => 'Solde';
+
   @override
   String get debt => 'Dette';
+
   @override
-  String get total => 'Total';
+  String get amount => 'Montant';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get note => 'Note';
+
+  @override
+  String get paymentMethod => 'Mode de paiement';
+
+  @override
+  String get cash => 'Espèces';
+
+  @override
+  String get check => 'Chèque';
+
+  @override
+  String get transactionType => 'Type de transaction';
+
+  @override
+  String get sessionCharge => 'Frais de séance';
+
+  @override
+  String get studentPayment => 'Paiement élève';
+
+  @override
+  String get teacherPayout => 'Paiement enseignant';
+
+  @override
+  String get expense => 'Dépense';
+
+  @override
+  String get correction => 'Correction';
+
+  @override
+  String get reversal => 'Annulation';
+
+  @override
+  String get category => 'Catégorie';
+
+  @override
+  String get rent => 'Loyer';
+
+  @override
+  String get salary => 'Salaire';
+
+  @override
+  String get materials => 'Fournitures';
+
+  @override
+  String get utilities => 'Factures';
+
+  @override
+  String get other => 'Autre';
+
+  @override
+  String get attendance => 'Présence';
+
+  @override
+  String get present => 'Présent';
+
+  @override
+  String get absent => 'Absent';
+
+  @override
+  String get checkInTime => 'Heure de pointage';
+
+  @override
+  String get checkInMethod => 'Méthode de pointage';
+
+  @override
+  String get barcode => 'Code-barres';
+
+  @override
+  String get manual => 'Manuel';
+
+  @override
+  String get session => 'Séance';
+
+  @override
+  String get todayAttendance => 'Présence du jour';
+
+  @override
+  String get todaySessions => 'Séances du jour';
+
+  @override
+  String get missingStudents => 'Élèves absents';
+
+  @override
+  String get printCard => 'Imprimer la carte';
+
+  @override
+  String get reissueCard => 'Réémettre la carte';
+
+  @override
+  String get cardPreview => 'Aperçu de la carte';
+
+  @override
+  String get barcodeContent => 'Contenu code-barres';
+
+  @override
+  String get secureToken => 'Jeton sécurisé';
+
+  @override
+  String get issuedDate => 'Date d\'émission';
+
+  @override
+  String get revoked => 'Révoquée';
+
+  @override
+  String get login => 'Connexion';
+
+  @override
+  String get logout => 'Déconnexion';
+
+  @override
+  String get username => 'Nom d\'utilisateur';
+
+  @override
+  String get password => 'Mot de passe';
+
+  @override
+  String get role => 'Rôle';
+
+  @override
+  String get admin => 'Administrateur';
+
+  @override
+  String get accountant => 'Comptable';
+
+  @override
+  String get secretary => 'Secrétaire';
+
+  @override
+  String get teacher => 'Enseignant';
+
+  @override
+  String get isActive => 'Actif';
+
+  @override
+  String get language => 'Langue';
+
+  @override
+  String get arabic => 'Arabe';
+
+  @override
+  String get francais => 'Français';
+
+  @override
+  String get sessionTimeout => 'Délai d\'expiration';
+
+  @override
+  String get minutes => 'minutes';
+
+  @override
+  String get about => 'À propos';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get totalStudents => 'Total élèves';
+
+  @override
+  String get totalTeachers => 'Total enseignants';
+
+  @override
+  String get monthlyRevenue => 'Revenus mensuels';
+
+  @override
+  String get outstandingDebts => 'Dettes impayées';
+
+  @override
+  String get totalIncome => 'Revenus totaux';
+
+  @override
+  String get totalExpenses => 'Dépenses totales';
+
+  @override
+  String get netProfit => 'Bénéfice net';
+
+  @override
+  String get income => 'Revenus';
+
+  @override
+  String get expenses => 'Dépenses';
+
+  @override
+  String get revenueBreakdown => 'Répartition des revenus';
+
+  @override
+  String get expenseBreakdown => 'Répartition des dépenses';
+
+  @override
+  String get topDebtors => 'Principaux débiteurs';
+
+  @override
+  String get attendanceRate => 'Taux de présence';
+
+  @override
+  String get teacherHours => 'Heures enseignants';
+
+  @override
+  String get print => 'Imprimer';
+
+  @override
+  String get export => 'Exporter';
+
+  @override
+  String get filter => 'Filtrer';
+
+  @override
+  String get clearFilter => 'Effacer le filtre';
+
+  @override
+  String get from => 'Du';
+
+  @override
+  String get to => 'Au';
+
+  @override
+  String get selectDate => 'Sélectionner une date';
+
+  @override
+  String get thisMonth => 'Ce mois';
+
+  @override
+  String get lastMonth => 'Le mois dernier';
+
+  @override
+  String get thisYear => 'Cette année';
+
+  @override
+  String get customRange => 'Période personnalisée';
+
+  @override
+  String get all => 'Tout';
+
+  @override
+  String get details => 'Détails';
+
+  @override
+  String get history => 'Historique';
+
+  @override
+  String get actions => 'Actions';
+
+  @override
+  String get scanBarcode => 'Scanner le code-barres...';
+
+  @override
+  String get studentNotFound => 'Élève introuvable';
+
+  @override
+  String get noActiveSession => 'Aucune séance active actuellement';
+
+  @override
+  String get alreadyCheckedIn => 'Déjà pointé';
+
+  @override
+  String get checkInSuccess => 'Pointage réussi';
+
+  @override
+  String get selectSession => 'Sélectionner une séance';
+
+  @override
+  String get multipleSessionsFound => 'Plusieurs séances à cette heure';
+
+  @override
+  String get manualCheckIn => 'Pointage manuel';
+
+  @override
+  String get searchStudent => 'Rechercher un élève...';
+
+  @override
+  String get cancelSession => 'Annuler une séance';
+
+  @override
+  String get cancelDate => 'Date d\'annulation';
+
+  @override
+  String get cancelReason => 'Motif d\'annulation';
+
+  @override
+  String get sessionCancelled => 'Séance annulée';
+
+  @override
+  String get cancelledDate => 'Date annulée';
+
+  @override
+  String get reactivate => 'Réactiver';
+
+  @override
+  String get reason => 'Motif';
+
+  @override
+  String get receipt => 'Reçu';
+
+  @override
+  String get paymentReceipt => 'Reçu de paiement';
+
+  @override
+  String get paidTo => 'Payé à';
+
+  @override
+  String get paymentFor => 'Paiement pour';
+
+  @override
+  String get receiptNumber => 'Numéro de reçu';
+
+  @override
+  String get settingsSaved => 'Paramètres enregistrés';
+
+  @override
+  String get idleTimeout => 'Session expirée pour inactivité';
+
+  @override
+  String get perSessionPrice => 'Prix par séance';
+
+  @override
+  String get enrolledStudents => 'Élèves inscrits';
+
+  @override
+  String get teacherPayouts => 'Paiements enseignant';
+
+  @override
+  String get totalOwed => 'Total dû';
+
+  @override
+  String get totalPaid => 'Total payé';
+
+  @override
+  String get remaining => 'Restant';
+
+  @override
+  String get paymentHistory => 'Historique des paiements';
+
+  @override
+  String get transactionHistory => 'Historique des transactions';
+
+  @override
+  String get runningBalance => 'Solde courant';
+
+  @override
+  String get previousBalance => 'Solde précédent';
+
+  @override
+  String get newBalance => 'Nouveau solde';
+
+  @override
+  String get create => 'Créer';
+
+  @override
+  String get update => 'Mettre à jour';
+
+  @override
+  String get deleteSuccess => 'Suppression réussie';
+
+  @override
+  String get saveSuccess => 'Enregistrement réussi';
+
+  @override
+  String get invalidCredentials =>
+      'Nom d\'utilisateur ou mot de passe incorrect';
+
+  @override
+  String get sessionHeld => 'Séance confirmée';
+
+  @override
+  String get noActiveSessions => 'Aucune séance active';
+
+  @override
+  String get checkInFailed => 'Échec du pointage';
+
+  @override
+  String get confirmCancellation => 'Confirmer l\'annulation de cette séance ?';
+
+  @override
+  String get cardReissued => 'Carte réémise';
+
+  @override
+  String get tokenRotated => 'Jeton de sécurité renouvelé';
+
+  @override
+  String get noEnrollments => 'Aucune inscription';
+
+  @override
+  String get enrollStudent => 'Inscrire un élève';
+
+  @override
+  String get dropEnrollment => 'Annuler l\'inscription';
+
+  @override
+  String get confirmDrop => 'Confirmer l\'annulation de cette inscription ?';
+
+  @override
+  String get customAmount => 'Montant personnalisé';
+
+  @override
+  String get basePrice => 'Prix de base';
+
+  @override
+  String get amountMustBePositive => 'Le montant doit être positif';
+
+  @override
+  String get duplicateCheckIn => 'Déjà pointé pour cette séance';
+
+  @override
+  String get sessionDateCancelled => 'Cette date est annulée pour cette séance';
+
+  @override
+  String get noStudentsEnrolled => 'Aucun élève inscrit à cette séance';
+
+  @override
+  String get profile => 'Profil';
+
+  @override
+  String get personalInfo => 'Informations personnelles';
+
+  @override
+  String get financialStatus => 'Situation financière';
+
+  @override
+  String get parentApp => 'Application parents';
+
+  @override
+  String get scanQr => 'Scanner le QR code';
+
+  @override
+  String get studentCard => 'Carte d\'élève';
+
+  @override
+  String get idCard => 'Carte d\'identité';
+
+  @override
+  String get employmentStartDate => 'Date de début';
+
+  @override
+  String get employmentEndDate => 'Date de fin';
+
+  @override
+  String get specialty => 'Spécialité';
+
+  @override
+  String get languages => 'Langues';
+
+  @override
+  String get avatar => 'Photo';
+
+  @override
+  String get editUser => 'Modifier utilisateur';
+
+  @override
+  String get addUser => 'Ajouter utilisateur';
+
+  @override
+  String get filterByDate => 'Filtrer par date';
+
+  @override
+  String get filterByUser => 'Filtrer par utilisateur';
+
+  @override
+  String get allUsers => 'Tous les utilisateurs';
+
+  @override
+  String get user => 'Utilisateur';
+
+  @override
+  String get absentCount => 'Nombre d\'absents';
+
+  @override
+  String get cancellationCreated => 'Annulation créée';
+
+  @override
+  String get cancelledOn => 'Annulé le';
+
+  @override
+  String get cardActive => 'Carte active';
+
+  @override
+  String get cardNotFound => 'Carte introuvable';
+
+  @override
+  String get cardRevoked => 'Carte révoquée';
+
+  @override
+  String get checkedIn => 'Pointé';
+
+  @override
+  String get confirmReissue => 'Confirmer la réémission';
+
+  @override
+  String get entity => 'Entité';
+
+  @override
+  String get generateCard => 'Générer la carte';
+
+  @override
+  String get missing => 'Absent';
+
+  @override
+  String get next => 'Suivant';
+
+  @override
+  String get noActiveSessionForTeacher =>
+      'Aucune séance active pour l\'enseignant';
+
+  @override
+  String get noAttendanceToday => 'Aucune présence aujourd\'hui';
+
+  @override
+  String get noAuditEntries => 'Aucune entrée d\'audit';
+
+  @override
+  String get noStudentsFound => 'Aucun élève trouvé';
+
   @override
   String get outstandingDebtsList => 'Dettes impayées';
+
+  @override
+  String get presentCount => 'Nombre de présents';
+
+  @override
+  String get previous => 'Précédent';
+
+  @override
+  String get profitReport => 'Rapport de profits';
+
+  @override
+  String get quickActions => 'Actions rapides';
+
+  @override
+  String get reissueConfirmMessage =>
+      'Cela va révoquer la carte actuelle et générer un nouveau jeton. Continuer ?';
+
+  @override
+  String get scanTeacherBarcode => 'Scanner le code-barres enseignant...';
+
+  @override
+  String get selectYear => 'Sélectionner l\'année';
+
+  @override
+  String get sessionCancellation => 'Annulation de séance';
+
+  @override
+  String get sessionCharges => 'Frais de séance';
+
+  @override
+  String get student => 'Élève';
+
+  @override
+  String get studentCode => 'Code élève';
+
+  @override
+  String get studentPayments => 'Paiements élèves';
+
+  @override
+  String get teacherAlreadyCheckedIn => 'Enseignant déjà pointé';
+
+  @override
+  String get teacherCheckin => 'Pointage enseignant';
+
+  @override
+  String get teacherCheckinSuccess => 'Pointage enseignant réussi';
+
+  @override
+  String get teacherNotFound => 'Enseignant introuvable';
+
+  @override
+  String get upcomingCancellations => 'Annulations à venir';
 }

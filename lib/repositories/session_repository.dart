@@ -3,6 +3,7 @@ import '../utils/date_helper.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
 import 'base_repository.dart';
+import 'package:drift/drift.dart';
 
 class SessionRepository extends BaseRepository {
   SessionRepository(super.db);
@@ -83,7 +84,7 @@ class SessionRepository extends BaseRepository {
     await (db.delete(db.sessions)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<List<Attendance>> getAttendanceForDate(
+  Future<List<AttendanceData>> getAttendanceDataForDate(
       String sessionId, DateTime date) {
     final dateStart = DateTime(date.year, date.month, date.day);
     final dateEnd = dateStart.add(const Duration(days: 1));

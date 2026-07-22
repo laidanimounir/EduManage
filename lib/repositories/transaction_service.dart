@@ -6,6 +6,7 @@ import 'transaction_repository.dart';
 import 'enrollment_repository.dart';
 import 'session_repository.dart';
 import 'audit_log_repository.dart';
+import 'package:drift/drift.dart';
 
 class TransactionService extends BaseRepository {
   final TransactionRepository _txRepo;

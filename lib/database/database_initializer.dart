@@ -5,6 +5,7 @@ import '../utils/uuid_helper.dart';
 import '../utils/device_id.dart';
 import 'app_database.dart';
 import 'database_provider.dart';
+import 'package:drift/drift.dart';
 
 class DatabaseInitializer {
   static Future<void> initialize(DatabaseProvider provider) async {

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/session_repository.dart';
 import '../../utils/device_id.dart';
 import '../../utils/uuid_helper.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class CancellationScreen extends StatefulWidget {
   final AppDatabase database;

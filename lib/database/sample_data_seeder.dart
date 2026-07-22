@@ -4,6 +4,7 @@ import '../repositories/subject_group_repository.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/enrollment_repository.dart';
 import '../database/app_database.dart';
+import 'package:drift/drift.dart';
 
 class SampleDataSeeder {
   static Future<void> seed(AppDatabase db) async {

@@ -3,6 +3,7 @@ import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
 import '../../utils/uuid_helper.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class StudentFormScreen extends StatefulWidget {
   final AppDatabase database;

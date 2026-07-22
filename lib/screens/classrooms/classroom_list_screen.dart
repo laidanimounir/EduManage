@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/classroom_repository.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class ClassroomListScreen extends StatefulWidget {
   final AppDatabase database;

@@ -7,6 +7,7 @@ import '../../repositories/attendance_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/transaction_service.dart';
 import '../../repositories/audit_log_repository.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class CheckinScreen extends StatefulWidget {
   final AppDatabase database;

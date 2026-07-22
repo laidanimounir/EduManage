@@ -5,6 +5,7 @@ import '../../repositories/teacher_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/attendance_repository.dart';
 import '../../repositories/transaction_service.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class TeacherCheckinScreen extends StatefulWidget {
   final AppDatabase database;
@@ -102,7 +103,6 @@ class _TeacherCheckinScreenState extends State<TeacherCheckinScreen> {
       ..where((t) =>
           t.sessionId.equals(sessionId) &
           t.teacherId.equals(teacherId) &
-          t.personType.equals('teacher') &
           t.attendanceDate.isBiggerOrEqualValue(dateStart) &
           t.attendanceDate.isSmallerThanValue(dateEnd)))
         .get();

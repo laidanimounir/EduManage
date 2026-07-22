@@ -1,5 +1,6 @@
 import '../database/app_database.dart';
 import 'base_repository.dart';
+import 'package:drift/drift.dart';
 
 class SettingsRepository extends BaseRepository {
   SettingsRepository(super.db);

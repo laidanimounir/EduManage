@@ -6,6 +6,7 @@ import '../../repositories/teacher_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/classroom_repository.dart';
 import '../../utils/date_helper.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class SessionListScreen extends StatefulWidget {
   final AppDatabase database;

@@ -5,6 +5,7 @@ import '../../repositories/student_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/transaction_repository.dart';
 import 'student_form_screen.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class StudentDetailScreen extends StatefulWidget {
   final AppDatabase database;

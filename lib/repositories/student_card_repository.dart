@@ -2,6 +2,7 @@ import '../database/app_database.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
 import 'base_repository.dart';
+import 'package:drift/drift.dart';
 
 class StudentCardRepository extends BaseRepository {
   StudentCardRepository(super.db);

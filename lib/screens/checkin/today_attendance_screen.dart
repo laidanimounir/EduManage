@@ -18,9 +18,9 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
   late final SessionRepository _sessionRepo;
   late final EnrollmentRepository _enrollmentRepo;
   late final StudentRepository _studentRepo;
-  List<Attendance> _attendances = [];
+  List<AttendanceData> _attendances = [];
   List<Session> _activeSessions = [];
-  Map<String, List<Attendance>> _attendanceBySession = {};
+  Map<String, List<AttendanceData>> _attendanceBySession = {};
   Map<String, List<Enrollment>> _enrollmentsByGroup = {};
   Map<String, Student> _studentCache = {};
   bool _loading = true;
