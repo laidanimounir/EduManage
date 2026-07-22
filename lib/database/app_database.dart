@@ -68,8 +68,24 @@ class Classrooms extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class SubjectGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get nameAr => text()();
+  TextColumn get nameFr => text().nullable()();
+  TextColumn get subjectAr => text()();
+  TextColumn get subjectFr => text().nullable()();
+  TextColumn get schoolLevel => text()();
+  TextColumn get description => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms],
+  tables: [Students, Teachers, Classrooms, SubjectGroups],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
