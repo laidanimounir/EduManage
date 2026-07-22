@@ -122,8 +122,21 @@ class Enrollments extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Cancellations extends Table {
+  TextColumn get id => text()();
+  TextColumn get sessionId => text().references(Sessions, #id)();
+  DateTimeColumn get cancelDate => dateTime()();
+  TextColumn get reason => text().nullable()();
+  TextColumn get cancelledByUserId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
