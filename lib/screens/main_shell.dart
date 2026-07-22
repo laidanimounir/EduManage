@@ -35,48 +35,52 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
+  bool _initialized = false;
 
-  late final List<NavigationRailDestination> _destinations;
-  late final List<Widget> _screens;
+  late List<NavigationRailDestination> _destinations;
+  late List<Widget> _screens;
 
   @override
-  void initState() {
-    super.initState();
-    final l10n = AppLocalizations.of(context);
-    _destinations = [
-      NavigationRailDestination(icon: const Icon(Icons.dashboard), label: Text(_shortLabel(l10n.dashboard))),
-      NavigationRailDestination(icon: const Icon(Icons.login), label: Text(_shortLabel(l10n.checkIn))),
-      NavigationRailDestination(icon: const Icon(Icons.people), label: Text(_shortLabel(l10n.students))),
-      NavigationRailDestination(icon: const Icon(Icons.school), label: Text(_shortLabel(l10n.teachers))),
-      NavigationRailDestination(icon: const Icon(Icons.schedule), label: Text(_shortLabel(l10n.sessions))),
-      NavigationRailDestination(icon: const Icon(Icons.group_work), label: Text(_shortLabel(l10n.groups))),
-      NavigationRailDestination(icon: const Icon(Icons.meeting_room), label: Text(_shortLabel(l10n.classrooms))),
-      NavigationRailDestination(icon: const Icon(Icons.assignment), label: Text(_shortLabel(l10n.enrollments))),
-      NavigationRailDestination(icon: const Icon(Icons.payment), label: Text(_shortLabel(l10n.payments))),
-      NavigationRailDestination(icon: const Icon(Icons.bar_chart), label: Text(_shortLabel(l10n.reports))),
-      NavigationRailDestination(icon: const Icon(Icons.credit_card), label: Text(_shortLabel(l10n.cards))),
-      NavigationRailDestination(icon: const Icon(Icons.history), label: Text(_shortLabel(l10n.auditLog))),
-      if (widget.userRole == 'admin')
-        NavigationRailDestination(icon: const Icon(Icons.admin_panel_settings), label: Text(_shortLabel(l10n.users))),
-      NavigationRailDestination(icon: const Icon(Icons.settings), label: Text(_shortLabel(l10n.settings))),
-    ];
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final l10n = AppLocalizations.of(context);
+      _destinations = [
+        NavigationRailDestination(icon: const Icon(Icons.dashboard), label: Text(_shortLabel(l10n.dashboard))),
+        NavigationRailDestination(icon: const Icon(Icons.login), label: Text(_shortLabel(l10n.checkIn))),
+        NavigationRailDestination(icon: const Icon(Icons.people), label: Text(_shortLabel(l10n.students))),
+        NavigationRailDestination(icon: const Icon(Icons.school), label: Text(_shortLabel(l10n.teachers))),
+        NavigationRailDestination(icon: const Icon(Icons.schedule), label: Text(_shortLabel(l10n.sessions))),
+        NavigationRailDestination(icon: const Icon(Icons.group_work), label: Text(_shortLabel(l10n.groups))),
+        NavigationRailDestination(icon: const Icon(Icons.meeting_room), label: Text(_shortLabel(l10n.classrooms))),
+        NavigationRailDestination(icon: const Icon(Icons.assignment), label: Text(_shortLabel(l10n.enrollments))),
+        NavigationRailDestination(icon: const Icon(Icons.payment), label: Text(_shortLabel(l10n.payments))),
+        NavigationRailDestination(icon: const Icon(Icons.bar_chart), label: Text(_shortLabel(l10n.reports))),
+        NavigationRailDestination(icon: const Icon(Icons.credit_card), label: Text(_shortLabel(l10n.cards))),
+        NavigationRailDestination(icon: const Icon(Icons.history), label: Text(_shortLabel(l10n.auditLog))),
+        if (widget.userRole == 'admin')
+          NavigationRailDestination(icon: const Icon(Icons.admin_panel_settings), label: Text(_shortLabel(l10n.users))),
+        NavigationRailDestination(icon: const Icon(Icons.settings), label: Text(_shortLabel(l10n.settings))),
+      ];
 
-    _screens = [
-      DashboardScreen(database: widget.database),
-      CheckinScreen(database: widget.database, currentUserId: widget.userId),
-      StudentListScreen(database: widget.database),
-      TeacherListScreen(database: widget.database),
-      SessionListScreen(database: widget.database),
-      SubjectGroupListScreen(database: widget.database),
-      ClassroomListScreen(database: widget.database),
-      EnrollmentScreen(database: widget.database),
-      PaymentScreen(database: widget.database),
-      ProfitReportScreen(database: widget.database),
-      StudentCardScreen(database: widget.database),
-      AuditLogScreen(database: widget.database),
-      if (widget.userRole == 'admin') UserManagementScreen(database: widget.database),
-      SettingsScreen(database: widget.database),
-    ];
+      _screens = [
+        DashboardScreen(database: widget.database),
+        CheckinScreen(database: widget.database, currentUserId: widget.userId),
+        StudentListScreen(database: widget.database),
+        TeacherListScreen(database: widget.database),
+        SessionListScreen(database: widget.database),
+        SubjectGroupListScreen(database: widget.database),
+        ClassroomListScreen(database: widget.database),
+        EnrollmentScreen(database: widget.database),
+        PaymentScreen(database: widget.database),
+        ProfitReportScreen(database: widget.database),
+        StudentCardScreen(database: widget.database),
+        AuditLogScreen(database: widget.database),
+        if (widget.userRole == 'admin') UserManagementScreen(database: widget.database),
+        SettingsScreen(database: widget.database),
+      ];
+    }
   }
 
   String _shortLabel(String label) {
