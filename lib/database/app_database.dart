@@ -135,8 +135,27 @@ class Cancellations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Transactions extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().nullable().references(Students, #id)();
+  TextColumn get teacherId => text().nullable().references(Teachers, #id)();
+  TextColumn get enrollmentId => text().nullable().references(Enrollments, #id)();
+  TextColumn get sessionId => text().nullable().references(Sessions, #id)();
+  TextColumn get type => text()();
+  RealColumn get amount => real()();
+  DateTimeColumn get transactionDate => dateTime()();
+  TextColumn get note => text().nullable()();
+  TextColumn get createdByUserId => text().nullable()();
+  TextColumn get deviceId => text()();
+  TextColumn get referenceTransactionId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
