@@ -188,8 +188,46 @@ class Users extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class AuditLog extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text().references(Users, #id)();
+  TextColumn get action => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text().nullable()();
+  TextColumn get details => text().nullable()();
+  DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class StudentCards extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().references(Students, #id)();
+  TextColumn get secureToken => text().unique()();
+  TextColumn get barcodeContent => text()();
+  DateTimeColumn get issuedDate => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get revokedDate => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
