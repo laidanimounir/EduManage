@@ -7,8 +7,30 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 part 'app_database.g.dart';
 
+class Students extends Table {
+  TextColumn get id => text()();
+  TextColumn get code => text().unique()();
+  TextColumn get firstNameAr => text()();
+  TextColumn get lastNameAr => text()();
+  TextColumn get firstNameFr => text().nullable()();
+  TextColumn get lastNameFr => text().nullable()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+  TextColumn get gender => text().nullable()();
+  DateTimeColumn get birthDate => dateTime().nullable()();
+  TextColumn get birthPlace => text().nullable()();
+  DateTimeColumn get registrationDate => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [],
+  tables: [Students],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
