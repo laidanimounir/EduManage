@@ -791,4 +791,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get recordPayment => 'تسجيل دفعة';
+
+  @override
+  String get notEnrolled => 'غير مسجل';
 }

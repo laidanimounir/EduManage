@@ -792,4 +792,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recordPayment => 'Record Payment';
+
+  @override
+  String get notEnrolled => 'Not Enrolled';
 }

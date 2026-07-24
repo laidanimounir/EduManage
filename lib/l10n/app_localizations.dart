@@ -1665,6 +1665,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Record Payment'**
   String get recordPayment;
+
+  /// No description provided for @notEnrolled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Enrolled'**
+  String get notEnrolled;
 }
 
 class _AppLocalizationsDelegate

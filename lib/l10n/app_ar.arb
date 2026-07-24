@@ -260,5 +260,6 @@
   "teacherNotFound": "المدرس غير موجود",
   "upcomingCancellations": "الإلغاءات القادمة",
   "totalCharged": "المجموع المحتسب",
-  "recordPayment": "تسجيل دفعة"
+  "recordPayment": "تسجيل دفعة",
+  "notEnrolled": "غير مسجل"
 }

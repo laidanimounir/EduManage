@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
-import '../../utils/uuid_helper.dart';
+import '../../repositories/subject_group_repository.dart';
+import '../../repositories/enrollment_repository.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class StudentFormScreen extends StatefulWidget {
@@ -36,11 +37,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   DateTime _registrationDate = DateTime.now();
   bool _isEdit = false;
   bool _saving = false;
+  List<SubjectGroup> _groups = [];
+  String? _selectedGroupId;
 
   @override
   void initState() {
     super.initState();
     _repo = StudentRepository(widget.database);
+    SubjectGroupRepository(widget.database).getAll().then((g) => setState(() => _groups = g));
     if (widget.studentId != null) {
       _isEdit = true;
       _loadStudent();
@@ -99,7 +103,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       if (_isEdit) {
         await _repo.update(widget.studentId!, companion);
       } else {
-        await _repo.create(companion);
+        final studentId = await _repo.create(companion);
+        if (_selectedGroupId != null) {
+          await EnrollmentRepository(widget.database).create(EnrollmentsCompanion(
+            studentId: Value(studentId),
+            subjectGroupId: Value(_selectedGroupId!),
+            status: const Value('active'),
+          ));
+        }
       }
 
       if (mounted) Navigator.pop(context, true);
@@ -213,6 +224,19 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     value: 'graduated', child: Text(l10n.graduated)),
               ],
               onChanged: (v) => setState(() => _status = v!),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedGroupId,
+              decoration: InputDecoration(
+                labelText: l10n.groups,
+                helperText: _selectedGroupId == null ? l10n.enrollStudent : null,
+              ),
+              items: _groups.map((g) => DropdownMenuItem(
+                value: g.id,
+                child: Text(g.nameAr),
+              )).toList(),
+              onChanged: (v) => setState(() => _selectedGroupId = v),
             ),
             const SizedBox(height: 24),
             ElevatedButton(

@@ -260,5 +260,6 @@
   "teacherNotFound": "Enseignant introuvable",
   "upcomingCancellations": "Annulations à venir",
   "totalCharged": "Total facturé",
-  "recordPayment": "Enregistrer un paiement"
+  "recordPayment": "Enregistrer un paiement",
+  "notEnrolled": "Non inscrit"
 }

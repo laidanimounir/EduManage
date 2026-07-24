@@ -793,4 +793,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get recordPayment => 'Enregistrer un paiement';
+
+  @override
+  String get notEnrolled => 'Non inscrit';
 }

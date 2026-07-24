@@ -260,5 +260,6 @@
   "teacherNotFound": "Teacher Not Found",
   "upcomingCancellations": "Upcoming Cancellations",
   "totalCharged": "Total Charged",
-  "recordPayment": "Record Payment"
+  "recordPayment": "Record Payment",
+  "notEnrolled": "Not Enrolled"
 }
