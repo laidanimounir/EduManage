@@ -126,5 +126,11 @@ class SampleDataSeeder {
       subjectGroupId: Value(g2Id),
       status: const Value('active'),
     ));
+
+    await enrollingRepo.create(EnrollmentsCompanion(
+      studentId: Value(s3Id),
+      subjectGroupId: Value(g2Id),
+      status: const Value('active'),
+    ));
   }
 }
