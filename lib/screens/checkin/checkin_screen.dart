@@ -7,6 +7,9 @@ import '../../repositories/attendance_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/transaction_service.dart';
 import '../../repositories/audit_log_repository.dart';
+import '../../repositories/subject_group_repository.dart';
+import '../../repositories/teacher_repository.dart';
+import '../../repositories/classroom_repository.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class CheckinScreen extends StatefulWidget {
@@ -27,7 +30,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
   String _feedbackMessage = '';
   Color _feedbackColor = Colors.grey;
   bool _processing = false;
-  List<Session> _ambiguousSessions = [];
+  List<_AmbiguousSession> _ambiguousSessions = [];
   Student? _scannedStudent;
 
   @override
@@ -56,7 +59,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         _showFeedback(l10n.noActiveSession, Colors.orange); return;
       }
       if (sessions.length > 1) {
-        setState(() { _ambiguousSessions = sessions; _feedbackMessage = l10n.multipleSessionsFound; _feedbackColor = Colors.orange; });
+        await _showAmbiguousSessions(sessions);
         return;
       }
       await _completeCheckin(student, sessions.first, 'barcode');
@@ -113,7 +116,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _scannedStudent = students.first;
       final sessions = await _sessionRepo.getActiveSessionsForStudent(_scannedStudent!.id, DateTime.now());
       if (sessions.isEmpty) { _showFeedback(l10n.noActiveSession, Colors.orange); return; }
-      setState(() { _ambiguousSessions = sessions; _feedbackMessage = l10n.selectSession; _feedbackColor = Colors.blue; });
+      await _showAmbiguousSessions(sessions);
     } else {
       final selected = await showDialog<Student>(context: context, builder: (ctx) => AlertDialog(
         title: Text(l10n.selectSession),
@@ -127,12 +130,36 @@ class _CheckinScreenState extends State<CheckinScreen> {
         _scannedStudent = selected;
         final sessions = await _sessionRepo.getActiveSessionsForStudent(_scannedStudent!.id, DateTime.now());
         if (sessions.isEmpty) { _showFeedback(l10n.noActiveSession, Colors.orange); return; }
-        setState(() { _ambiguousSessions = sessions; _feedbackMessage = l10n.selectSession; _feedbackColor = Colors.blue; });
+        await _showAmbiguousSessions(sessions);
       }
     }
   }
 
   void _showFeedback(String msg, Color color) { setState(() { _feedbackMessage = msg; _feedbackColor = color; }); Future.delayed(const Duration(seconds: 5), () { if (mounted) setState(() => _feedbackMessage = ''); }); }
+
+  Future<void> _showAmbiguousSessions(List<Session> sessions) async {
+    final subjectGroupRepo = SubjectGroupRepository(widget.database);
+    final teacherRepo = TeacherRepository(widget.database);
+    final classroomRepo = ClassroomRepository(widget.database);
+    final enriched = <_AmbiguousSession>[];
+    for (final s in sessions) {
+      final group = await subjectGroupRepo.getById(s.subjectGroupId);
+      final teacher = await teacherRepo.getById(s.teacherId);
+      final classroom = s.classroomId.isNotEmpty ? await classroomRepo.getById(s.classroomId) : null;
+      enriched.add(_AmbiguousSession(
+        session: s,
+        subjectGroupName: group?.nameAr ?? s.subjectGroupId,
+        teacherName: teacher != null ? '${teacher.firstNameAr} ${teacher.lastNameAr}' : s.teacherId,
+        classroomName: classroom?.nameAr ?? '',
+      ));
+    }
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _ambiguousSessions = enriched;
+      _feedbackMessage = l10n.multipleSessionsFound;
+      _feedbackColor = Colors.orange;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,10 +183,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
             if (_ambiguousSessions.isNotEmpty && _scannedStudent != null) ...[
               const SizedBox(height: 12),
               Text(l10n.selectSession, style: const TextStyle(fontWeight: FontWeight.bold)),
-              ..._ambiguousSessions.map((s) => ListTile(
-                title: Text('${s.id}'), subtitle: Text('${s.startTime.hour}:${s.startTime.minute} - ${s.endTime.hour}:${s.endTime.minute}'),
-                onTap: () => _completeCheckin(_scannedStudent!, s, 'barcode'),
-              )),
+              ..._ambiguousSessions.map((a) {
+                final s = a.session;
+                final hh = (d) => d.toString().padLeft(2, '0');
+                return ListTile(
+                  title: Text('${a.subjectGroupName} - ${a.teacherName}'),
+                  subtitle: Text(
+                    '${hh(s.startTime.hour)}:${hh(s.startTime.minute)} - ${hh(s.endTime.hour)}:${hh(s.endTime.minute)}${a.classroomName.isNotEmpty ? ' | ${a.classroomName}' : ''}',
+                  ),
+                  onTap: () => _completeCheckin(_scannedStudent!, s, 'barcode'),
+                );
+              }),
             ],
           ]),
         ),
@@ -171,4 +205,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
       ]),
     );
   }
+}
+
+class _AmbiguousSession {
+  final Session session;
+  final String subjectGroupName;
+  final String teacherName;
+  final String classroomName;
+  const _AmbiguousSession({
+    required this.session,
+    required this.subjectGroupName,
+    required this.teacherName,
+    required this.classroomName,
+  });
 }
