@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
+import '../../repositories/enrollment_repository.dart';
 import 'student_form_screen.dart';
 import 'student_detail_screen.dart';
 
@@ -21,6 +22,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
   String _searchQuery = '';
   String _statusFilter = 'all';
   bool _loading = true;
+  Set<String> _enrolledStudentIds = {};
 
   @override
   void initState() {
@@ -32,8 +34,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
   Future<void> _loadStudents() async {
     setState(() => _loading = true);
     final students = await _repo.getAll();
+    final enrollments = await EnrollmentRepository(widget.database).getAll();
+    final enrolledIds = enrollments
+        .where((e) => e.status == 'active')
+        .map((e) => e.studentId)
+        .toSet();
     setState(() {
       _students = students;
+      _enrolledStudentIds = enrolledIds;
       _loading = false;
     });
     _applyFilters();
@@ -119,12 +127,33 @@ class _StudentListScreenState extends State<StudentListScreen> {
                         itemCount: _filtered.length,
                         itemBuilder: (ctx, i) {
                           final s = _filtered[i];
+                          final isEnrolled = _enrolledStudentIds.contains(s.id);
                           return ListTile(
                             leading: CircleAvatar(
                               child: Text(s.firstNameAr[0]),
                             ),
-                            title: Text(
-                              '${s.firstNameAr} ${s.lastNameAr}',
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${s.firstNameAr} ${s.lastNameAr}',
+                                  ),
+                                ),
+                                if (!isEnrolled)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade100,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Colors.orange.shade300),
+                                    ),
+                                    child: Text(
+                                      l10n.notEnrolled,
+                                      style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                              ],
                             ),
                             subtitle: Text(
                               '${l10n.code}: ${s.code}  |  ${l10n.status}: ${_statusLabel(s.status, l10n)}',
