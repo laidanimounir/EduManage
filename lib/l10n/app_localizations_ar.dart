@@ -785,4 +785,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get upcomingCancellations => 'الإلغاءات القادمة';
+
+  @override
+  String get totalCharged => 'المجموع المحتسب';
+
+  @override
+  String get recordPayment => 'تسجيل دفعة';
 }

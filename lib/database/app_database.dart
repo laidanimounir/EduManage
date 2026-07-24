@@ -273,6 +273,24 @@ class AppDatabase extends _$AppDatabase {
     return query.map((row) => row.read<double>('balance')).getSingle();
   }
 
+  Future<double> getStudentTotalCharged(String studentId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total '
+      'FROM transactions WHERE student_id = ? AND type IN (\'session_charge\', \'correction\')',
+      variables: [Variable.withString(studentId)],
+    );
+    return query.map((row) => row.read<double>('total')).getSingle();
+  }
+
+  Future<double> getStudentTotalPaid(String studentId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total '
+      'FROM transactions WHERE student_id = ? AND type IN (\'student_payment\', \'discount\', \'reversal\')',
+      variables: [Variable.withString(studentId)],
+    );
+    return query.map((row) => row.read<double>('total')).getSingle();
+  }
+
   Future<double> getTeacherPayoutBalance(String teacherId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '

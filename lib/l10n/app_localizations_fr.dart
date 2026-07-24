@@ -787,4 +787,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get upcomingCancellations => 'Annulations à venir';
+
+  @override
+  String get totalCharged => 'Total facturé';
+
+  @override
+  String get recordPayment => 'Enregistrer un paiement';
 }

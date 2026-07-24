@@ -258,5 +258,7 @@
   "teacherCheckin": "Teacher Check-in",
   "teacherCheckinSuccess": "Teacher Check-in Successful",
   "teacherNotFound": "Teacher Not Found",
-  "upcomingCancellations": "Upcoming Cancellations"
+  "upcomingCancellations": "Upcoming Cancellations",
+  "totalCharged": "Total Charged",
+  "recordPayment": "Record Payment"
 }

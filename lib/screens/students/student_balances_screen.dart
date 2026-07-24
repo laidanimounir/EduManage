@@ -3,6 +3,7 @@ import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
 import '../../constants/app_constants.dart';
+import '../payments/unified_payment_screen.dart';
 
 class StudentBalancesScreen extends StatefulWidget {
   final AppDatabase database;
@@ -116,6 +117,14 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
                             color: owing ? Colors.red : Colors.green,
                           ),
                         ),
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => UnifiedPaymentScreen(
+                              database: widget.database,
+                              initialStudentCode: e.student.code,
+                            ),
+                          ));
+                        },
                       ),
                     );
                   },

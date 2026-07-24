@@ -786,4 +786,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upcomingCancellations => 'Upcoming Cancellations';
+
+  @override
+  String get totalCharged => 'Total Charged';
+
+  @override
+  String get recordPayment => 'Record Payment';
 }

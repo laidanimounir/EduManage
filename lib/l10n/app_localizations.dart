@@ -1653,6 +1653,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upcoming Cancellations'**
   String get upcomingCancellations;
+
+  /// No description provided for @totalCharged.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Charged'**
+  String get totalCharged;
+
+  /// No description provided for @recordPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Payment'**
+  String get recordPayment;
 }
 
 class _AppLocalizationsDelegate

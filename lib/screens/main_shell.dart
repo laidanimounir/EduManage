@@ -9,7 +9,7 @@ import 'teachers/teacher_list_screen.dart';
 import 'sessions/session_list_screen.dart';
 import 'groups/subject_group_list_screen.dart';
 import 'classrooms/classroom_list_screen.dart';
-import 'payments/payment_screen.dart';
+import 'payments/unified_payment_screen.dart';
 import 'reports/profit_report_screen.dart';
 import 'cards/student_card_screen.dart';
 import 'audit/audit_log_screen.dart';
@@ -79,7 +79,7 @@ class _MainShellState extends State<MainShell> {
         SubjectGroupListScreen(database: widget.database),
         ClassroomListScreen(database: widget.database),
         EnrollmentScreen(database: widget.database),
-        PaymentScreen(database: widget.database),
+        UnifiedPaymentScreen(database: widget.database),
         StudentBalancesScreen(database: widget.database),
         ProfitReportScreen(database: widget.database),
         StudentCardScreen(database: widget.database),

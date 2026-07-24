@@ -258,5 +258,7 @@
   "teacherCheckin": "تسجيل المدرس",
   "teacherCheckinSuccess": "تم تسجيل المدرس بنجاح",
   "teacherNotFound": "المدرس غير موجود",
-  "upcomingCancellations": "الإلغاءات القادمة"
+  "upcomingCancellations": "الإلغاءات القادمة",
+  "totalCharged": "المجموع المحتسب",
+  "recordPayment": "تسجيل دفعة"
 }

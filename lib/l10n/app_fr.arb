@@ -258,5 +258,7 @@
   "teacherCheckin": "Pointage enseignant",
   "teacherCheckinSuccess": "Pointage enseignant réussi",
   "teacherNotFound": "Enseignant introuvable",
-  "upcomingCancellations": "Annulations à venir"
+  "upcomingCancellations": "Annulations à venir",
+  "totalCharged": "Total facturé",
+  "recordPayment": "Enregistrer un paiement"
 }
