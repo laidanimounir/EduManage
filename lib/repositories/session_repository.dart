@@ -32,8 +32,7 @@ class SessionRepository extends BaseRepository {
   }
 
   Future<List<Session>> getActiveAtTime(DateTime time) async {
-    final now = DateTime.now();
-    final dayOfWeek = now.weekday;
+    final dayOfWeek = time.weekday;
     final allActive = await (db.select(db.sessions)
       ..where((t) => t.dayOfWeek.equals(dayOfWeek) & t.isActive.equals(true)))
         .get();
