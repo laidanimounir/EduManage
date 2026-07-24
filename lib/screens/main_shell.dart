@@ -37,6 +37,7 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   bool _initialized = false;
   bool _sidebarHovered = false;
+  final Map<int, int> _visitCounters = {};
 
   late List<_NavItem> _items;
   late List<Widget> _screens;
@@ -139,7 +140,10 @@ class _MainShellState extends State<MainShell> {
                           selected: selected,
                           expanded: _sidebarHovered,
                           isRtl: isRtl,
-                          onTap: () => setState(() => _selectedIndex = i),
+                          onTap: () => setState(() {
+                            _selectedIndex = i;
+                            _visitCounters[i] = (_visitCounters[i] ?? 0) + 1;
+                          }),
                         );
                       }),
                     ),
@@ -152,7 +156,10 @@ class _MainShellState extends State<MainShell> {
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
-              children: _screens,
+              children: List.generate(_screens.length, (i) => KeyedSubtree(
+                key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
+                child: _screens[i],
+              )),
             ),
           ),
         ],
