@@ -31,7 +31,14 @@ class _CheckinScreenState extends State<CheckinScreen> {
   Student? _scannedStudent;
 
   @override
-  void initState() { super.initState(); _studentRepo = StudentRepository(widget.database); _sessionRepo = SessionRepository(widget.database); _attendanceRepo = AttendanceRepository(widget.database); _txService = TransactionService(widget.database); _auditRepo = AuditLogRepository(widget.database); }
+  void initState() {
+    super.initState();
+    _studentRepo = StudentRepository(widget.database);
+    _sessionRepo = SessionRepository(widget.database);
+    _attendanceRepo = AttendanceRepository(widget.database);
+    _txService = TransactionService(widget.database);
+    _auditRepo = AuditLogRepository(widget.database);
+  }
 
   Future<void> _processBarcode(String code) async {
     final l10n = AppLocalizations.of(context);
