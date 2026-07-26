@@ -137,11 +137,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           initialValue: _registrationFeeAmount.toStringAsFixed(0),
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(isDense: true),
-                          onFieldSubmitted: (v) async {
+                          onChanged: (v) async {
                             final amount = double.tryParse(v) ?? 2000.0;
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setDouble('registration_fee_amount', amount);
-                            setState(() => _registrationFeeAmount = amount);
+                            if (amount > 0) {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setDouble('registration_fee_amount', amount);
+                              setState(() => _registrationFeeAmount = amount);
+                            }
                           },
                         ),
                       ),

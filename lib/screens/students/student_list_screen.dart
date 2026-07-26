@@ -488,13 +488,13 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
     return Table(
       columnWidths: const {
-        0: FlexColumnWidth(2),
+        0: FixedColumnWidth(44),
         1: FlexColumnWidth(2),
-        2: FlexColumnWidth(1.5),
-        3: FlexColumnWidth(1),
-        4: FlexColumnWidth(1.2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(1.5),
+        4: FlexColumnWidth(1),
         5: FlexColumnWidth(1.2),
-        6: FlexColumnWidth(1),
+        6: FlexColumnWidth(1.2),
         7: IntrinsicColumnWidth(),
       },
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -597,9 +597,9 @@ class _StudentListScreenState extends State<StudentListScreen> {
       decoration: BoxDecoration(
         color: isSelected
             ? ShellTokens.accentMuted.withValues(alpha: 0.3)
-            : !isEnrolled
-                ? const Color(0xFF2B2416).withValues(alpha: 0.4)
-                : isEven
+      : !isEnrolled
+          ? SemanticTokens.error.withValues(alpha: 0.08)
+          : isEven
                     ? Colors.transparent
                     : ShellTokens.chromeBase.withValues(alpha: 0.3),
       ),
@@ -611,22 +611,27 @@ class _StudentListScreenState extends State<StudentListScreen> {
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildTextCell('${s.lastNameAr}\n${s.lastNameFr ?? ''}'),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildTextCell(s.address ?? '—'),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildTextCell(_levelLabel(s.schoolLevel, l10n)),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildStatusCell(s, l10n),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildTextCell(_formatDate(s.registrationDate)),
         ),
         _buildActionsCell(s),
@@ -646,7 +651,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         child: Container(
           width: 14,
           height: 14,
@@ -1262,6 +1267,9 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       _status = s.status;
       _schoolLevel = s.schoolLevel;
       _birthDate = s.birthDate;
+      if (s.photoPath != null) {
+        _photo = File(s.photoPath!);
+      }
     } else {
       _repo.generateCode().then((c) { if (mounted) _codeCtrl.text = c; });
     }
@@ -1309,7 +1317,11 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       if (_isEdit) {
         await _repo.update(widget.student!.id, entry);
       } else {
-        await _repo.create(entry);
+        final newId = await _repo.create(entry);
+        final prefs = await SharedPreferences.getInstance();
+        final feeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+        final txService = TransactionService(widget.database);
+        await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
       }
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
