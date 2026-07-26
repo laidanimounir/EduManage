@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../constants/phosphor_icons.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/theme_tokens.dart';
@@ -105,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.totalStudents,
                           _totalStudents.toString(),
-                          PhosphorIconsRegular.users,
+                          PhosphorIcons.users,
                           ShellTokens.accent,
                         ),
                       ),
@@ -114,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.totalTeachers,
                           _totalTeachers.toString(),
-                          PhosphorIconsRegular.chalkboardTeacher,
+                          PhosphorIcons.chalkboardTeacher,
                           const Color(0xFF5B8C5A),
                         ),
                       ),
@@ -127,7 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.todaySessions,
                           _todaySessions.toString(),
-                          PhosphorIconsRegular.clock,
+                          PhosphorIcons.clock,
                           const Color(0xFFC2823A),
                         ),
                       ),
@@ -136,7 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.todayAttendance,
                           _todayAttendance.toString(),
-                          PhosphorIconsRegular.checkCircle,
+                          PhosphorIcons.checkCircle,
                           const Color(0xFF4B8B4A),
                         ),
                       ),
@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.monthlyRevenue,
                           '${_monthlyRevenue.toStringAsFixed(0)} DA',
-                          PhosphorIconsRegular.trendUp,
+                          PhosphorIcons.trendUp,
                           const Color(0xFF5B8C5A),
                         ),
                       ),
@@ -158,7 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.outstandingDebts,
                           '${_outstandingDebts.toStringAsFixed(0)} DA',
-                          PhosphorIconsRegular.warning,
+                          PhosphorIcons.warning,
                           const Color(0xFFC2483D),
                         ),
                       ),

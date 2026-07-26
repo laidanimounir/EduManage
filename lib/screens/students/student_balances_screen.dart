@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../constants/phosphor_icons.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/theme_tokens.dart';
@@ -71,7 +71,7 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
           ? const AppLoading()
           : _entries.isEmpty
               ? AppEmptyState(
-                  icon: PhosphorIconsRegular.wallet,
+                  icon: PhosphorIcons.wallet,
                   message: l10n.noData,
                 )
               : ListView.builder(
@@ -87,8 +87,8 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
                           backgroundColor: ShellTokens.chromeBase,
                           child: Icon(
                             owing
-                                ? PhosphorIconsRegular.warning
-                                : PhosphorIconsRegular.checkCircle,
+                                ? PhosphorIcons.warning
+                                : PhosphorIcons.checkCircle,
                             size: 18,
                             color: owing
                                 ? SemanticTokens.error

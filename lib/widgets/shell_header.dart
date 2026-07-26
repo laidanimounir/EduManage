@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart' show PhosphorIconsRegular;
+import '../constants/phosphor_icons.dart';
 import '../constants/theme_tokens.dart';
 import '../l10n/app_localizations.dart';
 
@@ -45,8 +45,8 @@ class ShellHeader extends StatelessWidget {
           if (canPop)
             _HeaderIconButton(
               icon: isRtl
-                  ? PhosphorIconsRegular.arrowRight
-                  : PhosphorIconsRegular.arrowLeft,
+                  ? PhosphorIcons.arrowRight
+                  : PhosphorIcons.arrowLeft,
               tooltip: l10n.back,
               onTap: () => Navigator.of(context).pop(),
             ),
@@ -62,7 +62,7 @@ class ShellHeader extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           _HeaderIconButton(
-            icon: PhosphorIconsRegular.magnifyingGlass,
+            icon: PhosphorIcons.magnifyingGlass,
             tooltip: '${l10n.quickFind} (Ctrl+K)',
             onTap: onQuickFind,
           ),
@@ -85,7 +85,7 @@ class ShellHeader extends StatelessWidget {
           _UserBlock(userId: userId, userRole: userRole),
           const SizedBox(width: 4),
           _HeaderIconButton(
-            icon: PhosphorIconsRegular.signOut,
+            icon: PhosphorIcons.signOut,
             tooltip: l10n.logout,
             onTap: onLogout,
           ),

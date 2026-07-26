@@ -24,7 +24,6 @@ dependencies:
   qr_flutter: ^4.1.0
   shared_preferences: ^2.3.0
   crypto: ^3.0.3
-  phosphor_flutter: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -36,3 +35,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  fonts:
+    - family: Phosphor
+      fonts:
+        - asset: assets/fonts/Phosphor.ttf

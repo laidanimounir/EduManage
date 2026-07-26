@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart' show PhosphorIconsRegular;
+import '../constants/phosphor_icons.dart';
 import '../constants/theme_tokens.dart';
 import '../database/app_database.dart';
 import '../l10n/app_localizations.dart';
@@ -59,22 +59,22 @@ class _MainShellState extends State<MainShell> {
       _initialized = true;
       final l10n = AppLocalizations.of(context);
       _items = [
-        _NavItem(PhosphorIconsRegular.squaresFour, l10n.dashboard),
-        _NavItem(PhosphorIconsRegular.signIn, l10n.checkIn),
-        _NavItem(PhosphorIconsRegular.users, l10n.students),
-        _NavItem(PhosphorIconsRegular.chalkboardTeacher, l10n.teachers),
-        _NavItem(PhosphorIconsRegular.clock, l10n.sessions),
-        _NavItem(PhosphorIconsRegular.usersThree, l10n.groups),
-        _NavItem(PhosphorIconsRegular.building, l10n.classrooms),
-        _NavItem(PhosphorIconsRegular.notebook, l10n.enrollments),
-        _NavItem(PhosphorIconsRegular.currencyCircleDollar, l10n.payments),
-        _NavItem(PhosphorIconsRegular.wallet, l10n.outstandingDebts),
-        _NavItem(PhosphorIconsRegular.chartBar, l10n.reports),
-        _NavItem(PhosphorIconsRegular.identificationCard, l10n.cards),
-        _NavItem(PhosphorIconsRegular.scroll, l10n.auditLog),
+        _NavItem(PhosphorIcons.squaresFour, l10n.dashboard),
+        _NavItem(PhosphorIcons.signIn, l10n.checkIn),
+        _NavItem(PhosphorIcons.users, l10n.students),
+        _NavItem(PhosphorIcons.chalkboardTeacher, l10n.teachers),
+        _NavItem(PhosphorIcons.clock, l10n.sessions),
+        _NavItem(PhosphorIcons.usersThree, l10n.groups),
+        _NavItem(PhosphorIcons.building, l10n.classrooms),
+        _NavItem(PhosphorIcons.notebook, l10n.enrollments),
+        _NavItem(PhosphorIcons.currencyCircleDollar, l10n.payments),
+        _NavItem(PhosphorIcons.wallet, l10n.outstandingDebts),
+        _NavItem(PhosphorIcons.chartBar, l10n.reports),
+        _NavItem(PhosphorIcons.identificationCard, l10n.cards),
+        _NavItem(PhosphorIcons.scroll, l10n.auditLog),
         if (widget.userRole == 'admin')
-          _NavItem(PhosphorIconsRegular.userCircleGear, l10n.users),
-        _NavItem(PhosphorIconsRegular.gear, l10n.settings),
+          _NavItem(PhosphorIcons.userCircleGear, l10n.users),
+        _NavItem(PhosphorIcons.gear, l10n.settings),
       ];
 
       _screens = [
@@ -176,7 +176,7 @@ class _MainShellState extends State<MainShell> {
                       children: [
                         const SizedBox(height: 12),
                         Icon(
-                          PhosphorIconsRegular.graduationCap,
+                          PhosphorIcons.graduationCap,
                           color: ShellTokens.textPrimary,
                           size: 24,
                         ),
@@ -419,8 +419,8 @@ class _PinToggle extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             child: Icon(
               pinned
-                  ? PhosphorIconsRegular.pushPinSimpleSlash
-                  : PhosphorIconsRegular.pushPinSimple,
+                  ? PhosphorIcons.pushPinSimpleSlash
+                  : PhosphorIcons.pushPinSimple,
               size: 16,
               color: pinned ? ShellTokens.accent : ShellTokens.textDisabled,
             ),
