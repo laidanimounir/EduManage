@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import '../constants/phosphor_icons.dart';
 import '../constants/theme_tokens.dart';
 import '../l10n/app_localizations.dart';
@@ -29,7 +30,8 @@ class ShellHeader extends StatelessWidget {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final canPop = Navigator.of(context).canPop();
     final now = DateTime.now();
-    final dateStr = _formatDate(now, l10n);
+    final dateStr = DateFormat.yMMMd(currentLocale.languageCode).format(now);
+    final timeStr = DateFormat.Hm().format(now);
 
     return Container(
       height: 48,
@@ -70,10 +72,10 @@ class ShellHeader extends StatelessWidget {
           _OfflineBadge(l10n: l10n),
           const SizedBox(width: 16),
           Text(
-            dateStr,
+            '$dateStr · $timeStr',
             style: const TextStyle(
               color: ShellTokens.textSecondary,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
           const SizedBox(width: 16),
@@ -93,19 +95,6 @@ class ShellHeader extends StatelessWidget {
       ),
     );
   }
-
-  String _formatDate(DateTime d, AppLocalizations l10n) {
-    final months = _monthNames(l10n);
-    final month = months[d.month - 1];
-    return '$month ${d.day}, ${d.year}';
-  }
-
-  List<String> _monthNames(AppLocalizations l10n) {
-    return [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-  }
 }
 
 class _OfflineBadge extends StatelessWidget {
@@ -115,20 +104,20 @@ class _OfflineBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsetsDirectional.only(start: 8, end: 10, top: 3, bottom: 3),
       decoration: BoxDecoration(
-        color: ShellTokens.chromeSurface,
+        color: const Color(0xFF2B2416),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ShellTokens.chromeBorder),
+        border: Border.all(color: const Color(0xFF3D3520)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 5,
-            height: 5,
+            width: 6,
+            height: 6,
             decoration: const BoxDecoration(
-              color: Color(0xFF6B6B63),
+              color: Color(0xFFC2823A),
               shape: BoxShape.circle,
             ),
           ),
@@ -136,8 +125,9 @@ class _OfflineBadge extends StatelessWidget {
           Text(
             l10n.offlineMode,
             style: const TextStyle(
-              color: ShellTokens.textDisabled,
+              color: Color(0xFFC2823A),
               fontSize: 10,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -157,7 +147,6 @@ class _LanguageSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final lang = currentLocale.languageCode;
 
     return SizedBox(
@@ -177,13 +166,13 @@ class _LanguageSwitch extends StatelessWidget {
           onLocaleChanged(newLocale);
         },
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(l10n.arabic.substring(0, 2)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 9),
+            child: Text('AR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(l10n.francais.substring(0, 2)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 9),
+            child: Text('FR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

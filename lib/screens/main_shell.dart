@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/phosphor_icons.dart';
 import '../constants/theme_tokens.dart';
 import '../database/app_database.dart';
@@ -147,7 +148,12 @@ class _MainShellState extends State<MainShell> {
     final expanded = _sidebarHovered || _sidebarPinned;
     final title = _selectedIndex < _items.length ? _items[_selectedIndex].label : '';
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openQuickFind,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openQuickFind,
+      },
+      child: Scaffold(
       body: Column(
         children: [
           ShellHeader(
@@ -241,6 +247,7 @@ class _MainShellState extends State<MainShell> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -353,6 +360,7 @@ class _SidebarTile extends StatelessWidget {
             children: [
               Container(
                 width: 3,
+                height: double.infinity,
                 decoration: BoxDecoration(
                   color: selected ? ShellTokens.accent : Colors.transparent,
                   borderRadius: indicatorRadius,

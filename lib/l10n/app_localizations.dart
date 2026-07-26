@@ -1747,7 +1747,7 @@ class _AppLocalizationsDelegate
       <String>['ar', 'en', 'fr'].contains(locale.languageCode);
 
   @override
-  bool shouldReload(_AppLocalizationsDelegate old) => false;
+  bool shouldReload(_AppLocalizationsDelegate old) => true;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
