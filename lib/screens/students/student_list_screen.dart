@@ -486,27 +486,41 @@ class _StudentListScreenState extends State<StudentListScreen> {
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const AppLoading();
 
-    return Table(
-      columnWidths: const {
-        0: FixedColumnWidth(44),
-        1: FlexColumnWidth(2),
-        2: FlexColumnWidth(2),
-        3: FlexColumnWidth(1.5),
-        4: FlexColumnWidth(1),
-        5: FlexColumnWidth(1.2),
-        6: FlexColumnWidth(1.2),
-        7: IntrinsicColumnWidth(),
-      },
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder(
-        horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5),
-      ),
+    return Column(
       children: [
-        _buildHeaderRow(l10n),
-        ..._rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)),
+        Table(
+          columnWidths: _columnWidths(),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          border: const TableBorder(
+            bottom: BorderSide(color: ShellTokens.chromeBorder),
+          ),
+          children: [_buildHeaderRow(l10n)],
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Table(
+              columnWidths: _columnWidths(),
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              border: TableBorder(
+                horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5),
+              ),
+              children: _rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }
+
+  Map<int, TableColumnWidth> _columnWidths() => const {
+    0: FixedColumnWidth(44),
+    1: FlexColumnWidth(2),
+    2: FlexColumnWidth(2),
+    3: FlexColumnWidth(1.2),
+    4: FlexColumnWidth(1.2),
+    5: FlexColumnWidth(1.2),
+    6: IntrinsicColumnWidth(),
+  };
 
   TableRow _buildHeaderRow(AppLocalizations l10n) {
     return TableRow(
@@ -518,9 +532,8 @@ class _StudentListScreenState extends State<StudentListScreen> {
         _buildHeaderCell(PhosphorIcons.checkSquare, null, l10n),
         _buildHeaderCell(null, l10n.columnName, l10n),
         _buildHeaderCell(null, l10n.columnSurname, l10n),
-        _buildHeaderCell(null, l10n.columnAddress, l10n),
         _buildHeaderCell(null, l10n.columnLevel, l10n),
-        _buildHeaderCell(null, l10n.columnStatus, l10n),
+        _buildHeaderCell(null, l10n.columnBirthDate, l10n),
         _buildHeaderCell(null, l10n.columnRegistrationDate, l10n),
         _buildHeaderCell(PhosphorIcons.gear, null, l10n),
       ],
@@ -617,17 +630,12 @@ class _StudentListScreenState extends State<StudentListScreen> {
         GestureDetector(
           onTap: () => _openDetail(s),
           behavior: HitTestBehavior.opaque,
-          child: _buildTextCell(s.address ?? '—'),
-        ),
-        GestureDetector(
-          onTap: () => _openDetail(s),
-          behavior: HitTestBehavior.opaque,
           child: _buildTextCell(_levelLabel(s.schoolLevel, l10n)),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
           behavior: HitTestBehavior.opaque,
-          child: _buildStatusCell(s, l10n),
+          child: _buildTextCell(s.birthDate != null ? _formatDate(s.birthDate!) : '—'),
         ),
         GestureDetector(
           onTap: () => _openDetail(s),
@@ -948,11 +956,7 @@ class _StudentDetailDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: ShellTokens.accentMuted,
-                    child: Text(student.firstNameAr[0], style: const TextStyle(color: ShellTokens.textPrimary, fontWeight: FontWeight.w700)),
-                  ),
+                  _buildAvatar(),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -1007,6 +1011,32 @@ class _StudentDetailDialog extends StatelessWidget {
 
   Widget _sectionHeader(String text) {
     return Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.3));
+  }
+
+  Widget _buildAvatar() {
+    if (student.photoPath != null && student.photoPath!.isNotEmpty) {
+      return ClipOval(
+        child: Image.file(
+          File(student.photoPath!),
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _defaultAvatar(),
+        ),
+      );
+    }
+    return _defaultAvatar();
+  }
+
+  Widget _defaultAvatar() {
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: ShellTokens.accentMuted,
+      child: Text(
+        student.firstNameAr[0],
+        style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+    );
   }
 
   Widget _infoRow(String label, String value) {
