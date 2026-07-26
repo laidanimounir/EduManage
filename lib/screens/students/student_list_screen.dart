@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
+import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -15,6 +17,7 @@ import '../../repositories/student_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/group_assignment_dialog.dart';
+import '../../repositories/school_level_repository.dart';
 
 class StudentListScreen extends StatefulWidget {
   final AppDatabase database;
@@ -1177,6 +1180,13 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
+      String? photoPath;
+      if (_photo != null) {
+        final dir = await getApplicationDocumentsDirectory();
+        final fileName = 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final saved = await _photo!.copy('${dir.path}/$fileName');
+        photoPath = saved.path;
+      }
       final entry = StudentsCompanion(
         code: Value(_codeCtrl.text.trim()),
         firstNameAr: Value(_firstNameArCtrl.text.trim()),
@@ -1190,6 +1200,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         schoolLevel: Value(_schoolLevel),
         birthDate: Value(_birthDate),
         birthPlace: Value(_birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim()),
+        photoPath: Value(photoPath),
       );
       if (_isEdit) {
         await _repo.update(widget.student!.id, entry);
@@ -1230,62 +1241,94 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(14),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionLabel(l10n.code),
-                      const SizedBox(height: 4),
-                      _textField(_codeCtrl, required: true, readOnly: _isEdit),
-                      const SizedBox(height: 14),
-                      _sectionLabel('${l10n.firstName} (AR)'),
-                      const SizedBox(height: 4),
-                      _textField(_firstNameArCtrl, required: true),
+                      _sectionDivider(l10n.personalInfo),
                       const SizedBox(height: 10),
-                      _sectionLabel('${l10n.firstName} (FR)'),
-                      const SizedBox(height: 4),
-                      _textField(_firstNameFrCtrl),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: _pickPhoto,
+                            child: Container(
+                              width: 72, height: 88,
+                              decoration: BoxDecoration(
+                                color: ShellTokens.chromeBase,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: ShellTokens.chromeBorder),
+                              ),
+                              child: _photo != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(5),
+                                      child: Image.file(_photo!, width: 72, height: 88, fit: BoxFit.cover),
+                                    )
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(PhosphorIcons.camera, size: 18, color: ShellTokens.textDisabled),
+                                        const SizedBox(height: 2),
+                                        Text(l10n.takePhoto.substring(0, 4), style: const TextStyle(fontSize: 8, color: ShellTokens.textDisabled)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _textField(_codeCtrl, required: true, readOnly: _isEdit),
+                                const SizedBox(height: 8),
+                                _textField(_firstNameArCtrl, required: true, hint: '${l10n.firstName} AR'),
+                                const SizedBox(height: 8),
+                                _textField(_firstNameFrCtrl, hint: '${l10n.firstName} FR'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _textField(_lastNameArCtrl, required: true, hint: '${l10n.lastName} AR')),
+                          const SizedBox(width: 8),
+                          Expanded(child: _textField(_lastNameFrCtrl, hint: '${l10n.lastName} FR')),
+                        ],
+                      ),
                       const SizedBox(height: 14),
-                      _sectionLabel('${l10n.lastName} (AR)'),
-                      const SizedBox(height: 4),
-                      _textField(_lastNameArCtrl, required: true),
-                      const SizedBox(height: 10),
-                      _sectionLabel('${l10n.lastName} (FR)'),
-                      const SizedBox(height: 4),
-                      _textField(_lastNameFrCtrl),
-                      const SizedBox(height: 14),
-                      _sectionLabel(l10n.phone),
-                      const SizedBox(height: 4),
+                      _sectionDivider(l10n.phone),
+                      const SizedBox(height: 8),
                       _textField(_phoneCtrl),
+                      const SizedBox(height: 8),
+                      _textField(_addressCtrl, maxLines: 2, hint: l10n.address),
                       const SizedBox(height: 14),
-                      _sectionLabel(l10n.address),
-                      const SizedBox(height: 4),
-                      _textField(_addressCtrl, maxLines: 2),
+                      _sectionDivider(l10n.schoolLevel),
+                      const SizedBox(height: 8),
+                      _schoolLevelAutocomplete(l10n),
                       const SizedBox(height: 14),
-                      _sectionLabel(l10n.schoolLevel),
-                      const SizedBox(height: 4),
-                      _dropdown(
-                        value: _schoolLevel,
-                        items: [
-                          DropdownMenuItem(value: null, child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled))),
-                          DropdownMenuItem(value: 'primary', child: Text(l10n.schoolLevelPrimary, style: const TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'middle', child: Text(l10n.schoolLevelMiddle, style: const TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'secondary', child: Text(l10n.schoolLevelSecondary, style: const TextStyle(fontSize: 12))),
+                      _sectionDivider('${l10n.gender} / ${l10n.birthDate}'),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _dropdown(
+                              value: _gender,
+                              items: [
+                                DropdownMenuItem(value: 'male', child: Text(l10n.male, style: const TextStyle(fontSize: 12))),
+                                DropdownMenuItem(value: 'female', child: Text(l10n.female, style: const TextStyle(fontSize: 12))),
+                              ],
+                              onChanged: (v) => setState(() => _gender = v!),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _dateField(l10n),
+                          ),
                         ],
-                        onChanged: (v) => setState(() => _schoolLevel = v),
                       ),
-                      const SizedBox(height: 14),
-                      _sectionLabel(l10n.gender),
-                      const SizedBox(height: 4),
-                      _dropdown(
-                        value: _gender,
-                        items: [
-                          DropdownMenuItem(value: 'male', child: Text(l10n.male, style: const TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'female', child: Text(l10n.female, style: const TextStyle(fontSize: 12))),
-                        ],
-                        onChanged: (v) => setState(() => _gender = v!),
-                      ),
+                      const SizedBox(height: 8),
+                      _textField(_birthPlaceCtrl, hint: l10n.birthPlace),
                       if (_isEdit) ...[
-                        const SizedBox(height: 14),
-                        _sectionLabel(l10n.status),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         _dropdown(
                           value: _status,
                           items: [
@@ -1296,37 +1339,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
                           onChanged: (v) => setState(() => _status = v!),
                         ),
                       ],
-                      const SizedBox(height: 14),
-                      _sectionLabel(l10n.birthDate),
-                      const SizedBox(height: 4),
-                      InkWell(
-                        onTap: () async {
-                          final d = await showDatePicker(
-                            context: context,
-                            initialDate: _birthDate ?? DateTime(2010, 1, 1),
-                            firstDate: DateTime(1990),
-                            lastDate: DateTime.now(),
-                          );
-                          if (d != null) setState(() => _birthDate = d);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: ShellTokens.chromeBase,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: ShellTokens.chromeBorder),
-                          ),
-                          child: Text(
-                            _birthDate != null ? _fmtDate(_birthDate!) : l10n.birthDate,
-                            style: TextStyle(fontSize: 12, color: _birthDate != null ? ShellTokens.textPrimary : ShellTokens.textDisabled),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      _sectionLabel(l10n.birthPlace),
-                      const SizedBox(height: 4),
-                      _textField(_birthPlaceCtrl),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
@@ -1351,17 +1363,91 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textDisabled, letterSpacing: 0.3));
+  File? _photo;
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 400);
+    if (image != null) setState(() => _photo = File(image.path));
   }
 
-  Widget _textField(TextEditingController ctrl, {bool required = false, bool readOnly = false, int maxLines = 1}) {
+  Widget _sectionDivider(String text) {
+    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.5));
+  }
+
+  Widget _dateField(AppLocalizations l10n) {
+    return InkWell(
+      onTap: () async {
+        final d = await showDatePicker(
+          context: context,
+          initialDate: _birthDate ?? DateTime(2010, 1, 1),
+          firstDate: DateTime(1990),
+          lastDate: DateTime.now(),
+          locale: Localizations.localeOf(context),
+        );
+        if (d != null) setState(() => _birthDate = d);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: ShellTokens.chromeBase,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: ShellTokens.chromeBorder),
+        ),
+        child: Text(
+          _birthDate != null ? _fmtDate(_birthDate!) : l10n.birthDate,
+          style: TextStyle(fontSize: 12, color: _birthDate != null ? ShellTokens.textPrimary : ShellTokens.textDisabled),
+        ),
+      ),
+    );
+  }
+
+  Widget _schoolLevelAutocomplete(AppLocalizations l10n) {
+    final repo = SchoolLevelRepository(widget.database);
+    return FutureBuilder<List<SchoolLevel>>(
+      future: repo.searchByName(''),
+      builder: (ctx, snap) {
+        final levels = snap.data ?? [];
+        final items = <DropdownMenuItem<String?>>[
+          DropdownMenuItem(value: null, child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled))),
+          ...levels.map((l) => DropdownMenuItem(value: l.name, child: Text(l.name, style: const TextStyle(fontSize: 12)))),
+          const DropdownMenuItem(value: '__new__', child: Row(children: [Icon(PhosphorIcons.plus, size: 12, color: ShellTokens.accent), SizedBox(width: 4), Text('New...', style: TextStyle(fontSize: 12, color: ShellTokens.accent))])),
+        ];
+        return _dropdown(
+          value: _schoolLevel,
+          items: items,
+          onChanged: (v) async {
+            if (v == '__new__') {
+              final ctrl = TextEditingController();
+              final name = await showDialog<String>(context: context, builder: (c) => AlertDialog(
+                backgroundColor: ShellTokens.chromeSurface,
+                title: Text(l10n.add, style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary)),
+                content: TextField(controller: ctrl, autofocus: true, style: const TextStyle(color: ShellTokens.textPrimary)),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
+                  TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: Text(l10n.add)),
+                ],
+              ));
+              if (name != null && name.isNotEmpty) {
+                await repo.create(name);
+                setState(() => _schoolLevel = name);
+              }
+            } else {
+              setState(() => _schoolLevel = v);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _textField(TextEditingController ctrl, {bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
     return TextFormField(
       controller: ctrl,
       readOnly: readOnly,
       maxLines: maxLines,
       style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
       decoration: InputDecoration(
+        hintText: hint,
         filled: true,
         fillColor: ShellTokens.chromeBase,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
