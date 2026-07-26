@@ -316,5 +316,15 @@
   "clearFilters": "Clear Filters",
   "schoolLevelPrimary": "Primary",
   "schoolLevelMiddle": "Middle",
-  "schoolLevelSecondary": "Secondary"
+  "schoolLevelSecondary": "Secondary",
+  "registrationFee": "Registration Fee",
+  "registrationFeeDescription": "One-time registration fee set by administration",
+  "markAsPaid": "Mark as Paid",
+  "feeUnpaid": "Fee Unpaid",
+  "feePaid": "Fee Paid",
+  "addNewLevel": "+ Add \"{name}\"",
+  "@addNewLevel": { "placeholders": { "name": {} } },
+  "enrollmentCount": "Enrolled in {count} group(s)",
+  "@enrollmentCount": { "placeholders": { "count": {} } },
+  "selected": "selected"
 }

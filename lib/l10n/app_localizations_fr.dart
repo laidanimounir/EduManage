@@ -937,4 +937,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get schoolLevelSecondary => 'Lycée';
+
+  @override
+  String get registrationFee => 'Frais d\'inscription';
+
+  @override
+  String get registrationFeeDescription =>
+      'Frais d\'inscription annuels fixés par l\'administration';
+
+  @override
+  String get markAsPaid => 'Marquer comme payé';
+
+  @override
+  String get feeUnpaid => 'Frais impayés';
+
+  @override
+  String get feePaid => 'Frais payés';
+
+  @override
+  String addNewLevel(Object name) {
+    return '+ Ajouter \"$name\"';
+  }
+
+  @override
+  String enrollmentCount(Object count) {
+    return 'Inscrit dans $count matière(s)';
+  }
+
+  @override
+  String get selected => 'sélectionné';
 }

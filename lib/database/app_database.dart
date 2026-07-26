@@ -231,8 +231,19 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+class SchoolLevels extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get deviceId => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, SchoolLevels],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -263,7 +274,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -277,14 +288,17 @@ class AppDatabase extends _$AppDatabase {
           ],
         ));
       }
+      if (from < 3) {
+        await m.createTable(schoolLevels);
+      }
     },
   );
 
   Future<double> getStudentBalance(String studentId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '
-      'WHEN type IN (\'session_charge\', \'correction\') THEN amount '
-      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\') THEN -amount '
+      'WHEN type IN (\'session_charge\', \'correction\', \'registration_fee\') THEN amount '
+      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\', \'registration_fee_payment\') THEN -amount '
       'ELSE 0 END), 0) AS balance '
       'FROM transactions WHERE student_id = ?',
       variables: [Variable.withString(studentId)],
@@ -295,7 +309,7 @@ class AppDatabase extends _$AppDatabase {
   Future<double> getStudentTotalCharged(String studentId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(amount), 0) AS total '
-      'FROM transactions WHERE student_id = ? AND type IN (\'session_charge\', \'correction\')',
+      'FROM transactions WHERE student_id = ? AND type IN (\'session_charge\', \'correction\', \'registration_fee\')',
       variables: [Variable.withString(studentId)],
     );
     return query.map((row) => row.read<double>('total')).getSingle();
@@ -304,10 +318,20 @@ class AppDatabase extends _$AppDatabase {
   Future<double> getStudentTotalPaid(String studentId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(amount), 0) AS total '
-      'FROM transactions WHERE student_id = ? AND type IN (\'student_payment\', \'discount\', \'reversal\')',
+      'FROM transactions WHERE student_id = ? AND type IN (\'student_payment\', \'discount\', \'reversal\', \'registration_fee_payment\')',
       variables: [Variable.withString(studentId)],
     );
     return query.map((row) => row.read<double>('total')).getSingle();
+  }
+
+  Future<bool> isRegistrationFeePaid(String studentId) async {
+    final result = await customSelect(
+      'SELECT '
+      '(SELECT COUNT(*) FROM transactions WHERE student_id = ? AND type = \'registration_fee_payment\') AS paid, '
+      '(SELECT COUNT(*) FROM transactions WHERE student_id = ? AND type = \'registration_fee\') AS charged',
+      variables: [Variable.withString(studentId), Variable.withString(studentId)],
+    ).getSingle();
+    return result.read<int>('paid') >= result.read<int>('charged');
   }
 
   Future<double> getTeacherPayoutBalance(String teacherId) {
@@ -327,8 +351,8 @@ class AppDatabase extends _$AppDatabase {
     final placeholders = ids.map((_) => '?').join(',');
     final query = customSelect(
       'SELECT student_id, COALESCE(SUM(CASE '
-      'WHEN type IN (\'session_charge\', \'correction\') THEN amount '
-      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\') THEN -amount '
+      'WHEN type IN (\'session_charge\', \'correction\', \'registration_fee\') THEN amount '
+      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\', \'registration_fee_payment\') THEN -amount '
       'ELSE 0 END), 0) AS balance '
       'FROM transactions WHERE student_id IN ($placeholders) '
       'GROUP BY student_id',

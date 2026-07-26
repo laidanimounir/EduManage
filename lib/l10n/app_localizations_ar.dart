@@ -934,4 +934,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get schoolLevelSecondary => 'ثانوي';
+
+  @override
+  String get registrationFee => 'رسوم التسجيل';
+
+  @override
+  String get registrationFeeDescription => 'رسوم تسجيل سنوية يحددها المدير';
+
+  @override
+  String get markAsPaid => 'تأكيد الدفع';
+
+  @override
+  String get feeUnpaid => 'رسوم غير مدفوعة';
+
+  @override
+  String get feePaid => 'رسوم مدفوعة';
+
+  @override
+  String addNewLevel(Object name) {
+    return 'إضافة \"$name\" +';
+  }
+
+  @override
+  String enrollmentCount(Object count) {
+    return 'مسجل في $count مادة';
+  }
+
+  @override
+  String get selected => 'محدد';
 }

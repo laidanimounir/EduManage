@@ -306,4 +306,37 @@ class TransactionService extends BaseRepository {
         .get();
     return result.isNotEmpty;
   }
+
+  Future<String> createRegistrationFee({
+    required String studentId,
+    required double amount,
+  }) async {
+    final id = await _txRepo.insert(TransactionsCompanion(
+      studentId: Value(studentId),
+      type: const Value('registration_fee'),
+      amount: Value(amount),
+      transactionDate: Value(DateTime.now()),
+    ));
+    return id;
+  }
+
+  Future<String> createRegistrationFeePayment({
+    required String studentId,
+    required double amount,
+  }) async {
+    final id = await _txRepo.insert(TransactionsCompanion(
+      studentId: Value(studentId),
+      type: const Value('registration_fee_payment'),
+      amount: Value(amount),
+      transactionDate: Value(DateTime.now()),
+    ));
+    return id;
+  }
+
+  Future<int> getRegistrationFeeCount(String studentId) async {
+    final result = await (db.select(db.transactions)
+      ..where((t) => t.studentId.equals(studentId) & t.type.equals('registration_fee')))
+        .get();
+    return result.length;
+  }
 }

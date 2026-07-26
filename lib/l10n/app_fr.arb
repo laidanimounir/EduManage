@@ -316,5 +316,15 @@
   "clearFilters": "Effacer les filtres",
   "schoolLevelPrimary": "Primaire",
   "schoolLevelMiddle": "Collège",
-  "schoolLevelSecondary": "Lycée"
+  "schoolLevelSecondary": "Lycée",
+  "registrationFee": "Frais d'inscription",
+  "registrationFeeDescription": "Frais d'inscription annuels fixés par l'administration",
+  "markAsPaid": "Marquer comme payé",
+  "feeUnpaid": "Frais impayés",
+  "feePaid": "Frais payés",
+  "addNewLevel": "+ Ajouter \"{name}\"",
+  "@addNewLevel": { "placeholders": { "name": {} } },
+  "enrollmentCount": "Inscrit dans {count} matière(s)",
+  "@enrollmentCount": { "placeholders": { "count": {} } },
+  "selected": "sélectionné"
 }

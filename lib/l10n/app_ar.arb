@@ -316,5 +316,15 @@
   "clearFilters": "مسح التصفية",
   "schoolLevelPrimary": "ابتدائي",
   "schoolLevelMiddle": "متوسط",
-  "schoolLevelSecondary": "ثانوي"
+  "schoolLevelSecondary": "ثانوي",
+  "registrationFee": "رسوم التسجيل",
+  "registrationFeeDescription": "رسوم تسجيل سنوية يحددها المدير",
+  "markAsPaid": "تأكيد الدفع",
+  "feeUnpaid": "رسوم غير مدفوعة",
+  "feePaid": "رسوم مدفوعة",
+  "addNewLevel": "إضافة \"{name}\" +",
+  "@addNewLevel": { "placeholders": { "name": {} } },
+  "enrollmentCount": "مسجل في {count} مادة",
+  "@enrollmentCount": { "placeholders": { "count": {} } },
+  "selected": "محدد"
 }

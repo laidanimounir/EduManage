@@ -936,4 +936,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schoolLevelSecondary => 'Secondary';
+
+  @override
+  String get registrationFee => 'Registration Fee';
+
+  @override
+  String get registrationFeeDescription =>
+      'One-time registration fee set by administration';
+
+  @override
+  String get markAsPaid => 'Mark as Paid';
+
+  @override
+  String get feeUnpaid => 'Fee Unpaid';
+
+  @override
+  String get feePaid => 'Fee Paid';
+
+  @override
+  String addNewLevel(Object name) {
+    return '+ Add \"$name\"';
+  }
+
+  @override
+  String enrollmentCount(Object count) {
+    return 'Enrolled in $count group(s)';
+  }
+
+  @override
+  String get selected => 'selected';
 }

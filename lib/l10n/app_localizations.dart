@@ -1941,6 +1941,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Secondary'**
   String get schoolLevelSecondary;
+
+  /// No description provided for @registrationFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Fee'**
+  String get registrationFee;
+
+  /// No description provided for @registrationFeeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time registration fee set by administration'**
+  String get registrationFeeDescription;
+
+  /// No description provided for @markAsPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Paid'**
+  String get markAsPaid;
+
+  /// No description provided for @feeUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee Unpaid'**
+  String get feeUnpaid;
+
+  /// No description provided for @feePaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee Paid'**
+  String get feePaid;
+
+  /// No description provided for @addNewLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'+ Add \"{name}\"'**
+  String addNewLevel(Object name);
+
+  /// No description provided for @enrollmentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enrolled in {count} group(s)'**
+  String enrollmentCount(Object count);
+
+  /// No description provided for @selected.
+  ///
+  /// In en, this message translates to:
+  /// **'selected'**
+  String get selected;
 }
 
 class _AppLocalizationsDelegate
