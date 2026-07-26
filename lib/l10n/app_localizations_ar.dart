@@ -794,4 +794,34 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notEnrolled => 'غير مسجل';
+
+  @override
+  String get offlineMode => 'غير متصل';
+
+  @override
+  String get pinSidebar => 'تثبيت القائمة';
+
+  @override
+  String get unpinSidebar => 'إلغاء التثبيت';
+
+  @override
+  String get quickFind => 'الوصول السريع';
+
+  @override
+  String get quickFindPlaceholder => 'ابحث عن تلميذ...';
+
+  @override
+  String get sidebarSectionCore => 'الرئيسية';
+
+  @override
+  String get sidebarSectionManage => 'الإدارة';
+
+  @override
+  String get sidebarSectionFinance => 'المالية';
+
+  @override
+  String get sidebarSectionSystem => 'النظام';
+
+  @override
+  String get noResults => 'لا توجد نتائج';
 }

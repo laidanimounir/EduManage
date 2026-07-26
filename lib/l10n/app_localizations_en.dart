@@ -795,4 +795,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notEnrolled => 'Not Enrolled';
+
+  @override
+  String get offlineMode => 'Offline';
+
+  @override
+  String get pinSidebar => 'Pin sidebar';
+
+  @override
+  String get unpinSidebar => 'Unpin sidebar';
+
+  @override
+  String get quickFind => 'Quick Find';
+
+  @override
+  String get quickFindPlaceholder => 'Search students...';
+
+  @override
+  String get sidebarSectionCore => 'Core';
+
+  @override
+  String get sidebarSectionManage => 'Manage';
+
+  @override
+  String get sidebarSectionFinance => 'Finance';
+
+  @override
+  String get sidebarSectionSystem => 'System';
+
+  @override
+  String get noResults => 'No results';
 }

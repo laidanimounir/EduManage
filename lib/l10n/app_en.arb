@@ -261,5 +261,15 @@
   "upcomingCancellations": "Upcoming Cancellations",
   "totalCharged": "Total Charged",
   "recordPayment": "Record Payment",
-  "notEnrolled": "Not Enrolled"
+  "notEnrolled": "Not Enrolled",
+  "offlineMode": "Offline",
+  "pinSidebar": "Pin sidebar",
+  "unpinSidebar": "Unpin sidebar",
+  "quickFind": "Quick Find",
+  "quickFindPlaceholder": "Search students...",
+  "sidebarSectionCore": "Core",
+  "sidebarSectionManage": "Manage",
+  "sidebarSectionFinance": "Finance",
+  "sidebarSectionSystem": "System",
+  "noResults": "No results"
 }

@@ -261,5 +261,15 @@
   "upcomingCancellations": "Annulations à venir",
   "totalCharged": "Total facturé",
   "recordPayment": "Enregistrer un paiement",
-  "notEnrolled": "Non inscrit"
+  "notEnrolled": "Non inscrit",
+  "offlineMode": "Hors ligne",
+  "pinSidebar": "Épingler",
+  "unpinSidebar": "Désépingler",
+  "quickFind": "Accès Rapide",
+  "quickFindPlaceholder": "Rechercher un élève...",
+  "sidebarSectionCore": "Principal",
+  "sidebarSectionManage": "Gestion",
+  "sidebarSectionFinance": "Finances",
+  "sidebarSectionSystem": "Système",
+  "noResults": "Aucun résultat"
 }

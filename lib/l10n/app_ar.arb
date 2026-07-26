@@ -261,5 +261,15 @@
   "upcomingCancellations": "الإلغاءات القادمة",
   "totalCharged": "المجموع المحتسب",
   "recordPayment": "تسجيل دفعة",
-  "notEnrolled": "غير مسجل"
+  "notEnrolled": "غير مسجل",
+  "offlineMode": "غير متصل",
+  "pinSidebar": "تثبيت القائمة",
+  "unpinSidebar": "إلغاء التثبيت",
+  "quickFind": "الوصول السريع",
+  "quickFindPlaceholder": "ابحث عن تلميذ...",
+  "sidebarSectionCore": "الرئيسية",
+  "sidebarSectionManage": "الإدارة",
+  "sidebarSectionFinance": "المالية",
+  "sidebarSectionSystem": "النظام",
+  "noResults": "لا توجد نتائج"
 }

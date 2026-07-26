@@ -1671,6 +1671,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not Enrolled'**
   String get notEnrolled;
+
+  /// No description provided for @offlineMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offlineMode;
+
+  /// No description provided for @pinSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin sidebar'**
+  String get pinSidebar;
+
+  /// No description provided for @unpinSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin sidebar'**
+  String get unpinSidebar;
+
+  /// No description provided for @quickFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Find'**
+  String get quickFind;
+
+  /// No description provided for @quickFindPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search students...'**
+  String get quickFindPlaceholder;
+
+  /// No description provided for @sidebarSectionCore.
+  ///
+  /// In en, this message translates to:
+  /// **'Core'**
+  String get sidebarSectionCore;
+
+  /// No description provided for @sidebarSectionManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get sidebarSectionManage;
+
+  /// No description provided for @sidebarSectionFinance.
+  ///
+  /// In en, this message translates to:
+  /// **'Finance'**
+  String get sidebarSectionFinance;
+
+  /// No description provided for @sidebarSectionSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get sidebarSectionSystem;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get noResults;
 }
 
 class _AppLocalizationsDelegate
