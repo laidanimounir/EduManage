@@ -15,7 +15,6 @@ import '../../repositories/student_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/group_assignment_dialog.dart';
-import '../payments/unified_payment_screen.dart';
 
 class StudentListScreen extends StatefulWidget {
   final AppDatabase database;
@@ -35,7 +34,6 @@ class _StudentListScreenState extends State<StudentListScreen> {
   int _page = 0;
   static const int _pageSize = 20;
   bool _loading = true;
-  bool _searchLoading = false;
 
   final _searchCtrl = TextEditingController();
   final _barcodeCtrl = TextEditingController();
@@ -91,7 +89,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
           _total = result.total;
           _enrolledIds = enrolledIds;
           _loading = false;
-          _searchLoading = false;
+          
         });
       }
     } catch (_) {

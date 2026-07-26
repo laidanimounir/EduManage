@@ -89,7 +89,6 @@ class StudentRepository extends BaseRepository {
     bool includeArchived = false,
   }) async {
     var query = db.select(db.students);
-    var countQuery = db.selectOnly(db.students)..addColumns([db.students.id.count()]);
 
     query = query..where((t) => includeArchived ? const Constant(true).equals(true) : t.isArchived.equals(false));
 
