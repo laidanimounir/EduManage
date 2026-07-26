@@ -180,6 +180,43 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _schoolLevelMeta = const VerificationMeta(
+    'schoolLevel',
+  );
+  @override
+  late final GeneratedColumn<String> schoolLevel = GeneratedColumn<String>(
+    'school_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -198,6 +235,9 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     createdAt,
     updatedAt,
     deviceId,
+    schoolLevel,
+    isArchived,
+    photoPath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -329,6 +369,27 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
     }
+    if (data.containsKey('school_level')) {
+      context.handle(
+        _schoolLevelMeta,
+        schoolLevel.isAcceptableOrUnknown(
+          data['school_level']!,
+          _schoolLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
     return context;
   }
 
@@ -402,6 +463,18 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      schoolLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}school_level'],
+      ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
     );
   }
 
@@ -428,6 +501,9 @@ class Student extends DataClass implements Insertable<Student> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
+  final String? schoolLevel;
+  final bool isArchived;
+  final String? photoPath;
   const Student({
     required this.id,
     required this.code,
@@ -445,6 +521,9 @@ class Student extends DataClass implements Insertable<Student> {
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
+    this.schoolLevel,
+    required this.isArchived,
+    this.photoPath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -479,6 +558,13 @@ class Student extends DataClass implements Insertable<Student> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || schoolLevel != null) {
+      map['school_level'] = Variable<String>(schoolLevel);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
+    }
     return map;
   }
 
@@ -514,6 +600,13 @@ class Student extends DataClass implements Insertable<Student> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
+      schoolLevel: schoolLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(schoolLevel),
+      isArchived: Value(isArchived),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
     );
   }
 
@@ -539,6 +632,9 @@ class Student extends DataClass implements Insertable<Student> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      schoolLevel: serializer.fromJson<String?>(json['schoolLevel']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
     );
   }
   @override
@@ -561,6 +657,9 @@ class Student extends DataClass implements Insertable<Student> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'schoolLevel': serializer.toJson<String?>(schoolLevel),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'photoPath': serializer.toJson<String?>(photoPath),
     };
   }
 
@@ -581,6 +680,9 @@ class Student extends DataClass implements Insertable<Student> {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
+    Value<String?> schoolLevel = const Value.absent(),
+    bool? isArchived,
+    Value<String?> photoPath = const Value.absent(),
   }) => Student(
     id: id ?? this.id,
     code: code ?? this.code,
@@ -598,6 +700,9 @@ class Student extends DataClass implements Insertable<Student> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
+    schoolLevel: schoolLevel.present ? schoolLevel.value : this.schoolLevel,
+    isArchived: isArchived ?? this.isArchived,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
   );
   Student copyWithCompanion(StudentsCompanion data) {
     return Student(
@@ -629,6 +734,13 @@ class Student extends DataClass implements Insertable<Student> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      schoolLevel: data.schoolLevel.present
+          ? data.schoolLevel.value
+          : this.schoolLevel,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
     );
   }
 
@@ -650,7 +762,10 @@ class Student extends DataClass implements Insertable<Student> {
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deviceId: $deviceId')
+          ..write('deviceId: $deviceId, ')
+          ..write('schoolLevel: $schoolLevel, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('photoPath: $photoPath')
           ..write(')'))
         .toString();
   }
@@ -673,6 +788,9 @@ class Student extends DataClass implements Insertable<Student> {
     createdAt,
     updatedAt,
     deviceId,
+    schoolLevel,
+    isArchived,
+    photoPath,
   );
   @override
   bool operator ==(Object other) =>
@@ -693,7 +811,10 @@ class Student extends DataClass implements Insertable<Student> {
           other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.deviceId == this.deviceId);
+          other.deviceId == this.deviceId &&
+          other.schoolLevel == this.schoolLevel &&
+          other.isArchived == this.isArchived &&
+          other.photoPath == this.photoPath);
 }
 
 class StudentsCompanion extends UpdateCompanion<Student> {
@@ -713,6 +834,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
+  final Value<String?> schoolLevel;
+  final Value<bool> isArchived;
+  final Value<String?> photoPath;
   final Value<int> rowid;
   const StudentsCompanion({
     this.id = const Value.absent(),
@@ -731,6 +855,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.schoolLevel = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StudentsCompanion.insert({
@@ -750,6 +877,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
+    this.schoolLevel = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        code = Value(code),
@@ -773,6 +903,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
+    Expression<String>? schoolLevel,
+    Expression<bool>? isArchived,
+    Expression<String>? photoPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -792,6 +925,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (schoolLevel != null) 'school_level': schoolLevel,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (photoPath != null) 'photo_path': photoPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -813,6 +949,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
+    Value<String?>? schoolLevel,
+    Value<bool>? isArchived,
+    Value<String?>? photoPath,
     Value<int>? rowid,
   }) {
     return StudentsCompanion(
@@ -832,6 +971,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
+      schoolLevel: schoolLevel ?? this.schoolLevel,
+      isArchived: isArchived ?? this.isArchived,
+      photoPath: photoPath ?? this.photoPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -887,6 +1029,15 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
     }
+    if (schoolLevel.present) {
+      map['school_level'] = Variable<String>(schoolLevel.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -912,6 +1063,9 @@ class StudentsCompanion extends UpdateCompanion<Student> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('schoolLevel: $schoolLevel, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('photoPath: $photoPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8737,6 +8891,9 @@ typedef $$StudentsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
+      Value<String?> schoolLevel,
+      Value<bool> isArchived,
+      Value<String?> photoPath,
       Value<int> rowid,
     });
 typedef $$StudentsTableUpdateCompanionBuilder =
@@ -8757,6 +8914,9 @@ typedef $$StudentsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
+      Value<String?> schoolLevel,
+      Value<bool> isArchived,
+      Value<String?> photoPath,
       Value<int> rowid,
     });
 
@@ -8923,6 +9083,21 @@ class $$StudentsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schoolLevel => $composableBuilder(
+    column: $table.schoolLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9115,6 +9290,21 @@ class $$StudentsTableOrderingComposer
     column: $table.deviceId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get schoolLevel => $composableBuilder(
+    column: $table.schoolLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StudentsTableAnnotationComposer
@@ -9185,6 +9375,19 @@ class $$StudentsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get schoolLevel => $composableBuilder(
+    column: $table.schoolLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
 
   Expression<T> enrollmentsRefs<T extends Object>(
     Expression<T> Function($$EnrollmentsTableAnnotationComposer a) f,
@@ -9336,6 +9539,9 @@ class $$StudentsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<String?> schoolLevel = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StudentsCompanion(
                 id: id,
@@ -9354,6 +9560,9 @@ class $$StudentsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
+                schoolLevel: schoolLevel,
+                isArchived: isArchived,
+                photoPath: photoPath,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9374,6 +9583,9 @@ class $$StudentsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
+                Value<String?> schoolLevel = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StudentsCompanion.insert(
                 id: id,
@@ -9392,6 +9604,9 @@ class $$StudentsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
+                schoolLevel: schoolLevel,
+                isArchived: isArchived,
+                photoPath: photoPath,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

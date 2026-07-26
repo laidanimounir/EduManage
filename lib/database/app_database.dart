@@ -26,6 +26,10 @@ class Students extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
 
+  TextColumn get schoolLevel => text().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  TextColumn get photoPath => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -259,7 +263,22 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.alterTable(TableMigration(students,
+          newColumns: [
+            students.schoolLevel,
+            students.isArchived,
+            students.photoPath,
+          ],
+        ));
+      }
+    },
+  );
 
   Future<double> getStudentBalance(String studentId) {
     final query = customSelect(
