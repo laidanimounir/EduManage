@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../widgets/app_loading.dart';
+import '../../widgets/group_assignment_dialog.dart';
 import '../payments/unified_payment_screen.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -646,9 +647,31 @@ class _StudentListScreenState extends State<StudentListScreen> {
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             tooltip: AppLocalizations.of(context).archive,
           ),
+          IconButton(
+            icon: const Icon(PhosphorIcons.usersThree, size: 14, color: ShellTokens.textSecondary),
+            onPressed: () => _openGroups(s),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            tooltip: AppLocalizations.of(context).enrollInGroups,
+          ),
         ],
       ),
     );
+  }
+
+  void _openGroups(Student s) async {
+    _barcodePaused = true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => GroupAssignmentDialog(
+        database: widget.database,
+        studentId: s.id,
+        l10n: AppLocalizations.of(context),
+      ),
+    );
+    _barcodePaused = false;
+    _restoreBarcodeFocus();
+    if (result == true) _fetchPage();
   }
 
   Future<void> _confirmArchive(Student s) async {
