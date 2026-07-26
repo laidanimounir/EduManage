@@ -109,7 +109,21 @@ class _MainShellState extends State<MainShell> {
     final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
-      builder: (_) => QuickFindOverlay(database: widget.database, l10n: l10n),
+      builder: (_) => QuickFindOverlay(
+        database: widget.database,
+        l10n: l10n,
+        onStudentSelected: (code) {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => UnifiedPaymentScreen(
+                database: widget.database,
+                initialStudentCode: code,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
