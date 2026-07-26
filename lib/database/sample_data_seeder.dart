@@ -4,6 +4,7 @@ import '../repositories/subject_group_repository.dart';
 import '../repositories/session_repository.dart';
 import '../repositories/enrollment_repository.dart';
 import '../repositories/classroom_repository.dart';
+import '../repositories/school_level_repository.dart';
 import '../database/app_database.dart';
 import 'package:drift/drift.dart';
 
@@ -16,6 +17,14 @@ class SampleDataSeeder {
     final roomRepo = ClassroomRepository(db);
     final rooms = await roomRepo.getAll();
     final classroomId = rooms.isNotEmpty ? rooms.first.id : '';
+
+    final schoolLevelRepo = SchoolLevelRepository(db);
+    final existingLevels = await schoolLevelRepo.getAll();
+    if (existingLevels.isEmpty) {
+      await schoolLevelRepo.create('Primaire');
+      await schoolLevelRepo.create('Collège');
+      await schoolLevelRepo.create('Lycée');
+    }
 
     final s1Id = await studentRepo.create(StudentsCompanion(
       code: const Value('STU-001'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
@@ -16,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final SettingsRepository _settingsRepo;
   int _sessionTimeout = AppConstants.defaultSessionTimeoutMinutes;
+  double _registrationFeeAmount = 2000;
   bool _loading = true;
 
   @override
@@ -31,6 +33,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final parsed = int.tryParse(timeoutStr);
       if (parsed != null) _sessionTimeout = parsed;
     }
+    final prefs = await SharedPreferences.getInstance();
+    _registrationFeeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
     setState(() => _loading = false);
   }
 
@@ -105,6 +109,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           '$_sessionTimeout ${l10n.minutes}',
                           style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.registrationFee, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(l10n.registrationFeeDescription, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text('DA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: _registrationFeeAmount.toStringAsFixed(0),
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true),
+                          onFieldSubmitted: (v) async {
+                            final amount = double.tryParse(v) ?? 2000.0;
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setDouble('registration_fee_amount', amount);
+                            setState(() => _registrationFeeAmount = amount);
+                          },
                         ),
                       ),
                     ],
