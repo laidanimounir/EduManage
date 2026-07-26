@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import '../constants/phosphor_icons.dart';
 import '../constants/theme_tokens.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/date_helper.dart';
 
 class ShellHeader extends StatelessWidget {
   final String title;
@@ -30,8 +30,7 @@ class ShellHeader extends StatelessWidget {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final canPop = Navigator.of(context).canPop();
     final now = DateTime.now();
-    final dateStr = DateFormat.yMMMd(currentLocale.languageCode).format(now);
-    final timeStr = DateFormat.Hm().format(now);
+    final dateStr = DateHelper.formatHeaderDate(now, currentLocale.languageCode);
 
     return Container(
       height: 48,
@@ -72,7 +71,7 @@ class ShellHeader extends StatelessWidget {
           _OfflineBadge(l10n: l10n),
           const SizedBox(width: 16),
           Text(
-            '$dateStr · $timeStr',
+            dateStr,
             style: const TextStyle(
               color: ShellTokens.textSecondary,
               fontSize: 12,

@@ -31,6 +31,31 @@ class DateHelper {
     return DateFormat('MMMM yyyy', 'fr').format(date);
   }
 
+  static const _maghrebMonths = [
+    'جانفي',
+    'فيفري',
+    'مارس',
+    'أفريل',
+    'ماي',
+    'جوان',
+    'جويلية',
+    'أوت',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
+  ];
+
+  static String formatHeaderDate(DateTime date, String languageCode) {
+    final timeStr = DateFormat('HH:mm').format(date);
+    if (languageCode == 'ar') {
+      final month = _maghrebMonths[date.month - 1];
+      return '${date.day} $month ${date.year} \u00b7 $timeStr';
+    }
+    final dateStr = DateFormat.yMMMd(languageCode).format(date);
+    return '$dateStr \u00b7 $timeStr';
+  }
+
   static String formatDayOfWeek(int dayIndex, String locale) {
     final daysAr = [
       'الاثنين',
