@@ -271,5 +271,50 @@
   "sidebarSectionManage": "Manage",
   "sidebarSectionFinance": "Finance",
   "sidebarSectionSystem": "System",
-  "noResults": "No results"
+  "noResults": "No results",
+  "columnName": "Name",
+  "columnSurname": "Surname",
+  "columnAddress": "Address",
+  "columnGender": "Gender",
+  "columnBirthDate": "Birth Date",
+  "columnRegistrationDate": "Registration",
+  "columnLevel": "Level",
+  "columnStatus": "Status",
+  "showingResults": "Showing {first}–{last} of {total}",
+  "@showingResults": {
+    "placeholders": {
+      "first": {}, "last": {}, "total": {}
+    }
+  },
+  "pageOf": "Page {page} of {total}",
+  "@pageOf": {
+    "placeholders": {
+      "page": {}, "total": {}
+    }
+  },
+  "archive": "Archive",
+  "archiveConfirm": "Archive this student? Their financial history and enrollments will be preserved. They can be restored later.",
+  "archived": "Archived",
+  "restore": "Restore",
+  "archiveWarning": "This student has transactions or active enrollments.",
+  "takePhoto": "Take Photo",
+  "choosePhoto": "Choose Photo",
+  "removePhoto": "Remove Photo",
+  "exportPdf": "Export PDF",
+  "exportExcel": "Export Excel",
+  "emailReport": "Email Report",
+  "comingSoon": "Coming soon",
+  "selectGroups": "Select Groups",
+  "noGroupsAvailable": "No groups available",
+  "enrollInGroups": "Enroll in Groups",
+  "studentDetail": "Student Details",
+  "noPhoto": "No photo",
+  "editStudent": "Edit Student",
+  "generateCards": "Generate Cards",
+  "selectAll": "Select All",
+  "clearSelection": "Clear Selection",
+  "clearFilters": "Clear Filters",
+  "schoolLevelPrimary": "Primary",
+  "schoolLevelMiddle": "Middle",
+  "schoolLevelSecondary": "Secondary"
 }

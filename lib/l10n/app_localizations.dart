@@ -1731,6 +1731,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No results'**
   String get noResults;
+
+  /// No description provided for @columnName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get columnName;
+
+  /// No description provided for @columnSurname.
+  ///
+  /// In en, this message translates to:
+  /// **'Surname'**
+  String get columnSurname;
+
+  /// No description provided for @columnAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get columnAddress;
+
+  /// No description provided for @columnGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get columnGender;
+
+  /// No description provided for @columnBirthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Birth Date'**
+  String get columnBirthDate;
+
+  /// No description provided for @columnRegistrationDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration'**
+  String get columnRegistrationDate;
+
+  /// No description provided for @columnLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get columnLevel;
+
+  /// No description provided for @columnStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get columnStatus;
+
+  /// No description provided for @showingResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {first}–{last} of {total}'**
+  String showingResults(Object first, Object last, Object total);
+
+  /// No description provided for @pageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {total}'**
+  String pageOf(Object page, Object total);
+
+  /// No description provided for @archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archive;
+
+  /// No description provided for @archiveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive this student? Their financial history and enrollments will be preserved. They can be restored later.'**
+  String get archiveConfirm;
+
+  /// No description provided for @archived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get archived;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @archiveWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This student has transactions or active enrollments.'**
+  String get archiveWarning;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhoto;
+
+  /// No description provided for @choosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Photo'**
+  String get choosePhoto;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Photo'**
+  String get removePhoto;
+
+  /// No description provided for @exportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get exportPdf;
+
+  /// No description provided for @exportExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Excel'**
+  String get exportExcel;
+
+  /// No description provided for @emailReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Report'**
+  String get emailReport;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
+  /// No description provided for @selectGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Groups'**
+  String get selectGroups;
+
+  /// No description provided for @noGroupsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No groups available'**
+  String get noGroupsAvailable;
+
+  /// No description provided for @enrollInGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Enroll in Groups'**
+  String get enrollInGroups;
+
+  /// No description provided for @studentDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Details'**
+  String get studentDetail;
+
+  /// No description provided for @noPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'No photo'**
+  String get noPhoto;
+
+  /// No description provided for @editStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Student'**
+  String get editStudent;
+
+  /// No description provided for @generateCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Cards'**
+  String get generateCards;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get selectAll;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Selection'**
+  String get clearSelection;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Filters'**
+  String get clearFilters;
+
+  /// No description provided for @schoolLevelPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get schoolLevelPrimary;
+
+  /// No description provided for @schoolLevelMiddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Middle'**
+  String get schoolLevelMiddle;
+
+  /// No description provided for @schoolLevelSecondary.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get schoolLevelSecondary;
 }
 
 class _AppLocalizationsDelegate
@@ -1747,7 +1957,7 @@ class _AppLocalizationsDelegate
       <String>['ar', 'en', 'fr'].contains(locale.languageCode);
 
   @override
-  bool shouldReload(_AppLocalizationsDelegate old) => true;
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {

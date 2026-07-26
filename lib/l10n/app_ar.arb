@@ -271,5 +271,50 @@
   "sidebarSectionManage": "الإدارة",
   "sidebarSectionFinance": "المالية",
   "sidebarSectionSystem": "النظام",
-  "noResults": "لا توجد نتائج"
+  "noResults": "لا توجد نتائج",
+  "columnName": "الاسم",
+  "columnSurname": "اللقب",
+  "columnAddress": "العنوان",
+  "columnGender": "الجنس",
+  "columnBirthDate": "تاريخ الميلاد",
+  "columnRegistrationDate": "التسجيل",
+  "columnLevel": "المستوى",
+  "columnStatus": "الحالة",
+  "showingResults": "{first}–{last} من {total}",
+  "@showingResults": {
+    "placeholders": {
+      "first": {}, "last": {}, "total": {}
+    }
+  },
+  "pageOf": "صفحة {page} من {total}",
+  "@pageOf": {
+    "placeholders": {
+      "page": {}, "total": {}
+    }
+  },
+  "archive": "أرشفة",
+  "archiveConfirm": "أرشفة هذا التلميذ؟ سيتم الاحتفاظ بسجله المالي وتسجيلاته. يمكن استعادته لاحقا.",
+  "archived": "مؤرشفة",
+  "restore": "استعادة",
+  "archiveWarning": "هذا التلميذ لديه معاملات أو تسجيلات نشطة.",
+  "takePhoto": "التقاط صورة",
+  "choosePhoto": "اختيار صورة",
+  "removePhoto": "إزالة الصورة",
+  "exportPdf": "تصدير PDF",
+  "exportExcel": "تصدير Excel",
+  "emailReport": "إرسال بالتقرير",
+  "comingSoon": "قريبا",
+  "selectGroups": "اختيار المجموعات",
+  "noGroupsAvailable": "لا توجد مجموعات",
+  "enrollInGroups": "التسجيل في المجموعات",
+  "studentDetail": "تفاصيل التلميذ",
+  "noPhoto": "لا توجد صورة",
+  "editStudent": "تعديل التلميذ",
+  "generateCards": "إنشاء البطاقات",
+  "selectAll": "تحديد الكل",
+  "clearSelection": "إلغاء التحديد",
+  "clearFilters": "مسح التصفية",
+  "schoolLevelPrimary": "ابتدائي",
+  "schoolLevelMiddle": "متوسط",
+  "schoolLevelSecondary": "ثانوي"
 }

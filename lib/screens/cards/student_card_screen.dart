@@ -177,7 +177,7 @@ class _StudentCardScreenState extends State<StudentCardScreen> {
               children: [
                 pw.Text(
                   'EduManage',
-                  style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(

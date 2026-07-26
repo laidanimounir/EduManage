@@ -826,4 +826,115 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noResults => 'Aucun résultat';
+
+  @override
+  String get columnName => 'Nom';
+
+  @override
+  String get columnSurname => 'Prénom';
+
+  @override
+  String get columnAddress => 'Adresse';
+
+  @override
+  String get columnGender => 'Genre';
+
+  @override
+  String get columnBirthDate => 'Date de naissance';
+
+  @override
+  String get columnRegistrationDate => 'Inscription';
+
+  @override
+  String get columnLevel => 'Niveau';
+
+  @override
+  String get columnStatus => 'Statut';
+
+  @override
+  String showingResults(Object first, Object last, Object total) {
+    return '$first–$last sur $total';
+  }
+
+  @override
+  String pageOf(Object page, Object total) {
+    return 'Page $page sur $total';
+  }
+
+  @override
+  String get archive => 'Archiver';
+
+  @override
+  String get archiveConfirm =>
+      'Archiver cet élève ? Son historique financier et ses inscriptions seront conservés. Il pourra être restauré.';
+
+  @override
+  String get archived => 'Archivé';
+
+  @override
+  String get restore => 'Restaurer';
+
+  @override
+  String get archiveWarning =>
+      'Cet élève a des transactions ou inscriptions actives.';
+
+  @override
+  String get takePhoto => 'Prendre une photo';
+
+  @override
+  String get choosePhoto => 'Choisir une photo';
+
+  @override
+  String get removePhoto => 'Supprimer la photo';
+
+  @override
+  String get exportPdf => 'Exporter PDF';
+
+  @override
+  String get exportExcel => 'Exporter Excel';
+
+  @override
+  String get emailReport => 'Envoyer par email';
+
+  @override
+  String get comingSoon => 'Bientôt disponible';
+
+  @override
+  String get selectGroups => 'Sélectionner les groupes';
+
+  @override
+  String get noGroupsAvailable => 'Aucun groupe disponible';
+
+  @override
+  String get enrollInGroups => 'Inscrire aux groupes';
+
+  @override
+  String get studentDetail => 'Détails de l\'élève';
+
+  @override
+  String get noPhoto => 'Pas de photo';
+
+  @override
+  String get editStudent => 'Modifier l\'élève';
+
+  @override
+  String get generateCards => 'Générer les cartes';
+
+  @override
+  String get selectAll => 'Tout sélectionner';
+
+  @override
+  String get clearSelection => 'Effacer la sélection';
+
+  @override
+  String get clearFilters => 'Effacer les filtres';
+
+  @override
+  String get schoolLevelPrimary => 'Primaire';
+
+  @override
+  String get schoolLevelMiddle => 'Collège';
+
+  @override
+  String get schoolLevelSecondary => 'Lycée';
 }

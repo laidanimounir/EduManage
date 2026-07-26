@@ -825,4 +825,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noResults => 'No results';
+
+  @override
+  String get columnName => 'Name';
+
+  @override
+  String get columnSurname => 'Surname';
+
+  @override
+  String get columnAddress => 'Address';
+
+  @override
+  String get columnGender => 'Gender';
+
+  @override
+  String get columnBirthDate => 'Birth Date';
+
+  @override
+  String get columnRegistrationDate => 'Registration';
+
+  @override
+  String get columnLevel => 'Level';
+
+  @override
+  String get columnStatus => 'Status';
+
+  @override
+  String showingResults(Object first, Object last, Object total) {
+    return 'Showing $first–$last of $total';
+  }
+
+  @override
+  String pageOf(Object page, Object total) {
+    return 'Page $page of $total';
+  }
+
+  @override
+  String get archive => 'Archive';
+
+  @override
+  String get archiveConfirm =>
+      'Archive this student? Their financial history and enrollments will be preserved. They can be restored later.';
+
+  @override
+  String get archived => 'Archived';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get archiveWarning =>
+      'This student has transactions or active enrollments.';
+
+  @override
+  String get takePhoto => 'Take Photo';
+
+  @override
+  String get choosePhoto => 'Choose Photo';
+
+  @override
+  String get removePhoto => 'Remove Photo';
+
+  @override
+  String get exportPdf => 'Export PDF';
+
+  @override
+  String get exportExcel => 'Export Excel';
+
+  @override
+  String get emailReport => 'Email Report';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
+  String get selectGroups => 'Select Groups';
+
+  @override
+  String get noGroupsAvailable => 'No groups available';
+
+  @override
+  String get enrollInGroups => 'Enroll in Groups';
+
+  @override
+  String get studentDetail => 'Student Details';
+
+  @override
+  String get noPhoto => 'No photo';
+
+  @override
+  String get editStudent => 'Edit Student';
+
+  @override
+  String get generateCards => 'Generate Cards';
+
+  @override
+  String get selectAll => 'Select All';
+
+  @override
+  String get clearSelection => 'Clear Selection';
+
+  @override
+  String get clearFilters => 'Clear Filters';
+
+  @override
+  String get schoolLevelPrimary => 'Primary';
+
+  @override
+  String get schoolLevelMiddle => 'Middle';
+
+  @override
+  String get schoolLevelSecondary => 'Secondary';
 }

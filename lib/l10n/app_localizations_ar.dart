@@ -824,4 +824,114 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noResults => 'لا توجد نتائج';
+
+  @override
+  String get columnName => 'الاسم';
+
+  @override
+  String get columnSurname => 'اللقب';
+
+  @override
+  String get columnAddress => 'العنوان';
+
+  @override
+  String get columnGender => 'الجنس';
+
+  @override
+  String get columnBirthDate => 'تاريخ الميلاد';
+
+  @override
+  String get columnRegistrationDate => 'التسجيل';
+
+  @override
+  String get columnLevel => 'المستوى';
+
+  @override
+  String get columnStatus => 'الحالة';
+
+  @override
+  String showingResults(Object first, Object last, Object total) {
+    return '$first–$last من $total';
+  }
+
+  @override
+  String pageOf(Object page, Object total) {
+    return 'صفحة $page من $total';
+  }
+
+  @override
+  String get archive => 'أرشفة';
+
+  @override
+  String get archiveConfirm =>
+      'أرشفة هذا التلميذ؟ سيتم الاحتفاظ بسجله المالي وتسجيلاته. يمكن استعادته لاحقا.';
+
+  @override
+  String get archived => 'مؤرشفة';
+
+  @override
+  String get restore => 'استعادة';
+
+  @override
+  String get archiveWarning => 'هذا التلميذ لديه معاملات أو تسجيلات نشطة.';
+
+  @override
+  String get takePhoto => 'التقاط صورة';
+
+  @override
+  String get choosePhoto => 'اختيار صورة';
+
+  @override
+  String get removePhoto => 'إزالة الصورة';
+
+  @override
+  String get exportPdf => 'تصدير PDF';
+
+  @override
+  String get exportExcel => 'تصدير Excel';
+
+  @override
+  String get emailReport => 'إرسال بالتقرير';
+
+  @override
+  String get comingSoon => 'قريبا';
+
+  @override
+  String get selectGroups => 'اختيار المجموعات';
+
+  @override
+  String get noGroupsAvailable => 'لا توجد مجموعات';
+
+  @override
+  String get enrollInGroups => 'التسجيل في المجموعات';
+
+  @override
+  String get studentDetail => 'تفاصيل التلميذ';
+
+  @override
+  String get noPhoto => 'لا توجد صورة';
+
+  @override
+  String get editStudent => 'تعديل التلميذ';
+
+  @override
+  String get generateCards => 'إنشاء البطاقات';
+
+  @override
+  String get selectAll => 'تحديد الكل';
+
+  @override
+  String get clearSelection => 'إلغاء التحديد';
+
+  @override
+  String get clearFilters => 'مسح التصفية';
+
+  @override
+  String get schoolLevelPrimary => 'ابتدائي';
+
+  @override
+  String get schoolLevelMiddle => 'متوسط';
+
+  @override
+  String get schoolLevelSecondary => 'ثانوي';
 }

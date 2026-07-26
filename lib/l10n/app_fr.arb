@@ -271,5 +271,50 @@
   "sidebarSectionManage": "Gestion",
   "sidebarSectionFinance": "Finances",
   "sidebarSectionSystem": "Système",
-  "noResults": "Aucun résultat"
+  "noResults": "Aucun résultat",
+  "columnName": "Nom",
+  "columnSurname": "Prénom",
+  "columnAddress": "Adresse",
+  "columnGender": "Genre",
+  "columnBirthDate": "Date de naissance",
+  "columnRegistrationDate": "Inscription",
+  "columnLevel": "Niveau",
+  "columnStatus": "Statut",
+  "showingResults": "{first}–{last} sur {total}",
+  "@showingResults": {
+    "placeholders": {
+      "first": {}, "last": {}, "total": {}
+    }
+  },
+  "pageOf": "Page {page} sur {total}",
+  "@pageOf": {
+    "placeholders": {
+      "page": {}, "total": {}
+    }
+  },
+  "archive": "Archiver",
+  "archiveConfirm": "Archiver cet élève ? Son historique financier et ses inscriptions seront conservés. Il pourra être restauré.",
+  "archived": "Archivé",
+  "restore": "Restaurer",
+  "archiveWarning": "Cet élève a des transactions ou inscriptions actives.",
+  "takePhoto": "Prendre une photo",
+  "choosePhoto": "Choisir une photo",
+  "removePhoto": "Supprimer la photo",
+  "exportPdf": "Exporter PDF",
+  "exportExcel": "Exporter Excel",
+  "emailReport": "Envoyer par email",
+  "comingSoon": "Bientôt disponible",
+  "selectGroups": "Sélectionner les groupes",
+  "noGroupsAvailable": "Aucun groupe disponible",
+  "enrollInGroups": "Inscrire aux groupes",
+  "studentDetail": "Détails de l'élève",
+  "noPhoto": "Pas de photo",
+  "editStudent": "Modifier l'élève",
+  "generateCards": "Générer les cartes",
+  "selectAll": "Tout sélectionner",
+  "clearSelection": "Effacer la sélection",
+  "clearFilters": "Effacer les filtres",
+  "schoolLevelPrimary": "Primaire",
+  "schoolLevelMiddle": "Collège",
+  "schoolLevelSecondary": "Lycée"
 }
