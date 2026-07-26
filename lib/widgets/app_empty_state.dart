@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../constants/theme_tokens.dart';
 
 class AppEmptyState extends StatelessWidget {

@@ -140,7 +140,6 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final l10n = AppLocalizations.of(context);
     final currentLocale = Localizations.localeOf(context);
     final width = (_sidebarHovered || _sidebarPinned) ? _expandedWidth : _collapsedWidth;
     final expanded = _sidebarHovered || _sidebarPinned;
