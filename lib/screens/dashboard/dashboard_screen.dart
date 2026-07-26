@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
+import '../../constants/theme_tokens.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/teacher_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/attendance_repository.dart';
 import '../../repositories/transaction_repository.dart';
+import '../../widgets/app_loading.dart';
 
 class DashboardScreen extends StatefulWidget {
   final AppDatabase database;
@@ -92,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: RefreshIndicator(
         onRefresh: _loadStats,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const AppLoading()
             : ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
@@ -102,8 +105,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.totalStudents,
                           _totalStudents.toString(),
-                          Icons.school,
-                          Colors.blue,
+                          PhosphorIconsRegular.users,
+                          ShellTokens.accent,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -111,8 +114,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.totalTeachers,
                           _totalTeachers.toString(),
-                          Icons.people,
-                          Colors.teal,
+                          PhosphorIconsRegular.chalkboardTeacher,
+                          const Color(0xFF5B8C5A),
                         ),
                       ),
                     ],
@@ -124,8 +127,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.todaySessions,
                           _todaySessions.toString(),
-                          Icons.calendar_today,
-                          Colors.orange,
+                          PhosphorIconsRegular.clock,
+                          const Color(0xFFC2823A),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -133,8 +136,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.todayAttendance,
                           _todayAttendance.toString(),
-                          Icons.check_circle,
-                          Colors.green,
+                          PhosphorIconsRegular.checkCircle,
+                          const Color(0xFF4B8B4A),
                         ),
                       ),
                     ],
@@ -146,8 +149,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.monthlyRevenue,
                           '${_monthlyRevenue.toStringAsFixed(0)} DA',
-                          Icons.trending_up,
-                          Colors.purple,
+                          PhosphorIconsRegular.trendUp,
+                          const Color(0xFF5B8C5A),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -155,55 +158,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: _buildStatCard(
                           l10n.outstandingDebts,
                           '${_outstandingDebts.toStringAsFixed(0)} DA',
-                          Icons.warning,
-                          Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.quickActions,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          child: InkWell(
-                            onTap: () => Navigator.pushNamed(context, '/checkin'),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  const Icon(Icons.qr_code_scanner, size: 32, color: Colors.blue),
-                                  const SizedBox(height: 8),
-                                  Text(l10n.quickActions),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Card(
-                          child: InkWell(
-                            onTap: () => Navigator.pushNamed(context, '/payments'),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  const Icon(Icons.payment, size: 32, color: Colors.green),
-                                  const SizedBox(height: 8),
-                                  Text(l10n.quickActions),
-                                ],
-                              ),
-                            ),
-                          ),
+                          PhosphorIconsRegular.warning,
+                          const Color(0xFFC2483D),
                         ),
                       ),
                     ],
@@ -214,26 +170,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(icon, size: 28, color: color),
+            Icon(icon, size: 24, color: color),
             const SizedBox(height: 8),
             Text(
               value,
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(
+                fontSize: 11,
+                color: ShellTokens.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

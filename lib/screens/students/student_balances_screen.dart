@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
+import '../../constants/theme_tokens.dart';
 import '../../repositories/student_repository.dart';
 import '../../constants/app_constants.dart';
+import '../../widgets/app_loading.dart';
+import '../../widgets/app_empty_state.dart';
 import '../payments/unified_payment_screen.dart';
 
 class StudentBalancesScreen extends StatefulWidget {
@@ -64,34 +68,53 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
 
     return Scaffold(
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoading()
           : _entries.isEmpty
-              ? Center(child: Text(l10n.noData))
+              ? AppEmptyState(
+                  icon: PhosphorIconsRegular.wallet,
+                  message: l10n.noData,
+                )
               : ListView.builder(
                   itemCount: _entries.length,
                   itemBuilder: (_, i) {
                     final e = _entries[i];
                     final owing = e.balance > 0;
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: owing ? Colors.red.shade100 : Colors.green.shade100,
+                          backgroundColor: ShellTokens.chromeBase,
                           child: Icon(
-                            owing ? Icons.warning : Icons.check_circle,
-                            color: owing ? Colors.red : Colors.green,
+                            owing
+                                ? PhosphorIconsRegular.warning
+                                : PhosphorIconsRegular.checkCircle,
+                            size: 18,
+                            color: owing
+                                ? SemanticTokens.error
+                                : SemanticTokens.success,
                           ),
                         ),
                         title: Text(
                           '${e.student.firstNameAr} ${e.student.lastNameAr}',
+                          style: const TextStyle(
+                            color: ShellTokens.textPrimary,
+                          ),
                         ),
-                        subtitle: Text(e.student.code),
+                        subtitle: Text(
+                          e.student.code,
+                          style: const TextStyle(
+                            color: ShellTokens.textSecondary,
+                          ),
+                        ),
                         trailing: Text(
                           '${e.balance.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: owing ? Colors.red : Colors.green,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: owing
+                                ? SemanticTokens.error
+                                : SemanticTokens.success,
                           ),
                         ),
                         onTap: () {
