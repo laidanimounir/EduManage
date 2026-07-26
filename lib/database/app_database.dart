@@ -321,4 +321,27 @@ class AppDatabase extends _$AppDatabase {
     );
     return query.map((row) => row.read<double>('balance')).getSingle();
   }
+
+  Future<Map<String, double>> getStudentBalancesForIds(List<String> ids) async {
+    if (ids.isEmpty) return {};
+    final placeholders = ids.map((_) => '?').join(',');
+    final query = customSelect(
+      'SELECT student_id, COALESCE(SUM(CASE '
+      'WHEN type IN (\'session_charge\', \'correction\') THEN amount '
+      'WHEN type IN (\'student_payment\', \'discount\', \'reversal\') THEN -amount '
+      'ELSE 0 END), 0) AS balance '
+      'FROM transactions WHERE student_id IN ($placeholders) '
+      'GROUP BY student_id',
+      variables: [for (final id in ids) Variable.withString(id)],
+    );
+    final rows = await query.get();
+    final map = <String, double>{};
+    for (final row in rows) {
+      map[row.read<String>('student_id')] = row.read<double>('balance');
+    }
+    for (final id in ids) {
+      map.putIfAbsent(id, () => 0);
+    }
+    return map;
+  }
 }
