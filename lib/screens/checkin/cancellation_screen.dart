@@ -180,7 +180,6 @@ class _CancellationScreenState extends State<CancellationScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.sessionCancellation)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

@@ -71,7 +71,6 @@ class _StudentListScreenState extends State<StudentListScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.students)),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

@@ -130,9 +130,6 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? l10n.edit : l10n.add),
-      ),
       body: Form(
         key: _formKey,
         child: ListView(

@@ -34,20 +34,11 @@ class _TeacherDetailScreenState extends State<TeacherDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: Text(l10n.details)), body: const Center(child: CircularProgressIndicator()));
-    if (_t == null) return Scaffold(appBar: AppBar(title: Text(l10n.details)), body: Center(child: Text(l10n.noData)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_t == null) return Scaffold(body: Center(child: Text(l10n.noData)));
 
     final t = _t!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${t.firstNameAr} ${t.lastNameAr}'),
-        actions: [
-          IconButton(icon: const Icon(Icons.edit), onPressed: () async {
-            await Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherFormScreen(database: widget.database, teacherId: t.id)));
-            _load();
-          }),
-        ],
-      ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(l10n.personalInfo, style: Theme.of(context).textTheme.titleMedium),

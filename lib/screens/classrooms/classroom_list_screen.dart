@@ -60,7 +60,6 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.classrooms)),
       floatingActionButton: FloatingActionButton(onPressed: () => _showForm(), child: const Icon(Icons.add)),
       body: _loading ? const Center(child: CircularProgressIndicator()) : _rooms.isEmpty ? Center(child: Text(l10n.noData))
           : ListView.builder(itemCount: _rooms.length, itemBuilder: (_, i) {

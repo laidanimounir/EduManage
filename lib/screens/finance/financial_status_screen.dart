@@ -46,7 +46,6 @@ class _FinancialStatusScreenState extends State<FinancialStatusScreen> {
     final expenseSum = _transactions.where((t) => t.type == 'expense').fold<double>(0, (s, t) => s + t.amount);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.financialStatus)),
       body: Column(children: [
         Padding(padding: const EdgeInsets.all(12), child: Row(children: [
           Expanded(child: Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [Text('$chargeSum', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), Text(l10n.income)])))),

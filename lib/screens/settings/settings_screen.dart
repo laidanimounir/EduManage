@@ -45,13 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.settings)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -57,7 +57,6 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.enrollments)),
       floatingActionButton: FloatingActionButton(onPressed: _showForm, child: const Icon(Icons.add)),
       body: _loading ? const Center(child: CircularProgressIndicator()) : _enrollments.isEmpty ? Center(child: Text(l10n.noEnrollments)) : ListView.builder(itemCount: _enrollments.length, itemBuilder: (_, i) {
         final e = _enrollments[i];

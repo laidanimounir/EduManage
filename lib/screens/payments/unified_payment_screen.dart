@@ -156,7 +156,6 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     final currency = AppConstants.currencySymbol;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.payments)),
       body: _loading && !_initialLoadDone
           ? const Center(child: CircularProgressIndicator())
           : Column(

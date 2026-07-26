@@ -94,14 +94,12 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.details)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_student == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.details)),
         body: Center(child: Text(l10n.studentNotFound)),
       );
     }
@@ -116,36 +114,6 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     final balance = chargeSum - paymentSum;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${s.firstNameAr} ${s.lastNameAr}'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (action) {
-              if (action == 'edit') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentFormScreen(
-                      database: widget.database,
-                      studentId: s.id,
-                    ),
-                  ),
-                ).then((_) => _load());
-              } else if (action == 'delete') {
-                _deleteStudent();
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

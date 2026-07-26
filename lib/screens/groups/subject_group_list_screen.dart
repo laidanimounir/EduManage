@@ -59,7 +59,6 @@ class _SubjectGroupListScreenState extends State<SubjectGroupListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.groups)),
       floatingActionButton: FloatingActionButton(onPressed: () => _showForm(), child: const Icon(Icons.add)),
       body: _loading ? const Center(child: CircularProgressIndicator()) : _groups.isEmpty ? Center(child: Text(l10n.noData))
           : ListView.builder(itemCount: _groups.length, itemBuilder: (_, i) {

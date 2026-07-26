@@ -83,7 +83,6 @@ class _TodayAttendanceScreenState extends State<TodayAttendanceScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.todayAttendance)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _activeSessions.isEmpty

@@ -63,29 +63,6 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.outstandingDebts),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              setState(() => _sortBy = v);
-              _sort(_entries);
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'debt', child: Text(l10n.debt)),
-              PopupMenuItem(value: 'name', child: Text(l10n.firstName)),
-              PopupMenuItem(value: 'code', child: Text(l10n.code)),
-            ],
-          ),
-          IconButton(
-            icon: Icon(_ascending ? Icons.arrow_upward : Icons.arrow_downward),
-            onPressed: () {
-              setState(() => _ascending = !_ascending);
-              _sort(_entries);
-            },
-          ),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _entries.isEmpty

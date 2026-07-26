@@ -213,7 +213,6 @@ class _StudentCardScreenState extends State<StudentCardScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.studentCard)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(

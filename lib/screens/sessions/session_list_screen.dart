@@ -81,7 +81,6 @@ class _SessionListScreenState extends State<SessionListScreen> {
     final l10n = AppLocalizations.of(context);
     final filtered = _selectedDay == 0 ? _sessions : _sessions.where((s) => s.dayOfWeek == _selectedDay).toList();
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.sessions)),
       floatingActionButton: FloatingActionButton(onPressed: () => _showForm(), child: const Icon(Icons.add)),
       body: Column(children: [
         SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.all(8), child: Row(children: [

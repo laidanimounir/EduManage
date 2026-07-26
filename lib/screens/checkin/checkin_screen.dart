@@ -165,7 +165,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.checkIn)),
       body: Column(children: [
         Container(
           padding: const EdgeInsets.all(24),

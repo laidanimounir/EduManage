@@ -182,32 +182,6 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.auditLog),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            tooltip: l10n.filterByDate,
-            onPressed: _pickDateRange,
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: l10n.filterByUser,
-            onPressed: _showFilterSheet,
-          ),
-          if (_filterStartDate != null || _filterUserId != null)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              tooltip: l10n.close,
-              onPressed: () {
-                _filterStartDate = null;
-                _filterEndDate = null;
-                _filterUserId = null;
-                _loadEntries();
-              },
-            ),
-        ],
-      ),
       body: Column(
         children: [
           if (_filterStartDate != null)

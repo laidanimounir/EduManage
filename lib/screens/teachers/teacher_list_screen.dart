@@ -44,7 +44,6 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
           }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.teachers)),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final r = await Navigator.push(context,

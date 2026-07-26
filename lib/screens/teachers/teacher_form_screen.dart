@@ -100,7 +100,6 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? l10n.edit : l10n.add)),
       body: Form(
         key: _formKey,
         child: ListView(padding: const EdgeInsets.all(16), children: [

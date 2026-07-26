@@ -89,7 +89,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.dashboard)),
       body: RefreshIndicator(
         onRefresh: _loadStats,
         child: _loading

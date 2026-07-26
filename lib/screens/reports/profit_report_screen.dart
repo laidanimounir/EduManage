@@ -162,7 +162,6 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profitReport)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
