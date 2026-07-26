@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -18,6 +19,8 @@ import '../../repositories/enrollment_repository.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/group_assignment_dialog.dart';
 import '../../repositories/school_level_repository.dart';
+import '../../repositories/subject_group_repository.dart';
+import '../../repositories/transaction_service.dart';
 
 class StudentListScreen extends StatefulWidget {
   final AppDatabase database;
@@ -47,6 +50,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
   String _searchQuery = '';
   Set<String> _selectedIds = {};
   Set<String> _enrolledIds = {};
+  Set<String> _feePaidIds = {};
   String? _sortColumn;
   bool _sortAsc = true;
 
@@ -86,11 +90,17 @@ class _StudentListScreenState extends State<StudentListScreen> {
           .where((e) => e.status == 'active')
           .map((e) => e.studentId)
           .toSet();
+      final feePaidIds = <String>{};
+      for (final s in result.students) {
+        final paid = await widget.database.isRegistrationFeePaid(s.id);
+        if (paid) feePaidIds.add(s.id);
+      }
       if (mounted) {
         setState(() {
           _rows = result.students;
           _total = result.total;
           _enrolledIds = enrolledIds;
+          _feePaidIds = feePaidIds;
           _loading = false;
           
         });
@@ -225,7 +235,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
       child: Row(
         children: [
           Text(
-            '${_selectedIds.length} ${l10n.students.toLowerCase()}',
+            '${_selectedIds.length} ${l10n.selected}',
             style: const TextStyle(
               color: ShellTokens.textPrimary,
               fontSize: 13,
@@ -578,6 +588,8 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   TableRow _buildDataRow(Student s, int index, AppLocalizations l10n) {
     final isEnrolled = _enrolledIds.contains(s.id);
+    final isFeePaid = _feePaidIds.contains(s.id);
+    final hasFee = true;
     final isSelected = _selectedIds.contains(s.id);
     final isEven = index.isEven;
 
@@ -585,18 +597,38 @@ class _StudentListScreenState extends State<StudentListScreen> {
       decoration: BoxDecoration(
         color: isSelected
             ? ShellTokens.accentMuted.withValues(alpha: 0.3)
-            : isEven
-                ? Colors.transparent
-                : ShellTokens.chromeBase.withValues(alpha: 0.3),
+            : !isEnrolled
+                ? const Color(0xFF2B2416).withValues(alpha: 0.4)
+                : isEven
+                    ? Colors.transparent
+                    : ShellTokens.chromeBase.withValues(alpha: 0.3),
       ),
       children: [
         _buildCheckCell(s, isSelected),
-        _buildNameCell(s, isEnrolled, l10n),
-        _buildTextCell('${s.lastNameAr}\n${s.lastNameFr ?? ''}'),
-        _buildTextCell(s.address ?? '—'),
-        _buildTextCell(_levelLabel(s.schoolLevel, l10n)),
-        _buildStatusCell(s, l10n),
-        _buildTextCell(_formatDate(s.registrationDate)),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildNameCellContent(s, isEnrolled, isFeePaid, hasFee, l10n),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildTextCell('${s.lastNameAr}\n${s.lastNameFr ?? ''}'),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildTextCell(s.address ?? '—'),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildTextCell(_levelLabel(s.schoolLevel, l10n)),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildStatusCell(s, l10n),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          child: _buildTextCell(_formatDate(s.registrationDate)),
+        ),
         _buildActionsCell(s),
       ],
     );
@@ -614,10 +646,10 @@ class _StudentListScreenState extends State<StudentListScreen> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Container(
-          width: 16,
-          height: 16,
+          width: 14,
+          height: 14,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(3),
             border: Border.all(
@@ -627,17 +659,43 @@ class _StudentListScreenState extends State<StudentListScreen> {
             color: isSelected ? ShellTokens.accent : Colors.transparent,
           ),
           child: isSelected
-              ? const Icon(Icons.check, size: 10, color: ShellTokens.chromeBase)
+              ? const Icon(Icons.check, size: 9, color: ShellTokens.chromeBase)
               : null,
         ),
       ),
     );
   }
 
-  Widget _buildNameCell(Student s, bool isEnrolled, AppLocalizations l10n) {
+  Widget _buildBadge(String label, Color color) {
+    return Container(
+      margin: const EdgeInsetsDirectional.only(start: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3D2E18),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: const Color(0xFF5C4626)),
+      ),
+      child: Text(label, style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildTextCell(String text) {
     return GestureDetector(
-      onTap: () => _openDetail(s),
+      onTap: null,
       child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameCellContent(Student s, bool isEnrolled, bool isFeePaid, bool hasFee, AppLocalizations l10n) {
+    return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Row(
           children: [
@@ -662,38 +720,13 @@ class _StudentListScreenState extends State<StudentListScreen> {
                 ],
               ),
             ),
+            if (!isFeePaid && hasFee)
+              _buildBadge(l10n.feeUnpaid, const Color(0xFFC2823A)),
             if (!isEnrolled)
-              Container(
-                margin: const EdgeInsetsDirectional.only(start: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3D2E18),
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: const Color(0xFF5C4626)),
-                ),
-                child: Text(
-                  l10n.notEnrolled,
-                  style: const TextStyle(fontSize: 9, color: Color(0xFFC2823A), fontWeight: FontWeight.w600),
-                ),
-              ),
+              _buildBadge(l10n.notEnrolled, const Color(0xFFC2823A)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextCell(String text) {
-    return GestureDetector(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
+      );
   }
 
   Widget _buildStatusCell(Student s, AppLocalizations l10n) {
@@ -1009,6 +1042,7 @@ class _FinancialSummaryState extends State<_FinancialSummary> {
   double _charged = 0;
   double _paid = 0;
   double _balance = 0;
+  bool _feePaid = false;
   bool _loading = true;
 
   @override
@@ -1018,12 +1052,19 @@ class _FinancialSummaryState extends State<_FinancialSummary> {
   }
 
   Future<void> _load() async {
-    final results = await Future.wait([
-      widget.database.getStudentTotalCharged(widget.studentId),
-      widget.database.getStudentTotalPaid(widget.studentId),
-      widget.database.getStudentBalance(widget.studentId),
-    ]);
-    if (mounted) setState(() { _charged = results[0]; _paid = results[1]; _balance = results[2]; _loading = false; });
+    final r1 = await widget.database.getStudentTotalCharged(widget.studentId);
+    final r2 = await widget.database.getStudentTotalPaid(widget.studentId);
+    final r3 = await widget.database.getStudentBalance(widget.studentId);
+    final r4 = await widget.database.isRegistrationFeePaid(widget.studentId);
+    if (mounted) setState(() { _charged = r1; _paid = r2; _balance = r3; _feePaid = r4; _loading = false; });
+  }
+
+  Future<void> _markFeePaid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final amount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final txService = TransactionService(widget.database);
+    await txService.createRegistrationFeePayment(studentId: widget.studentId, amount: amount);
+    _load();
   }
 
   @override
@@ -1035,6 +1076,24 @@ class _FinancialSummaryState extends State<_FinancialSummary> {
         _finRow(widget.l10n.totalPaid, _paid, SemanticTokens.success),
         const Divider(height: 16, color: ShellTokens.chromeBorder),
         _finRow(widget.l10n.balance, _balance, _balance > 0 ? SemanticTokens.error : SemanticTokens.success, bold: true),
+        const Divider(height: 16, color: ShellTokens.chromeBorder),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(widget.l10n.registrationFee, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+              if (_feePaid)
+                Text(widget.l10n.feePaid, style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600))
+              else
+                TextButton(
+                  onPressed: _markFeePaid,
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), minimumSize: Size.zero),
+                  child: Text(widget.l10n.markAsPaid, style: const TextStyle(fontSize: 10, color: ShellTokens.accent)),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1086,25 +1145,70 @@ class _EnrollmentListState extends State<_EnrollmentList> {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
     if (_enrollments.isEmpty) return Text(widget.l10n.noEnrollments, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
 
+    final activeCount = _enrollments.where((e) => e.status == 'active').length;
     return Column(
-      children: _enrollments.map((e) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Container(
-              width: 6, height: 6,
-              decoration: BoxDecoration(
-                color: e.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(e.subjectGroupId, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
-            const Spacer(),
-            Text(e.status, style: TextStyle(fontSize: 10, color: e.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled)),
-          ],
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            widget.l10n.enrollmentCount('$activeCount'),
+            style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled),
+          ),
         ),
-      )).toList(),
+        ..._enrollments.map((e) => _EnrollmentRow(
+          enrollment: e,
+          database: widget.database,
+          l10n: widget.l10n,
+        )),
+      ],
+    );
+  }
+}
+
+class _EnrollmentRow extends StatefulWidget {
+  final Enrollment enrollment;
+  final AppDatabase database;
+  final AppLocalizations l10n;
+
+  const _EnrollmentRow({required this.enrollment, required this.database, required this.l10n});
+
+  @override
+  State<_EnrollmentRow> createState() => _EnrollmentRowState();
+}
+
+class _EnrollmentRowState extends State<_EnrollmentRow> {
+  String _groupName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final group = await SubjectGroupRepository(widget.database).getById(widget.enrollment.subjectGroupId);
+    if (mounted) setState(() => _groupName = group?.nameAr ?? widget.enrollment.subjectGroupId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 6, height: 6,
+            decoration: BoxDecoration(
+              color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_groupName, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+          Text(widget.enrollment.status, style: TextStyle(fontSize: 10, color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled)),
+        ],
+      ),
     );
   }
 }
