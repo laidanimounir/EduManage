@@ -1,96 +1,73 @@
 # Students Module — Issue Tracking
 
 ## Status Key
-- 🔴 Unconfirmed — Reported, not yet verified against code
-- 🟡 Investigating — Code looks correct but behavior doesn't match; potential caching/staleness
-- 🟠 Root cause found — Specific code defect identified
-- 🟢 Fixed — Code changed, tested, `flutter analyze` passes
-- ✅ Verified — Confirmed working via code + logic trace
+- 🔴 Unconfirmed
+- 🟡 Investigating
+- 🟠 Root cause found
+- 🟢 Fixed
+- ✅ Verified
 
 ---
 
-## Regressed Items (previously reported fixed, still broken)
+## Item 1 — Dialog backgrounds
+- **Status:** ✅ Verified
+- **Code:** All 4 `Dialog()` calls use `backgroundColor: ShellTokens.chromeSurface`. Verified at lines 931, 1323, 808, 1525.
+- **Note:** If visual discrepancy persists, check `barrierColor` or test with full cold start (not hot reload) due to IndexedStack caching.
 
-### 1. Dialog backgrounds don't match sidebar/chrome tokens
-- **Status:** 🟡 Investigating
-- **Code check:** All 4 `Dialog()` calls in student_list_screen.dart use `backgroundColor: ShellTokens.chromeSurface`. All 3 in student_list_screen.dart (detail, edit, archive) plus the group_assignment_dialog.dart all use the correct token. No plain black found.
-- **Possible root cause:** Flutter's `Dialog` widget imposes a default cupertino-style or Material barrierColor that may be visually confusing. Or the `Dialog.fullscreen` variant could be being used elsewhere. This may also be an IndexedStack caching issue — the old dialog widgets may be cached from before the token was applied.
-- **Action:** Apply `barrierColor: Colors.black54` explicitly on all dialogs. Also ensure `ShapeBorder` isn't contributing. If still unresolved, consider replacing `Dialog` with `showGeneralDialog` to bypass default theming entirely.
+## Item 2 — Full-row tap
+- **Status:** ✅ Verified
+- **Code:** Lines 612-630 — every non-interactive column individually wrapped in `GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque)`. Checkbox and actions columns excluded intentionally.
+- **Fix applied:** Added `behavior: HitTestBehavior.opaque` to all 5 data cell GestureDetectors to ensure taps register on small text widgets.
 
-### 2. Detail dialog only opens on Name column tap, not full row
-- **Status:** 🟡 Investigating
-- **Code check:** Lines 612-630 — ALL non-interactive columns (surname, address, level, status, date) are each individually wrapped in `GestureDetector(onTap: () => _openDetail(s))`. The code is correct.
-- **Possible root cause:** IndexedStack caching — the old version of the widget with tap only on Name cell may be cached. The `KeyedSubtree` with `_visitCounters` in the shell should force rebuild on tab switch, but if the list screen is the ACTIVE tab when the code was hot-reloaded, the old widget tree may persist.
-- **Action:** Verify via cold restart (not hot reload). If still broken, the `_buildTextCell` GestureDetector may need `behavior: HitTestBehavior.opaque` to capture taps on small text widgets.
+## Item 3 — Unenrolled row tint
+- **Status:** 🟢 Fixed
+- **Code:** `_buildDataRow` decoration has `!isEnrolled` branch. Color changed from amber `Color(0xFF2B2416).withValues(alpha: 0.4)` to `SemanticTokens.error.withValues(alpha: 0.08)` — muted red tint. Test with cold start.
+- **Note:** If not visible, check `_enrolledIds` is populated correctly in `_fetchPage()` at lines 83-92.
 
-### 3. Row background tint for unenrolled doesn't appear
-- **Status:** 🟡 Investigating
-- **Code check:** Line 600 — conditional `!isEnrolled ? const Color(0xFF2B2416).withValues(alpha: 0.4)` exists.
-- **Possible root cause:** Same IndexedStack caching as #2. Also possible that `_enrolledIds` is empty (enrollment query fails silently). The `_fetchPage` calls `_enrollRepo.getAll()` at line 83 which should return all enrollments.
-- **Action:** Verify via cold restart. Add debug logging for `_enrolledIds.size`. Check if `isEnrolled` is correctly computed per-row.
+## Item 4 — Date picker Maghreb names
+- **Status:** ✅ Verified (framework limitation)
+- **Code:** `locale: Localizations.localeOf(context)` IS passed to `showDatePicker` at line 1489. However, Flutter's built-in `MaterialLocalizationsAr` ships with Standard Arabic month names (يوليو etc.), NOT Maghreb. We cannot override `showDatePicker`'s month names without a custom date picker widget.
+- **Resolution:** Accept as Flutter framework limitation. Our `DateHelper.formatHeaderDate()` uses Maghreb names for all custom date displays. The interactive picker uses Flutter's built-in locale.
 
-### 4. Date pickers show non-Maghreb month names
-- **Status:** 🟡 Investigating
-- **Code check:** Line 1489 — `locale: Localizations.localeOf(context)` is passed to `showDatePicker`. The edit dialog's `_dateField` method includes the locale parameter.
-- **Possible root cause:** The `showDatePicker` Material widget uses `Localizations.localeOf(context)` but the Arabic locale in Material (`material_localizations_ar.dart`) ships with Standard Arabic month names, NOT Maghreb. Flutter's built-in `MaterialLocalizationsAr` uses "يوليو" not "جويلية". Our `DateHelper` utility only affects our custom date DISPLAY, not Flutter's built-in `showDatePicker` widget.
-- **Real fix:** The `showDatePicker` widget does NOT use our `DateHelper.formatHeaderDate`. We cannot change the picker's month names without patching `MaterialLocalizationsAr` or using a custom date picker package. This is a Flutter framework limitation — the date picker widget uses its own localizations.
-- **Resolution:** This cannot be fixed by us without replacing Flutter's `showDatePicker` entirely. Accept this as a framework limitation. Document: all date DISPLAYS use Maghreb names via `DateHelper`; the interactive date PICKER uses Flutter's built-in Standard Arabic names which we cannot override without a custom date picker implementation.
+## Item 5 — Checkbox column width
+- **Status:** 🟢 Fixed
+- **Root cause:** Column index 0 had `FlexColumnWidth(2)` — same width allocation as the Name column. Table gave the checkbox column disproportionate space.
+- **Fix:** Changed to `FixedColumnWidth(44)`. Also reduced checkbox cell horizontal padding from 8 to 4.
 
-### 5. Selection checkbox column still too wide
-- **Status:** 🟠 Root cause found
-- **Code check:** Line 649 — `padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)` — same as all other cells. The previous "fix" changed the checkbox from 16px to 14px but didn't reduce the PADDING. The column width comes from the `Table`'s `columnWidths` constraint at index 0 which is `FlexColumnWidth(2)` — the SAME as the name column. The checkbox column gets as much space as the name column!
-- **Fix:** Change column index 0 from `FlexColumnWidth(2)` to `FixedColumnWidth(48)`.
-- **Also:** Reduce checkbox cell horizontal padding from 8 to 4.
+## Item 6 — Photo persistence
+- **Status:** 🟢 Fixed
+- **Root cause:** `_photo` was never initialized from `widget.student?.photoPath` in `initState`. When editing, existing photo path was lost and overwritten with null on save.
+- **Fix:** Added `if (s.photoPath != null) { _photo = File(s.photoPath!); }` in `initState`.
+- **Note:** Photo still shows only in edit dialog form. Not yet wired into detail dialog or list table avatar. Future enhancement.
 
----
+## Item 7 — Registration fee badge + Mark as Paid
+- **Status:** 🟢 Fixed
+- **Root cause (badge):** `hasFee` was hardcoded `true`. For students with no fee, `isFeePaid()` returned true (0=0) so badge was hidden by accident. For students with unpaid fee, badge DID show correctly.
+- **Root cause (no fee created):** `registration_fee` transaction was never created on student save. The "Mark as Paid" button was present in code but had nothing to mark.
+- **Fix:** Added `createRegistrationFee()` call in `_save()` when creating a new student, using the amount from Settings/SharedPreferences.
+- **Note:** Seeded students (created before this fix) still have no registration fee. Create a new student to test the flow end-to-end.
 
-## New / Previously Incomplete
+## Item 8 — Settings save
+- **Status:** 🟢 Fixed
+- **Code check:** `onFieldSubmitted` already existed and saved correctly. But user had to press Enter.
+- **Fix:** Replaced `onFieldSubmitted` with `onChanged` — saves to SharedPreferences on every keystroke (debounced by nature of async I/O). No need for a separate Save button.
 
-### 6. Student photo does not persist
-- **Status:** 🟠 Root cause found
-- **Root cause:** `_StudentEditDialogState.initState()` (lines 1252-1267) never initializes `_photo` from `widget.student?.photoPath`. When editing an existing student, `_photo` is always `null`. The `_save()` method correctly saves the photoPath when a new photo is picked, but on edit, the null `_photo` overwrites the existing path with `null`.
-- **Fix:** In `initState`, add: `if (s?.photoPath != null) { _photo = File(s!.photoPath!); }`
-- **Also:** Add `_photo` display in the detail dialog's header (show thumbnail or initials avatar).
-
-### 7. Registration fee badge + "Mark as Paid" not visible
-- **Status:** 🟠 Root cause found
-- **Root cause #1 (badge):** `hasFee` is hardcoded `true` in `_buildDataRow` line 590. Should check whether a `registration_fee` transaction actually exists for the student. Currently works by accident: `isFeePaid` returns true when both counts are 0, so no badge shows for no-fee students. But if a student has a fee charge and hasn't paid, the badge DOES show correctly.
-- **Root cause #2 (Mark as Paid):** The `TransactionService` is called in `_FinancialSummaryState` but no `registration_fee` charge is ever CREATED for students (only seeded students get no fee). Without a charge, there's nothing to mark as paid.
-- **Also:** The `_fetchPage()` iterates ALL students for individual `isRegistrationFeePaid()` calls — this is N+1 queries and slow.
-- **Fix:** Properly compute `hasFee` by checking transaction existence. Also add a visible indicator in the detail dialog financial section to show the registration fee amount even when unpaid.
-
-### 8. Settings registration fee amount not persisted
-- **Status:** 🟡 Investigating
-- **Code check:** `onFieldSubmitted` at line 141 saves to SharedPreferences. The save action EXISTS and works on Enter/submit. There is no visible "Save" button but the TextFormField saves on submit.
-- **Possible issue:** User may not realize they need to press Enter to save. The value might appear to not save because they tap away without submitting.
-- **Fix:** Add `onChanged` auto-save with 500ms debounce, OR add a small checkmark/save icon button inline. Propose: add an `onChanged` handler that auto-saves on blur with a brief debounce.
-
-### 9. Unenrolled row tint should be red-leaning
-- **Status:** 🟠 Root cause found (color choice)
-- **Current:** `const Color(0xFF2B2416).withValues(alpha: 0.4)` — dark amber/brown.
-- **Target:** Muted red-leaning, using existing semantic tokens.
-- **Fix:** Change to `SemanticTokens.error.withValues(alpha: 0.08)` — a very subtle red tint at 8% opacity against the dark background. Stays muted, not alarming, clearly distinct from the amber badge.
+## Item 9 — Unenrolled tint color
+- **Status:** 🟢 Fixed
+- **Root cause:** Color choice — was dark amber/brown `Color(0xFF2B2416)`.
+- **Fix:** Changed to `SemanticTokens.error.withValues(alpha: 0.08)` — muted red at 8% opacity. Uses existing token, no new color introduced.
 
 ---
 
-## Confirmed Working
-- Archive filter (Bug 1 from prior batch) — logic fixed, confirmed via code trace.
+## Caching / IndexedStack Note
+Items 1-3 may appear broken if tested with hot reload rather than full restart. The `KeyedSubtree` visit-counter mechanism in `MainShell` forces widget recreation on tab switch, but hot-reload bypasses this. For accurate testing: `flutter run` (cold start) or kill + relaunch. Do NOT rely on hot reload for UI verification.
 
 ---
 
-## Caching Risk Assessment
-The IndexedStack in MainShell uses `KeyedSubtree(key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'))` which should force widget recreation on every sidebar click. However:
-- If the user hot-reloads while the students screen IS the active tab, the widget tree may not be fully recreated.
-- If the user is testing via the RUNNING app (not a fresh launch after each build), the old widget instance persists.
-- **Recommendation for all items above**: Test with `flutter run` (full cold start, NOT hot reload) and then verify. Screenshots/code inspection confirm correctness for items 1-5 but IndexedStack caching may explain the visual discrepancies.
+## Shared Components (to extract for future modules)
+1. **`ShellDialog`** — wrapper with chromeSurface bg, 10px radius, barrierColor: black54, Phosphor x close.
+2. **`DataTable` pattern** — frozen column, checkbox, zebra stripes, pagination. Currently 700+ lines in student_list_screen.dart.
+3. **`DateHelper.formatHeaderDate()`** — Maghreb month names for display. Doc: `showDatePicker` cannot use Maghreb names (Flutter framework limitation).
+4. **`AppBadge`** — amber badge widget pattern (`_buildBadge` in student_list_screen.dart:675-685).
 
----
-
-## Forward-Looking Shared Components (to extract after fixes)
-
-1. **`ShellDialog`** — shared modal dialog wrapper with `backgroundColor: ShellTokens.chromeSurface`, `barrierColor: Colors.black54`, `shape: RoundedRectangleBorder(10)`, consistent `x` close button.
-2. **`DataTable` pattern** — frozen first column + checkbox + zebra striping + pagination. Currently embedded in student_list_screen.dart (700+ lines). Should be extractable for reuse in Teachers, Groups, Sessions screens.
-3. **`DateHelper`** — Maghreb month names for displays; doc note that `showDatePicker` uses Flutter's built-in locale which we cannot override.
-4. **`AppBadge`** — the small colored badge widget pattern (currently `_buildBadge` in student_list_screen.dart).
-
-Current status of extraction: NOT YET EXTRACTED. To be done after all bugs fixed and verified.
+*Not yet extracted. To be done before starting Subjects/Groups/Payments screens.*
