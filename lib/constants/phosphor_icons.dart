@@ -30,4 +30,11 @@ class PhosphorIcons {
   static const usersThree = IconData(0xe68e, fontFamily: _family);
   static const wallet = IconData(0xe68a, fontFamily: _family);
   static const warning = IconData(0xe4e0, fontFamily: _family);
+  static const plus = IconData(0xe3d4, fontFamily: _family);
+  static const checkSquare = IconData(0xe186, fontFamily: _family);
+  static const pencilSimple = IconData(0xe3b4, fontFamily: _family);
+  static const archive = IconData(0xe00c, fontFamily: _family);
+  static const caretLeft = IconData(0xe138, fontFamily: _family);
+  static const caretRight = IconData(0xe13a, fontFamily: _family);
+  static const x = IconData(0xe4f6, fontFamily: _family);
 }
