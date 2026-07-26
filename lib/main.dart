@@ -74,6 +74,7 @@ class _EduManageAppState extends State<EduManageApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       locale: _locale,
@@ -97,6 +98,7 @@ class _EduManageAppState extends State<EduManageApp> {
               database: widget.databaseProvider.database,
               userId: _currentUser!.id,
               userRole: _currentUser!.role,
+              userName: _currentUser!.username,
             )
           : LoginScreen(
               database: widget.databaseProvider.database,

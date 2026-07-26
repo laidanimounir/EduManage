@@ -5,7 +5,7 @@ import '../l10n/app_localizations.dart';
 
 class ShellHeader extends StatelessWidget {
   final String title;
-  final String userId;
+  final String userName;
   final String userRole;
   final VoidCallback onLogout;
   final VoidCallback onQuickFind;
@@ -15,7 +15,7 @@ class ShellHeader extends StatelessWidget {
   const ShellHeader({
     super.key,
     required this.title,
-    required this.userId,
+    required this.userName,
     required this.userRole,
     required this.onLogout,
     required this.onQuickFind,
@@ -32,14 +32,14 @@ class ShellHeader extends StatelessWidget {
     final dateStr = _formatDate(now, l10n);
 
     return Container(
-      height: 44,
+      height: 48,
       decoration: const BoxDecoration(
         color: ShellTokens.chromeBase,
         border: Border(
           bottom: BorderSide(color: ShellTokens.chromeBorder, width: 1),
         ),
       ),
-      padding: const EdgeInsetsDirectional.only(start: 8, end: 12),
+      padding: const EdgeInsetsDirectional.only(start: 10, end: 14),
       child: Row(
         children: [
           if (canPop)
@@ -60,7 +60,7 @@ class ShellHeader extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           _HeaderIconButton(
             icon: PhosphorIcons.magnifyingGlass,
             tooltip: '${l10n.quickFind} (Ctrl+K)',
@@ -68,7 +68,7 @@ class ShellHeader extends StatelessWidget {
           ),
           const Spacer(),
           _OfflineBadge(l10n: l10n),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Text(
             dateStr,
             style: const TextStyle(
@@ -76,14 +76,14 @@ class ShellHeader extends StatelessWidget {
               fontSize: 11,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           _LanguageSwitch(
             currentLocale: currentLocale,
             onLocaleChanged: onLocaleChanged,
           ),
-          const SizedBox(width: 8),
-          _UserBlock(userId: userId, userRole: userRole),
-          const SizedBox(width: 4),
+          const SizedBox(width: 12),
+          _UserBlock(userName: userName, userRole: userRole),
+          const SizedBox(width: 6),
           _HeaderIconButton(
             icon: PhosphorIcons.signOut,
             tooltip: l10n.logout,
@@ -192,14 +192,14 @@ class _LanguageSwitch extends StatelessWidget {
 }
 
 class _UserBlock extends StatelessWidget {
-  final String userId;
+  final String userName;
   final String userRole;
 
-  const _UserBlock({required this.userId, required this.userRole});
+  const _UserBlock({required this.userName, required this.userRole});
 
   @override
   Widget build(BuildContext context) {
-    final initial = userId.isNotEmpty ? userId[0].toUpperCase() : '?';
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
     final roleLabel = userRole.isNotEmpty
         ? '${userRole[0].toUpperCase()}${userRole.substring(1)}'
         : '';
@@ -225,7 +225,7 @@ class _UserBlock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              userId,
+              userName,
               style: const TextStyle(
                 color: ShellTokens.textPrimary,
                 fontSize: 11,

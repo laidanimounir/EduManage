@@ -27,7 +27,7 @@ class ContentTokens {
   ContentTokens._();
 
   static const Color background = Color(0xFF161913);
-  static const Color card = Color(0xFF1B1F18);
+  static const Color card = Color(0xFF1E221B);
   static const Color border = Color(0xFF2A2E25);
 
   static const Color textPrimary = Color(0xFFE8EBE4);

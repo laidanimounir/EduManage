@@ -26,12 +26,14 @@ class MainShell extends StatefulWidget {
   final AppDatabase database;
   final String userId;
   final String userRole;
+  final String userName;
 
   const MainShell({
     super.key,
     required this.database,
     required this.userId,
     required this.userRole,
+    required this.userName,
   });
 
   @override
@@ -150,7 +152,7 @@ class _MainShellState extends State<MainShell> {
         children: [
           ShellHeader(
             title: title,
-            userId: widget.userId,
+            userName: widget.userName,
             userRole: widget.userRole,
             onLogout: _handleLogout,
             onQuickFind: _openQuickFind,
@@ -174,13 +176,13 @@ class _MainShellState extends State<MainShell> {
                     color: ShellTokens.chromeBase,
                     child: Column(
                       children: [
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Icon(
                           PhosphorIcons.graduationCap,
                           color: ShellTokens.textPrimary,
-                          size: 24,
+                          size: 20,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         AnimatedOpacity(
                           duration: _animDuration,
                           opacity: expanded ? 1.0 : 0.0,
@@ -193,14 +195,14 @@ class _MainShellState extends State<MainShell> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         const Divider(
                           color: ShellTokens.chromeBorder,
                           height: 1,
                           indent: 8,
                           endIndent: 8,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Expanded(
                           child: ListView(
                             padding: EdgeInsets.zero,
@@ -331,66 +333,75 @@ class _SidebarTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final indicatorRadius = isRtl
+        ? const BorderRadius.only(
+            topRight: Radius.circular(2),
+            bottomRight: Radius.circular(2),
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(2),
+            bottomLeft: Radius.circular(2),
+          );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          height: 40,
-          padding: EdgeInsetsDirectional.only(
-            start: expanded ? 12 : 0,
-            end: expanded ? 8 : 0,
-          ),
+        child: IntrinsicHeight(
           child: Row(
-            mainAxisAlignment: expanded
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.center,
             textDirection: isRtl ? TextDirection.rtl : null,
             children: [
-              if (selected)
-                Container(
-                  width: 3,
-                  height: 20,
-                  margin: EdgeInsetsDirectional.only(
-                    start: expanded ? -12 : 0,
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  color: selected ? ShellTokens.accent : Colors.transparent,
+                  borderRadius: indicatorRadius,
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 40,
+                  padding: EdgeInsetsDirectional.only(
+                    start: expanded ? 9 : 0,
                     end: expanded ? 8 : 0,
                   ),
-                  decoration: BoxDecoration(
-                    color: ShellTokens.accent,
-                    borderRadius: BorderRadiusDirectional.only(
-                      bottomEnd: Radius.circular(isRtl ? 0 : 2),
-                      bottomStart: Radius.circular(isRtl ? 2 : 0),
-                      topEnd: Radius.circular(isRtl ? 0 : 2),
-                      topStart: Radius.circular(isRtl ? 2 : 0),
-                    ),
-                  ),
-                )
-              else
-                const SizedBox(width: 3, height: 20),
-              if (selected) const SizedBox(width: 5),
-              Icon(
-                icon,
-                color: selected ? ShellTokens.accent : ShellTokens.textSecondary,
-                size: 18,
-              ),
-              if (expanded) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DefaultTextStyle(
-                    style: TextStyle(
-                      color: selected
-                          ? ShellTokens.textPrimary
-                          : ShellTokens.textSecondary,
-                      fontSize: 12,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                    textAlign: isRtl ? TextAlign.right : TextAlign.left,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    child: Text(label),
+                  child: Row(
+                    mainAxisAlignment: expanded
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        color: selected
+                            ? ShellTokens.accent
+                            : ShellTokens.textSecondary,
+                        size: 18,
+                      ),
+                      if (expanded) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: DefaultTextStyle(
+                            style: TextStyle(
+                              color: selected
+                                  ? ShellTokens.textPrimary
+                                  : ShellTokens.textSecondary,
+                              fontSize: 12,
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            textAlign:
+                                isRtl ? TextAlign.right : TextAlign.left,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            child: Text(label),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
