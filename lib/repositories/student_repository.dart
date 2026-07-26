@@ -90,14 +90,16 @@ class StudentRepository extends BaseRepository {
   }) async {
     var query = db.select(db.students);
 
-    query = query..where((t) => includeArchived ? const Constant(true).equals(true) : t.isArchived.equals(false));
-
     if (statusFilter != null && statusFilter != 'all') {
       if (statusFilter == 'archived') {
         query = query..where((t) => t.isArchived.equals(true));
       } else {
-        query = query..where((t) => t.status.equals(statusFilter));
+        query = query..where((t) => t.isArchived.equals(false) & t.status.equals(statusFilter));
       }
+    } else {
+      query = query..where((t) => includeArchived
+          ? const Constant(true).equals(true)
+          : t.isArchived.equals(false));
     }
 
     if (schoolLevelFilter != null) {
