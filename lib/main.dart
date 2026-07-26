@@ -65,7 +65,7 @@ class _EduManageAppState extends State<EduManageApp> {
     });
   }
 
-  void _onLogout() {
+  void logout() {
     setState(() {
       _currentUser = null;
     });

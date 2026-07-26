@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart' show PhosphorIconsRegular;
+import '../constants/theme_tokens.dart';
 import '../database/app_database.dart';
 import '../l10n/app_localizations.dart';
+import '../main.dart';
+import '../widgets/shell_header.dart';
+import '../widgets/quick_find_overlay.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'students/student_list_screen.dart';
@@ -37,6 +42,7 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   bool _initialized = false;
   bool _sidebarHovered = false;
+  bool _sidebarPinned = false;
   final Map<int, int> _visitCounters = {};
 
   late List<_NavItem> _items;
@@ -44,7 +50,7 @@ class _MainShellState extends State<MainShell> {
 
   static const double _collapsedWidth = 56;
   static const double _expandedWidth = 220;
-  static const Duration _animDuration = Duration(milliseconds: 200);
+  static const Duration _animDuration = Duration(milliseconds: 180);
 
   @override
   void didChangeDependencies() {
@@ -53,22 +59,22 @@ class _MainShellState extends State<MainShell> {
       _initialized = true;
       final l10n = AppLocalizations.of(context);
       _items = [
-        _NavItem(Icons.dashboard, l10n.dashboard),
-        _NavItem(Icons.login, l10n.checkIn),
-        _NavItem(Icons.people, l10n.students),
-        _NavItem(Icons.school, l10n.teachers),
-        _NavItem(Icons.schedule, l10n.sessions),
-        _NavItem(Icons.group_work, l10n.groups),
-        _NavItem(Icons.meeting_room, l10n.classrooms),
-        _NavItem(Icons.assignment, l10n.enrollments),
-        _NavItem(Icons.payment, l10n.payments),
-        _NavItem(Icons.account_balance_wallet, l10n.outstandingDebts),
-        _NavItem(Icons.bar_chart, l10n.reports),
-        _NavItem(Icons.credit_card, l10n.cards),
-        _NavItem(Icons.history, l10n.auditLog),
+        _NavItem(PhosphorIconsRegular.squaresFour, l10n.dashboard),
+        _NavItem(PhosphorIconsRegular.signIn, l10n.checkIn),
+        _NavItem(PhosphorIconsRegular.users, l10n.students),
+        _NavItem(PhosphorIconsRegular.chalkboardTeacher, l10n.teachers),
+        _NavItem(PhosphorIconsRegular.clock, l10n.sessions),
+        _NavItem(PhosphorIconsRegular.usersThree, l10n.groups),
+        _NavItem(PhosphorIconsRegular.building, l10n.classrooms),
+        _NavItem(PhosphorIconsRegular.notebook, l10n.enrollments),
+        _NavItem(PhosphorIconsRegular.currencyCircleDollar, l10n.payments),
+        _NavItem(PhosphorIconsRegular.wallet, l10n.outstandingDebts),
+        _NavItem(PhosphorIconsRegular.chartBar, l10n.reports),
+        _NavItem(PhosphorIconsRegular.identificationCard, l10n.cards),
+        _NavItem(PhosphorIconsRegular.scroll, l10n.auditLog),
         if (widget.userRole == 'admin')
-          _NavItem(Icons.admin_panel_settings, l10n.users),
-        _NavItem(Icons.settings, l10n.settings),
+          _NavItem(PhosphorIconsRegular.userCircleGear, l10n.users),
+        _NavItem(PhosphorIconsRegular.gear, l10n.settings),
       ];
 
       _screens = [
@@ -92,80 +98,199 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  void _navigateTo(int index) {
+    setState(() {
+      _selectedIndex = index;
+      _visitCounters[index] = (_visitCounters[index] ?? 0) + 1;
+    });
+  }
+
+  void _openQuickFind() {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (_) => QuickFindOverlay(database: widget.database, l10n: l10n),
+    );
+  }
+
+  void _handleLogout() {
+    final appState = EduManageApp.of(context);
+    appState?.logout();
+  }
+
+  void _handleLocaleChange(Locale locale) {
+    final appState = EduManageApp.of(context);
+    appState?.changeLocale(locale);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final width = _sidebarHovered ? _expandedWidth : _collapsedWidth;
+    final l10n = AppLocalizations.of(context);
+    final currentLocale = Localizations.localeOf(context);
+    final width = (_sidebarHovered || _sidebarPinned) ? _expandedWidth : _collapsedWidth;
+    final expanded = _sidebarHovered || _sidebarPinned;
+    final title = _selectedIndex < _items.length ? _items[_selectedIndex].label : '';
 
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          MouseRegion(
-            onEnter: (_) => setState(() => _sidebarHovered = true),
-            onExit: (_) => setState(() => _sidebarHovered = false),
-            child: AnimatedContainer(
-              duration: _animDuration,
-              curve: Curves.easeInOut,
-              width: width,
-              color: const Color(0xFF1A237E),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  const Icon(Icons.school, color: Colors.white, size: 28),
-                  const SizedBox(height: 4),
-                  AnimatedOpacity(
-                    duration: _animDuration,
-                    opacity: _sidebarHovered ? 1.0 : 0.0,
-                    child: const Text(
-                      'EduManage',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Colors.white24, height: 1),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: List.generate(_items.length, (i) {
-                        final item = _items[i];
-                        final selected = _selectedIndex == i;
-                        return _SidebarTile(
-                          icon: item.icon,
-                          label: item.label,
-                          selected: selected,
-                          expanded: _sidebarHovered,
-                          isRtl: isRtl,
-                          onTap: () => setState(() {
-                            _selectedIndex = i;
-                            _visitCounters[i] = (_visitCounters[i] ?? 0) + 1;
-                          }),
-                        );
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ShellHeader(
+            title: title,
+            userId: widget.userId,
+            userRole: widget.userRole,
+            onLogout: _handleLogout,
+            onQuickFind: _openQuickFind,
+            onLocaleChanged: _handleLocaleChange,
+            currentLocale: currentLocale,
           ),
-          const VerticalDivider(width: 1),
           Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: List.generate(_screens.length, (i) => KeyedSubtree(
-                key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
-                child: _screens[i],
-              )),
+            child: Row(
+              children: [
+                MouseRegion(
+                  onEnter: (_) {
+                    if (!_sidebarPinned) setState(() => _sidebarHovered = true);
+                  },
+                  onExit: (_) {
+                    if (!_sidebarPinned) setState(() => _sidebarHovered = false);
+                  },
+                  child: AnimatedContainer(
+                    duration: _animDuration,
+                    curve: Curves.easeInOut,
+                    width: width,
+                    color: ShellTokens.chromeBase,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        Icon(
+                          PhosphorIconsRegular.graduationCap,
+                          color: ShellTokens.textPrimary,
+                          size: 24,
+                        ),
+                        const SizedBox(height: 4),
+                        AnimatedOpacity(
+                          duration: _animDuration,
+                          opacity: expanded ? 1.0 : 0.0,
+                          child: const Text(
+                            'EduManage',
+                            style: TextStyle(
+                              color: ShellTokens.textPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(
+                          color: ShellTokens.chromeBorder,
+                          height: 1,
+                          indent: 8,
+                          endIndent: 8,
+                        ),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: _buildSectionedTiles(isRtl),
+                          ),
+                        ),
+                        const Divider(
+                          color: ShellTokens.chromeBorder,
+                          height: 1,
+                          indent: 8,
+                          endIndent: 8,
+                        ),
+                        _PinToggle(
+                          pinned: _sidebarPinned,
+                          onToggle: () => setState(() => _sidebarPinned = !_sidebarPinned),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                    ),
+                  ),
+                ),
+                const VerticalDivider(
+                  width: 1,
+                  color: ShellTokens.chromeBorder,
+                ),
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: List.generate(_screens.length, (i) => KeyedSubtree(
+                      key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
+                      child: _screens[i],
+                    )),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  List<Widget> _buildSectionedTiles(bool isRtl) {
+    final l10n = AppLocalizations.of(context);
+    final expanded = _sidebarHovered || _sidebarPinned;
+
+    final sections = [
+      _SidebarSection(label: l10n.sidebarSectionCore, indices: [0, 1]),
+      _SidebarSection(label: l10n.sidebarSectionManage, indices: [2, 3, 4, 5, 6, 7]),
+      _SidebarSection(label: l10n.sidebarSectionFinance, indices: [8, 9, 10]),
+      _SidebarSection(label: l10n.sidebarSectionSystem, indices: [11, 12, 13, 14]),
+    ];
+
+    final widgets = <Widget>[];
+    for (final section in sections) {
+      if (widgets.isNotEmpty) {
+        widgets.add(const SizedBox(height: 2));
+        if (expanded) {
+          widgets.add(Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              section.label,
+              style: const TextStyle(
+                color: ShellTokens.textDisabled,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ));
+        } else {
+          widgets.add(const Divider(
+            color: ShellTokens.chromeBorder,
+            height: 1,
+            indent: 12,
+            endIndent: 12,
+          ));
+        }
+        widgets.add(const SizedBox(height: 2));
+      }
+
+      for (final i in section.indices) {
+        if (i >= _items.length) continue;
+        final item = _items[i];
+        final selected = _selectedIndex == i;
+        widgets.add(_SidebarTile(
+          icon: item.icon,
+          label: item.label,
+          selected: selected,
+          expanded: expanded,
+          isRtl: isRtl,
+          onTap: () => _navigateTo(i),
+        ));
+      }
+    }
+    return widgets;
+  }
+}
+
+class _SidebarSection {
+  final String label;
+  final List<int> indices;
+  const _SidebarSection({required this.label, required this.indices});
 }
 
 class _NavItem {
@@ -193,18 +318,15 @@ class _SidebarTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = selected
-        ? Colors.white.withValues(alpha: 0.2)
-        : Colors.transparent;
-
     return Material(
-      color: bgColor,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          height: 48,
-          padding: EdgeInsets.symmetric(
-            horizontal: expanded ? 16 : 0,
+          height: 40,
+          padding: EdgeInsetsDirectional.only(
+            start: expanded ? 12 : 0,
+            end: expanded ? 8 : 0,
           ),
           child: Row(
             mainAxisAlignment: expanded
@@ -212,18 +334,42 @@ class _SidebarTile extends StatelessWidget {
                 : MainAxisAlignment.center,
             textDirection: isRtl ? TextDirection.rtl : null,
             children: [
+              if (selected)
+                Container(
+                  width: 3,
+                  height: 20,
+                  margin: EdgeInsetsDirectional.only(
+                    start: expanded ? -12 : 0,
+                    end: expanded ? 8 : 0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ShellTokens.accent,
+                    borderRadius: BorderRadiusDirectional.only(
+                      bottomEnd: Radius.circular(isRtl ? 0 : 2),
+                      bottomStart: Radius.circular(isRtl ? 2 : 0),
+                      topEnd: Radius.circular(isRtl ? 0 : 2),
+                      topStart: Radius.circular(isRtl ? 2 : 0),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 3, height: 20),
+              if (selected) const SizedBox(width: 5),
               Icon(
                 icon,
-                color: selected ? Colors.white : Colors.white70,
-                size: 22,
+                color: selected ? ShellTokens.accent : ShellTokens.textSecondary,
+                size: 18,
               ),
               if (expanded) ...[
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 Expanded(
                   child: DefaultTextStyle(
                     style: TextStyle(
-                      color: selected ? Colors.white : Colors.white70,
-                      fontSize: 13,
+                      color: selected
+                          ? ShellTokens.textPrimary
+                          : ShellTokens.textSecondary,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                     textAlign: isRtl ? TextAlign.right : TextAlign.left,
                     maxLines: 1,
@@ -233,6 +379,38 @@ class _SidebarTile extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PinToggle extends StatelessWidget {
+  final bool pinned;
+  final VoidCallback onToggle;
+
+  const _PinToggle({required this.pinned, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Tooltip(
+      message: pinned ? l10n.unpinSidebar : l10n.pinSidebar,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              pinned
+                  ? PhosphorIconsRegular.pushPinSimpleSlash
+                  : PhosphorIconsRegular.pushPinSimple,
+              size: 16,
+              color: pinned ? ShellTokens.accent : ShellTokens.textDisabled,
+            ),
           ),
         ),
       ),
