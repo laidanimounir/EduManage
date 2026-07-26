@@ -1,6 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
@@ -338,6 +344,16 @@ class _StudentListScreenState extends State<StudentListScreen> {
                 _buildFilterChip(l10n.inactive, 'inactive'),
                 _buildFilterChip(l10n.graduated, 'graduated'),
                 _buildFilterChip(l10n.archived, 'archived'),
+                const SizedBox(width: 8),
+                _buildExportButton(l10n.exportPdf, PhosphorIcons.file, _exportPdf, false),
+                const SizedBox(width: 4),
+                _buildExportButton(l10n.exportExcel, PhosphorIcons.table, _exportExcel, false),
+                const SizedBox(width: 4),
+                _buildExportButton(l10n.emailReport, PhosphorIcons.envelope, () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.comingSoon), backgroundColor: ShellTokens.chromeSurface),
+                  );
+                }, true),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
@@ -352,6 +368,82 @@ class _StudentListScreenState extends State<StudentListScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildExportButton(String label, IconData icon, VoidCallback onTap, bool disabled) {
+    return Material(
+      color: ShellTokens.chromeSurface,
+      borderRadius: BorderRadius.circular(5),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(5),
+        onTap: disabled ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: ShellTokens.textSecondary),
+              const SizedBox(width: 4),
+              Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportPdf() async {
+    final l10n = AppLocalizations.of(context);
+    final pdf = pw.Document();
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      build: (ctx) => [
+        pw.Header(text: l10n.students, level: 1),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: pw.TextStyle(fontSize: 7),
+          headers: [l10n.code, l10n.firstName, l10n.lastName, l10n.schoolLevel, l10n.phone],
+          data: _rows.map((s) => [
+            s.code,
+            '${s.firstNameAr} ${s.firstNameFr ?? ''}',
+            '${s.lastNameAr} ${s.lastNameFr ?? ''}',
+            s.schoolLevel ?? '',
+            s.phone ?? '',
+          ]).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportExcel() async {
+    final l10n = AppLocalizations.of(context);
+    final excel = Excel.createExcel();
+    final sheet = excel['Students'];
+    sheet.appendRow([
+      TextCellValue(l10n.code),
+      TextCellValue(l10n.firstName),
+      TextCellValue(l10n.lastName),
+      TextCellValue(l10n.schoolLevel),
+      TextCellValue(l10n.phone),
+    ]);
+    for (final s in _rows) {
+      sheet.appendRow([
+        TextCellValue(s.code),
+        TextCellValue('${s.firstNameAr} ${s.firstNameFr ?? ''}'),
+        TextCellValue('${s.lastNameAr} ${s.lastNameFr ?? ''}'),
+        TextCellValue(s.schoolLevel ?? ''),
+        TextCellValue(s.phone ?? ''),
+      ]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/students_export.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface),
+      );
+    }
   }
 
   Widget _buildFilterChip(String label, String value) {
