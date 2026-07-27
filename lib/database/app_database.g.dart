@@ -2388,6 +2388,21 @@ class $ClassroomsTable extends Classrooms
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2431,6 +2446,7 @@ class $ClassroomsTable extends Classrooms
     floor,
     capacity,
     notes,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -2482,6 +2498,12 @@ class $ClassroomsTable extends Classrooms
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -2537,6 +2559,10 @@ class $ClassroomsTable extends Classrooms
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2565,6 +2591,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
   final int? floor;
   final int? capacity;
   final String? notes;
+  final bool isArchived;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
@@ -2575,6 +2602,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
     this.floor,
     this.capacity,
     this.notes,
+    required this.isArchived,
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
@@ -2596,6 +2624,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
@@ -2618,6 +2647,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      isArchived: Value(isArchived),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
@@ -2636,6 +2666,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
       floor: serializer.fromJson<int?>(json['floor']),
       capacity: serializer.fromJson<int?>(json['capacity']),
       notes: serializer.fromJson<String?>(json['notes']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
@@ -2651,6 +2682,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
       'floor': serializer.toJson<int?>(floor),
       'capacity': serializer.toJson<int?>(capacity),
       'notes': serializer.toJson<String?>(notes),
+      'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
@@ -2664,6 +2696,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
     Value<int?> floor = const Value.absent(),
     Value<int?> capacity = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    bool? isArchived,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
@@ -2674,6 +2707,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
     floor: floor.present ? floor.value : this.floor,
     capacity: capacity.present ? capacity.value : this.capacity,
     notes: notes.present ? notes.value : this.notes,
+    isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
@@ -2686,6 +2720,9 @@ class Classroom extends DataClass implements Insertable<Classroom> {
       floor: data.floor.present ? data.floor.value : this.floor,
       capacity: data.capacity.present ? data.capacity.value : this.capacity,
       notes: data.notes.present ? data.notes.value : this.notes,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
@@ -2701,6 +2738,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
           ..write('floor: $floor, ')
           ..write('capacity: $capacity, ')
           ..write('notes: $notes, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId')
@@ -2716,6 +2754,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
     floor,
     capacity,
     notes,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -2730,6 +2769,7 @@ class Classroom extends DataClass implements Insertable<Classroom> {
           other.floor == this.floor &&
           other.capacity == this.capacity &&
           other.notes == this.notes &&
+          other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId);
@@ -2742,6 +2782,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
   final Value<int?> floor;
   final Value<int?> capacity;
   final Value<String?> notes;
+  final Value<bool> isArchived;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
@@ -2753,6 +2794,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
     this.floor = const Value.absent(),
     this.capacity = const Value.absent(),
     this.notes = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -2765,6 +2807,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
     this.floor = const Value.absent(),
     this.capacity = const Value.absent(),
     this.notes = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
@@ -2779,6 +2822,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
     Expression<int>? floor,
     Expression<int>? capacity,
     Expression<String>? notes,
+    Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
@@ -2791,6 +2835,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
       if (floor != null) 'floor': floor,
       if (capacity != null) 'capacity': capacity,
       if (notes != null) 'notes': notes,
+      if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
@@ -2805,6 +2850,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
     Value<int?>? floor,
     Value<int?>? capacity,
     Value<String?>? notes,
+    Value<bool>? isArchived,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
@@ -2817,6 +2863,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
       floor: floor ?? this.floor,
       capacity: capacity ?? this.capacity,
       notes: notes ?? this.notes,
+      isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
@@ -2845,6 +2892,9 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2869,6 +2919,7 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
           ..write('floor: $floor, ')
           ..write('capacity: $capacity, ')
           ..write('notes: $notes, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
@@ -2955,6 +3006,32 @@ class $SubjectGroupsTable extends SubjectGroups
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _capacityMeta = const VerificationMeta(
+    'capacity',
+  );
+  @override
+  late final GeneratedColumn<int> capacity = GeneratedColumn<int>(
+    'capacity',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2999,6 +3076,8 @@ class $SubjectGroupsTable extends SubjectGroups
     subjectFr,
     schoolLevel,
     description,
+    capacity,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -3068,6 +3147,18 @@ class $SubjectGroupsTable extends SubjectGroups
         ),
       );
     }
+    if (data.containsKey('capacity')) {
+      context.handle(
+        _capacityMeta,
+        capacity.isAcceptableOrUnknown(data['capacity']!, _capacityMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3125,6 +3216,14 @@ class $SubjectGroupsTable extends SubjectGroups
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      capacity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}capacity'],
+      ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3154,6 +3253,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
   final String? subjectFr;
   final String schoolLevel;
   final String? description;
+  final int? capacity;
+  final bool isArchived;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
@@ -3165,6 +3266,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
     this.subjectFr,
     required this.schoolLevel,
     this.description,
+    this.capacity,
+    required this.isArchived,
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
@@ -3185,6 +3288,10 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    if (!nullToAbsent || capacity != null) {
+      map['capacity'] = Variable<int>(capacity);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
@@ -3206,6 +3313,10 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      capacity: capacity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(capacity),
+      isArchived: Value(isArchived),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
@@ -3225,6 +3336,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
       subjectFr: serializer.fromJson<String?>(json['subjectFr']),
       schoolLevel: serializer.fromJson<String>(json['schoolLevel']),
       description: serializer.fromJson<String?>(json['description']),
+      capacity: serializer.fromJson<int?>(json['capacity']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
@@ -3241,6 +3354,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
       'subjectFr': serializer.toJson<String?>(subjectFr),
       'schoolLevel': serializer.toJson<String>(schoolLevel),
       'description': serializer.toJson<String?>(description),
+      'capacity': serializer.toJson<int?>(capacity),
+      'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
@@ -3255,6 +3370,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
     Value<String?> subjectFr = const Value.absent(),
     String? schoolLevel,
     Value<String?> description = const Value.absent(),
+    Value<int?> capacity = const Value.absent(),
+    bool? isArchived,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
@@ -3266,6 +3383,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
     subjectFr: subjectFr.present ? subjectFr.value : this.subjectFr,
     schoolLevel: schoolLevel ?? this.schoolLevel,
     description: description.present ? description.value : this.description,
+    capacity: capacity.present ? capacity.value : this.capacity,
+    isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
@@ -3283,6 +3402,10 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      capacity: data.capacity.present ? data.capacity.value : this.capacity,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
@@ -3299,6 +3422,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
           ..write('subjectFr: $subjectFr, ')
           ..write('schoolLevel: $schoolLevel, ')
           ..write('description: $description, ')
+          ..write('capacity: $capacity, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId')
@@ -3315,6 +3440,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
     subjectFr,
     schoolLevel,
     description,
+    capacity,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -3330,6 +3457,8 @@ class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
           other.subjectFr == this.subjectFr &&
           other.schoolLevel == this.schoolLevel &&
           other.description == this.description &&
+          other.capacity == this.capacity &&
+          other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId);
@@ -3343,6 +3472,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
   final Value<String?> subjectFr;
   final Value<String> schoolLevel;
   final Value<String?> description;
+  final Value<int?> capacity;
+  final Value<bool> isArchived;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
@@ -3355,6 +3486,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
     this.subjectFr = const Value.absent(),
     this.schoolLevel = const Value.absent(),
     this.description = const Value.absent(),
+    this.capacity = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -3368,6 +3501,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
     this.subjectFr = const Value.absent(),
     required String schoolLevel,
     this.description = const Value.absent(),
+    this.capacity = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
@@ -3385,6 +3520,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
     Expression<String>? subjectFr,
     Expression<String>? schoolLevel,
     Expression<String>? description,
+    Expression<int>? capacity,
+    Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
@@ -3398,6 +3535,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
       if (subjectFr != null) 'subject_fr': subjectFr,
       if (schoolLevel != null) 'school_level': schoolLevel,
       if (description != null) 'description': description,
+      if (capacity != null) 'capacity': capacity,
+      if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
@@ -3413,6 +3552,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
     Value<String?>? subjectFr,
     Value<String>? schoolLevel,
     Value<String?>? description,
+    Value<int?>? capacity,
+    Value<bool>? isArchived,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
@@ -3426,6 +3567,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
       subjectFr: subjectFr ?? this.subjectFr,
       schoolLevel: schoolLevel ?? this.schoolLevel,
       description: description ?? this.description,
+      capacity: capacity ?? this.capacity,
+      isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
@@ -3457,6 +3600,12 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (capacity.present) {
+      map['capacity'] = Variable<int>(capacity.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -3482,6 +3631,8 @@ class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
           ..write('subjectFr: $subjectFr, ')
           ..write('schoolLevel: $schoolLevel, ')
           ..write('description: $description, ')
+          ..write('capacity: $capacity, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
@@ -4531,6 +4682,21 @@ class $EnrollmentsTable extends Enrollments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isTransferredMeta = const VerificationMeta(
+    'isTransferred',
+  );
+  @override
+  late final GeneratedColumn<bool> isTransferred = GeneratedColumn<bool>(
+    'is_transferred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_transferred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -4576,6 +4742,7 @@ class $EnrollmentsTable extends Enrollments
     customDiscount,
     status,
     notes,
+    isTransferred,
     createdAt,
     updatedAt,
     deviceId,
@@ -4655,6 +4822,15 @@ class $EnrollmentsTable extends Enrollments
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('is_transferred')) {
+      context.handle(
+        _isTransferredMeta,
+        isTransferred.isAcceptableOrUnknown(
+          data['is_transferred']!,
+          _isTransferredMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -4716,6 +4892,10 @@ class $EnrollmentsTable extends Enrollments
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      isTransferred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_transferred'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -4746,6 +4926,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   final double? customDiscount;
   final String status;
   final String? notes;
+  final bool isTransferred;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
@@ -4758,6 +4939,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     this.customDiscount,
     required this.status,
     this.notes,
+    required this.isTransferred,
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
@@ -4779,6 +4961,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    map['is_transferred'] = Variable<bool>(isTransferred);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
@@ -4801,6 +4984,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      isTransferred: Value(isTransferred),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
@@ -4823,6 +5007,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
       customDiscount: serializer.fromJson<double?>(json['customDiscount']),
       status: serializer.fromJson<String>(json['status']),
       notes: serializer.fromJson<String?>(json['notes']),
+      isTransferred: serializer.fromJson<bool>(json['isTransferred']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
@@ -4840,6 +5025,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
       'customDiscount': serializer.toJson<double?>(customDiscount),
       'status': serializer.toJson<String>(status),
       'notes': serializer.toJson<String?>(notes),
+      'isTransferred': serializer.toJson<bool>(isTransferred),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
@@ -4855,6 +5041,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     Value<double?> customDiscount = const Value.absent(),
     String? status,
     Value<String?> notes = const Value.absent(),
+    bool? isTransferred,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
@@ -4871,6 +5058,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
         : this.customDiscount,
     status: status ?? this.status,
     notes: notes.present ? notes.value : this.notes,
+    isTransferred: isTransferred ?? this.isTransferred,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
@@ -4893,6 +5081,9 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
           : this.customDiscount,
       status: data.status.present ? data.status.value : this.status,
       notes: data.notes.present ? data.notes.value : this.notes,
+      isTransferred: data.isTransferred.present
+          ? data.isTransferred.value
+          : this.isTransferred,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
@@ -4910,6 +5101,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
           ..write('customDiscount: $customDiscount, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
+          ..write('isTransferred: $isTransferred, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId')
@@ -4927,6 +5119,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     customDiscount,
     status,
     notes,
+    isTransferred,
     createdAt,
     updatedAt,
     deviceId,
@@ -4943,6 +5136,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
           other.customDiscount == this.customDiscount &&
           other.status == this.status &&
           other.notes == this.notes &&
+          other.isTransferred == this.isTransferred &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId);
@@ -4957,6 +5151,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   final Value<double?> customDiscount;
   final Value<String> status;
   final Value<String?> notes;
+  final Value<bool> isTransferred;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
@@ -4970,6 +5165,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     this.customDiscount = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
+    this.isTransferred = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -4984,6 +5180,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     this.customDiscount = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
+    this.isTransferred = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
@@ -5001,6 +5198,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     Expression<double>? customDiscount,
     Expression<String>? status,
     Expression<String>? notes,
+    Expression<bool>? isTransferred,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
@@ -5016,6 +5214,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
       if (customDiscount != null) 'custom_discount': customDiscount,
       if (status != null) 'status': status,
       if (notes != null) 'notes': notes,
+      if (isTransferred != null) 'is_transferred': isTransferred,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
@@ -5032,6 +5231,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     Value<double?>? customDiscount,
     Value<String>? status,
     Value<String?>? notes,
+    Value<bool>? isTransferred,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
@@ -5046,6 +5246,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
       customDiscount: customDiscount ?? this.customDiscount,
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      isTransferred: isTransferred ?? this.isTransferred,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
@@ -5082,6 +5283,9 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (isTransferred.present) {
+      map['is_transferred'] = Variable<bool>(isTransferred.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -5108,8 +5312,388 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
           ..write('customDiscount: $customDiscount, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
+          ..write('isTransferred: $isTransferred, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EnrollmentWaitlistTable extends EnrollmentWaitlist
+    with TableInfo<$EnrollmentWaitlistTable, EnrollmentWaitlistData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EnrollmentWaitlistTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _studentIdMeta = const VerificationMeta(
+    'studentId',
+  );
+  @override
+  late final GeneratedColumn<String> studentId = GeneratedColumn<String>(
+    'student_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES students (id)',
+    ),
+  );
+  static const VerificationMeta _subjectGroupIdMeta = const VerificationMeta(
+    'subjectGroupId',
+  );
+  @override
+  late final GeneratedColumn<String> subjectGroupId = GeneratedColumn<String>(
+    'subject_group_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subject_groups (id)',
+    ),
+  );
+  static const VerificationMeta _requestedAtMeta = const VerificationMeta(
+    'requestedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> requestedAt = GeneratedColumn<DateTime>(
+    'requested_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    studentId,
+    subjectGroupId,
+    requestedAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'enrollment_waitlist';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EnrollmentWaitlistData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('student_id')) {
+      context.handle(
+        _studentIdMeta,
+        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_studentIdMeta);
+    }
+    if (data.containsKey('subject_group_id')) {
+      context.handle(
+        _subjectGroupIdMeta,
+        subjectGroupId.isAcceptableOrUnknown(
+          data['subject_group_id']!,
+          _subjectGroupIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectGroupIdMeta);
+    }
+    if (data.containsKey('requested_at')) {
+      context.handle(
+        _requestedAtMeta,
+        requestedAt.isAcceptableOrUnknown(
+          data['requested_at']!,
+          _requestedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EnrollmentWaitlistData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EnrollmentWaitlistData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      studentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}student_id'],
+      )!,
+      subjectGroupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_group_id'],
+      )!,
+      requestedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}requested_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $EnrollmentWaitlistTable createAlias(String alias) {
+    return $EnrollmentWaitlistTable(attachedDatabase, alias);
+  }
+}
+
+class EnrollmentWaitlistData extends DataClass
+    implements Insertable<EnrollmentWaitlistData> {
+  final String id;
+  final String studentId;
+  final String subjectGroupId;
+  final DateTime requestedAt;
+  final String deviceId;
+  const EnrollmentWaitlistData({
+    required this.id,
+    required this.studentId,
+    required this.subjectGroupId,
+    required this.requestedAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['student_id'] = Variable<String>(studentId);
+    map['subject_group_id'] = Variable<String>(subjectGroupId);
+    map['requested_at'] = Variable<DateTime>(requestedAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  EnrollmentWaitlistCompanion toCompanion(bool nullToAbsent) {
+    return EnrollmentWaitlistCompanion(
+      id: Value(id),
+      studentId: Value(studentId),
+      subjectGroupId: Value(subjectGroupId),
+      requestedAt: Value(requestedAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory EnrollmentWaitlistData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EnrollmentWaitlistData(
+      id: serializer.fromJson<String>(json['id']),
+      studentId: serializer.fromJson<String>(json['studentId']),
+      subjectGroupId: serializer.fromJson<String>(json['subjectGroupId']),
+      requestedAt: serializer.fromJson<DateTime>(json['requestedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'studentId': serializer.toJson<String>(studentId),
+      'subjectGroupId': serializer.toJson<String>(subjectGroupId),
+      'requestedAt': serializer.toJson<DateTime>(requestedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  EnrollmentWaitlistData copyWith({
+    String? id,
+    String? studentId,
+    String? subjectGroupId,
+    DateTime? requestedAt,
+    String? deviceId,
+  }) => EnrollmentWaitlistData(
+    id: id ?? this.id,
+    studentId: studentId ?? this.studentId,
+    subjectGroupId: subjectGroupId ?? this.subjectGroupId,
+    requestedAt: requestedAt ?? this.requestedAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  EnrollmentWaitlistData copyWithCompanion(EnrollmentWaitlistCompanion data) {
+    return EnrollmentWaitlistData(
+      id: data.id.present ? data.id.value : this.id,
+      studentId: data.studentId.present ? data.studentId.value : this.studentId,
+      subjectGroupId: data.subjectGroupId.present
+          ? data.subjectGroupId.value
+          : this.subjectGroupId,
+      requestedAt: data.requestedAt.present
+          ? data.requestedAt.value
+          : this.requestedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnrollmentWaitlistData(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('subjectGroupId: $subjectGroupId, ')
+          ..write('requestedAt: $requestedAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, studentId, subjectGroupId, requestedAt, deviceId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EnrollmentWaitlistData &&
+          other.id == this.id &&
+          other.studentId == this.studentId &&
+          other.subjectGroupId == this.subjectGroupId &&
+          other.requestedAt == this.requestedAt &&
+          other.deviceId == this.deviceId);
+}
+
+class EnrollmentWaitlistCompanion
+    extends UpdateCompanion<EnrollmentWaitlistData> {
+  final Value<String> id;
+  final Value<String> studentId;
+  final Value<String> subjectGroupId;
+  final Value<DateTime> requestedAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const EnrollmentWaitlistCompanion({
+    this.id = const Value.absent(),
+    this.studentId = const Value.absent(),
+    this.subjectGroupId = const Value.absent(),
+    this.requestedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EnrollmentWaitlistCompanion.insert({
+    required String id,
+    required String studentId,
+    required String subjectGroupId,
+    this.requestedAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       studentId = Value(studentId),
+       subjectGroupId = Value(subjectGroupId),
+       deviceId = Value(deviceId);
+  static Insertable<EnrollmentWaitlistData> custom({
+    Expression<String>? id,
+    Expression<String>? studentId,
+    Expression<String>? subjectGroupId,
+    Expression<DateTime>? requestedAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (studentId != null) 'student_id': studentId,
+      if (subjectGroupId != null) 'subject_group_id': subjectGroupId,
+      if (requestedAt != null) 'requested_at': requestedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EnrollmentWaitlistCompanion copyWith({
+    Value<String>? id,
+    Value<String>? studentId,
+    Value<String>? subjectGroupId,
+    Value<DateTime>? requestedAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return EnrollmentWaitlistCompanion(
+      id: id ?? this.id,
+      studentId: studentId ?? this.studentId,
+      subjectGroupId: subjectGroupId ?? this.subjectGroupId,
+      requestedAt: requestedAt ?? this.requestedAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (studentId.present) {
+      map['student_id'] = Variable<String>(studentId.value);
+    }
+    if (subjectGroupId.present) {
+      map['subject_group_id'] = Variable<String>(subjectGroupId.value);
+    }
+    if (requestedAt.present) {
+      map['requested_at'] = Variable<DateTime>(requestedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnrollmentWaitlistCompanion(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('subjectGroupId: $subjectGroupId, ')
+          ..write('requestedAt: $requestedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -10250,6 +10834,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SubjectGroupsTable subjectGroups = $SubjectGroupsTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
   late final $EnrollmentsTable enrollments = $EnrollmentsTable(this);
+  late final $EnrollmentWaitlistTable enrollmentWaitlist =
+      $EnrollmentWaitlistTable(this);
   late final $CancellationsTable cancellations = $CancellationsTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $AttendanceTable attendance = $AttendanceTable(this);
@@ -10272,6 +10858,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     subjectGroups,
     sessions,
     enrollments,
+    enrollmentWaitlist,
     cancellations,
     transactions,
     attendance,
@@ -10349,6 +10936,30 @@ final class $$StudentsTableReferences
     ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_enrollmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $EnrollmentWaitlistTable,
+    List<EnrollmentWaitlistData>
+  >
+  _enrollmentWaitlistRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.enrollmentWaitlist,
+        aliasName: 'students__id__enrollment_waitlist__student_id',
+      );
+
+  $$EnrollmentWaitlistTableProcessedTableManager get enrollmentWaitlistRefs {
+    final manager = $$EnrollmentWaitlistTableTableManager(
+      $_db,
+      $_db.enrollmentWaitlist,
+    ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _enrollmentWaitlistRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -10529,6 +11140,31 @@ class $$StudentsTableFilterComposer
           }) => $$EnrollmentsTableFilterComposer(
             $db: $db,
             $table: $db.enrollments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> enrollmentWaitlistRefs(
+    Expression<bool> Function($$EnrollmentWaitlistTableFilterComposer f) f,
+  ) {
+    final $$EnrollmentWaitlistTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.enrollmentWaitlist,
+      getReferencedColumn: (t) => t.studentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EnrollmentWaitlistTableFilterComposer(
+            $db: $db,
+            $table: $db.enrollmentWaitlist,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10826,6 +11462,32 @@ class $$StudentsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> enrollmentWaitlistRefs<T extends Object>(
+    Expression<T> Function($$EnrollmentWaitlistTableAnnotationComposer a) f,
+  ) {
+    final $$EnrollmentWaitlistTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.enrollmentWaitlist,
+          getReferencedColumn: (t) => t.studentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EnrollmentWaitlistTableAnnotationComposer(
+                $db: $db,
+                $table: $db.enrollmentWaitlist,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
   ) {
@@ -10917,6 +11579,7 @@ class $$StudentsTableTableManager
           Student,
           PrefetchHooks Function({
             bool enrollmentsRefs,
+            bool enrollmentWaitlistRefs,
             bool transactionsRefs,
             bool attendanceRefs,
             bool studentCardsRefs,
@@ -11032,6 +11695,7 @@ class $$StudentsTableTableManager
           prefetchHooksCallback:
               ({
                 enrollmentsRefs = false,
+                enrollmentWaitlistRefs = false,
                 transactionsRefs = false,
                 attendanceRefs = false,
                 studentCardsRefs = false,
@@ -11040,6 +11704,7 @@ class $$StudentsTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (enrollmentsRefs) db.enrollments,
+                    if (enrollmentWaitlistRefs) db.enrollmentWaitlist,
                     if (transactionsRefs) db.transactions,
                     if (attendanceRefs) db.attendance,
                     if (studentCardsRefs) db.studentCards,
@@ -11062,6 +11727,27 @@ class $$StudentsTableTableManager
                                 table,
                                 p0,
                               ).enrollmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.studentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (enrollmentWaitlistRefs)
+                        await $_getPrefetchedData<
+                          Student,
+                          $StudentsTable,
+                          EnrollmentWaitlistData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudentsTableReferences
+                              ._enrollmentWaitlistRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).enrollmentWaitlistRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.studentId == item.id,
@@ -11153,6 +11839,7 @@ typedef $$StudentsTableProcessedTableManager =
       Student,
       PrefetchHooks Function({
         bool enrollmentsRefs,
+        bool enrollmentWaitlistRefs,
         bool transactionsRefs,
         bool attendanceRefs,
         bool studentCardsRefs,
@@ -12111,6 +12798,7 @@ typedef $$ClassroomsTableCreateCompanionBuilder =
       Value<int?> floor,
       Value<int?> capacity,
       Value<String?> notes,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
@@ -12124,6 +12812,7 @@ typedef $$ClassroomsTableUpdateCompanionBuilder =
       Value<int?> floor,
       Value<int?> capacity,
       Value<String?> notes,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
@@ -12190,6 +12879,11 @@ class $$ClassroomsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12273,6 +12967,11 @@ class $$ClassroomsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -12315,6 +13014,11 @@ class $$ClassroomsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -12385,6 +13089,7 @@ class $$ClassroomsTableTableManager
                 Value<int?> floor = const Value.absent(),
                 Value<int?> capacity = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
@@ -12396,6 +13101,7 @@ class $$ClassroomsTableTableManager
                 floor: floor,
                 capacity: capacity,
                 notes: notes,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -12409,6 +13115,7 @@ class $$ClassroomsTableTableManager
                 Value<int?> floor = const Value.absent(),
                 Value<int?> capacity = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
@@ -12420,6 +13127,7 @@ class $$ClassroomsTableTableManager
                 floor: floor,
                 capacity: capacity,
                 notes: notes,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -12492,6 +13200,8 @@ typedef $$SubjectGroupsTableCreateCompanionBuilder =
       Value<String?> subjectFr,
       required String schoolLevel,
       Value<String?> description,
+      Value<int?> capacity,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
@@ -12506,6 +13216,8 @@ typedef $$SubjectGroupsTableUpdateCompanionBuilder =
       Value<String?> subjectFr,
       Value<String> schoolLevel,
       Value<String?> description,
+      Value<int?> capacity,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
@@ -12552,6 +13264,30 @@ final class $$SubjectGroupsTableReferences
     ).filter((f) => f.subjectGroupId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_enrollmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $EnrollmentWaitlistTable,
+    List<EnrollmentWaitlistData>
+  >
+  _enrollmentWaitlistRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.enrollmentWaitlist,
+        aliasName: 'subject_groups__id__enrollment_waitlist__subject_group_id',
+      );
+
+  $$EnrollmentWaitlistTableProcessedTableManager get enrollmentWaitlistRefs {
+    final manager = $$EnrollmentWaitlistTableTableManager(
+      $_db,
+      $_db.enrollmentWaitlist,
+    ).filter((f) => f.subjectGroupId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _enrollmentWaitlistRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -12628,6 +13364,16 @@ class $$SubjectGroupsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get capacity => $composableBuilder(
+    column: $table.capacity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -12684,6 +13430,31 @@ class $$SubjectGroupsTableFilterComposer
           }) => $$EnrollmentsTableFilterComposer(
             $db: $db,
             $table: $db.enrollments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> enrollmentWaitlistRefs(
+    Expression<bool> Function($$EnrollmentWaitlistTableFilterComposer f) f,
+  ) {
+    final $$EnrollmentWaitlistTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.enrollmentWaitlist,
+      getReferencedColumn: (t) => t.subjectGroupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EnrollmentWaitlistTableFilterComposer(
+            $db: $db,
+            $table: $db.enrollmentWaitlist,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -12763,6 +13534,16 @@ class $$SubjectGroupsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get capacity => $composableBuilder(
+    column: $table.capacity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -12810,6 +13591,14 @@ class $$SubjectGroupsTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get capacity =>
+      $composableBuilder(column: $table.capacity, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
     builder: (column) => column,
   );
 
@@ -12872,6 +13661,32 @@ class $$SubjectGroupsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> enrollmentWaitlistRefs<T extends Object>(
+    Expression<T> Function($$EnrollmentWaitlistTableAnnotationComposer a) f,
+  ) {
+    final $$EnrollmentWaitlistTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.enrollmentWaitlist,
+          getReferencedColumn: (t) => t.subjectGroupId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EnrollmentWaitlistTableAnnotationComposer(
+                $db: $db,
+                $table: $db.enrollmentWaitlist,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> teacherSubjectGroupsRefs<T extends Object>(
     Expression<T> Function($$TeacherSubjectGroupsTableAnnotationComposer a) f,
   ) {
@@ -12915,6 +13730,7 @@ class $$SubjectGroupsTableTableManager
           PrefetchHooks Function({
             bool sessionsRefs,
             bool enrollmentsRefs,
+            bool enrollmentWaitlistRefs,
             bool teacherSubjectGroupsRefs,
           })
         > {
@@ -12938,6 +13754,8 @@ class $$SubjectGroupsTableTableManager
                 Value<String?> subjectFr = const Value.absent(),
                 Value<String> schoolLevel = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<int?> capacity = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
@@ -12950,6 +13768,8 @@ class $$SubjectGroupsTableTableManager
                 subjectFr: subjectFr,
                 schoolLevel: schoolLevel,
                 description: description,
+                capacity: capacity,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -12964,6 +13784,8 @@ class $$SubjectGroupsTableTableManager
                 Value<String?> subjectFr = const Value.absent(),
                 required String schoolLevel,
                 Value<String?> description = const Value.absent(),
+                Value<int?> capacity = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
@@ -12976,6 +13798,8 @@ class $$SubjectGroupsTableTableManager
                 subjectFr: subjectFr,
                 schoolLevel: schoolLevel,
                 description: description,
+                capacity: capacity,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -12993,6 +13817,7 @@ class $$SubjectGroupsTableTableManager
               ({
                 sessionsRefs = false,
                 enrollmentsRefs = false,
+                enrollmentWaitlistRefs = false,
                 teacherSubjectGroupsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -13000,6 +13825,7 @@ class $$SubjectGroupsTableTableManager
                   explicitlyWatchedTables: [
                     if (sessionsRefs) db.sessions,
                     if (enrollmentsRefs) db.enrollments,
+                    if (enrollmentWaitlistRefs) db.enrollmentWaitlist,
                     if (teacherSubjectGroupsRefs) db.teacherSubjectGroups,
                   ],
                   addJoins: null,
@@ -13041,6 +13867,27 @@ class $$SubjectGroupsTableTableManager
                                 table,
                                 p0,
                               ).enrollmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.subjectGroupId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (enrollmentWaitlistRefs)
+                        await $_getPrefetchedData<
+                          SubjectGroup,
+                          $SubjectGroupsTable,
+                          EnrollmentWaitlistData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SubjectGroupsTableReferences
+                              ._enrollmentWaitlistRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SubjectGroupsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).enrollmentWaitlistRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.subjectGroupId == item.id,
@@ -13091,6 +13938,7 @@ typedef $$SubjectGroupsTableProcessedTableManager =
       PrefetchHooks Function({
         bool sessionsRefs,
         bool enrollmentsRefs,
+        bool enrollmentWaitlistRefs,
         bool teacherSubjectGroupsRefs,
       })
     >;
@@ -14107,6 +14955,7 @@ typedef $$EnrollmentsTableCreateCompanionBuilder =
       Value<double?> customDiscount,
       Value<String> status,
       Value<String?> notes,
+      Value<bool> isTransferred,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
@@ -14122,6 +14971,7 @@ typedef $$EnrollmentsTableUpdateCompanionBuilder =
       Value<double?> customDiscount,
       Value<String> status,
       Value<String?> notes,
+      Value<bool> isTransferred,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
@@ -14222,6 +15072,11 @@ class $$EnrollmentsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isTransferred => $composableBuilder(
+    column: $table.isTransferred,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14351,6 +15206,11 @@ class $$EnrollmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isTransferred => $composableBuilder(
+    column: $table.isTransferred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -14445,6 +15305,11 @@ class $$EnrollmentsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get isTransferred => $composableBuilder(
+    column: $table.isTransferred,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -14567,6 +15432,7 @@ class $$EnrollmentsTableTableManager
                 Value<double?> customDiscount = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> isTransferred = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
@@ -14580,6 +15446,7 @@ class $$EnrollmentsTableTableManager
                 customDiscount: customDiscount,
                 status: status,
                 notes: notes,
+                isTransferred: isTransferred,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -14595,6 +15462,7 @@ class $$EnrollmentsTableTableManager
                 Value<double?> customDiscount = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<bool> isTransferred = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
@@ -14608,6 +15476,7 @@ class $$EnrollmentsTableTableManager
                 customDiscount: customDiscount,
                 status: status,
                 notes: notes,
+                isTransferred: isTransferred,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -14729,6 +15598,430 @@ typedef $$EnrollmentsTableProcessedTableManager =
         bool subjectGroupId,
         bool transactionsRefs,
       })
+    >;
+typedef $$EnrollmentWaitlistTableCreateCompanionBuilder =
+    EnrollmentWaitlistCompanion Function({
+      required String id,
+      required String studentId,
+      required String subjectGroupId,
+      Value<DateTime> requestedAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$EnrollmentWaitlistTableUpdateCompanionBuilder =
+    EnrollmentWaitlistCompanion Function({
+      Value<String> id,
+      Value<String> studentId,
+      Value<String> subjectGroupId,
+      Value<DateTime> requestedAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$EnrollmentWaitlistTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $EnrollmentWaitlistTable,
+          EnrollmentWaitlistData
+        > {
+  $$EnrollmentWaitlistTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StudentsTable _studentIdTable(_$AppDatabase db) =>
+      db.students.createAlias('enrollment_waitlist__student_id__students__id');
+
+  $$StudentsTableProcessedTableManager get studentId {
+    final $_column = $_itemColumn<String>('student_id')!;
+
+    final manager = $$StudentsTableTableManager(
+      $_db,
+      $_db.students,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_studentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SubjectGroupsTable _subjectGroupIdTable(_$AppDatabase db) => db
+      .subjectGroups
+      .createAlias('enrollment_waitlist__subject_group_id__subject_groups__id');
+
+  $$SubjectGroupsTableProcessedTableManager get subjectGroupId {
+    final $_column = $_itemColumn<String>('subject_group_id')!;
+
+    final manager = $$SubjectGroupsTableTableManager(
+      $_db,
+      $_db.subjectGroups,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_subjectGroupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$EnrollmentWaitlistTableFilterComposer
+    extends Composer<_$AppDatabase, $EnrollmentWaitlistTable> {
+  $$EnrollmentWaitlistTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudentsTableFilterComposer get studentId {
+    final $$StudentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableFilterComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SubjectGroupsTableFilterComposer get subjectGroupId {
+    final $$SubjectGroupsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectGroupId,
+      referencedTable: $db.subjectGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectGroupsTableFilterComposer(
+            $db: $db,
+            $table: $db.subjectGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EnrollmentWaitlistTableOrderingComposer
+    extends Composer<_$AppDatabase, $EnrollmentWaitlistTable> {
+  $$EnrollmentWaitlistTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudentsTableOrderingComposer get studentId {
+    final $$StudentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SubjectGroupsTableOrderingComposer get subjectGroupId {
+    final $$SubjectGroupsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectGroupId,
+      referencedTable: $db.subjectGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectGroupsTableOrderingComposer(
+            $db: $db,
+            $table: $db.subjectGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EnrollmentWaitlistTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EnrollmentWaitlistTable> {
+  $$EnrollmentWaitlistTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  $$StudentsTableAnnotationComposer get studentId {
+    final $$StudentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SubjectGroupsTableAnnotationComposer get subjectGroupId {
+    final $$SubjectGroupsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectGroupId,
+      referencedTable: $db.subjectGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectGroupsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subjectGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EnrollmentWaitlistTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EnrollmentWaitlistTable,
+          EnrollmentWaitlistData,
+          $$EnrollmentWaitlistTableFilterComposer,
+          $$EnrollmentWaitlistTableOrderingComposer,
+          $$EnrollmentWaitlistTableAnnotationComposer,
+          $$EnrollmentWaitlistTableCreateCompanionBuilder,
+          $$EnrollmentWaitlistTableUpdateCompanionBuilder,
+          (EnrollmentWaitlistData, $$EnrollmentWaitlistTableReferences),
+          EnrollmentWaitlistData,
+          PrefetchHooks Function({bool studentId, bool subjectGroupId})
+        > {
+  $$EnrollmentWaitlistTableTableManager(
+    _$AppDatabase db,
+    $EnrollmentWaitlistTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EnrollmentWaitlistTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EnrollmentWaitlistTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EnrollmentWaitlistTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> studentId = const Value.absent(),
+                Value<String> subjectGroupId = const Value.absent(),
+                Value<DateTime> requestedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EnrollmentWaitlistCompanion(
+                id: id,
+                studentId: studentId,
+                subjectGroupId: subjectGroupId,
+                requestedAt: requestedAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String studentId,
+                required String subjectGroupId,
+                Value<DateTime> requestedAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => EnrollmentWaitlistCompanion.insert(
+                id: id,
+                studentId: studentId,
+                subjectGroupId: subjectGroupId,
+                requestedAt: requestedAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EnrollmentWaitlistTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({studentId = false, subjectGroupId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (studentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.studentId,
+                                referencedTable:
+                                    $$EnrollmentWaitlistTableReferences
+                                        ._studentIdTable(db),
+                                referencedColumn:
+                                    $$EnrollmentWaitlistTableReferences
+                                        ._studentIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (subjectGroupId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.subjectGroupId,
+                                referencedTable:
+                                    $$EnrollmentWaitlistTableReferences
+                                        ._subjectGroupIdTable(db),
+                                referencedColumn:
+                                    $$EnrollmentWaitlistTableReferences
+                                        ._subjectGroupIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EnrollmentWaitlistTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EnrollmentWaitlistTable,
+      EnrollmentWaitlistData,
+      $$EnrollmentWaitlistTableFilterComposer,
+      $$EnrollmentWaitlistTableOrderingComposer,
+      $$EnrollmentWaitlistTableAnnotationComposer,
+      $$EnrollmentWaitlistTableCreateCompanionBuilder,
+      $$EnrollmentWaitlistTableUpdateCompanionBuilder,
+      (EnrollmentWaitlistData, $$EnrollmentWaitlistTableReferences),
+      EnrollmentWaitlistData,
+      PrefetchHooks Function({bool studentId, bool subjectGroupId})
     >;
 typedef $$CancellationsTableCreateCompanionBuilder =
     CancellationsCompanion Function({
@@ -18676,6 +19969,8 @@ class $AppDatabaseManager {
       $$SessionsTableTableManager(_db, _db.sessions);
   $$EnrollmentsTableTableManager get enrollments =>
       $$EnrollmentsTableTableManager(_db, _db.enrollments);
+  $$EnrollmentWaitlistTableTableManager get enrollmentWaitlist =>
+      $$EnrollmentWaitlistTableTableManager(_db, _db.enrollmentWaitlist);
   $$CancellationsTableTableManager get cancellations =>
       $$CancellationsTableTableManager(_db, _db.cancellations);
   $$TransactionsTableTableManager get transactions =>
