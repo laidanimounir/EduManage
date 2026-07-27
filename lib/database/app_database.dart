@@ -69,6 +69,7 @@ class Classrooms extends Table {
   IntColumn get floor => integer().nullable()();
   IntColumn get capacity => integer().nullable()();
   TextColumn get notes => text().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
@@ -85,6 +86,8 @@ class SubjectGroups extends Table {
   TextColumn get subjectFr => text().nullable()();
   TextColumn get schoolLevel => text()();
   TextColumn get description => text().nullable()();
+  IntColumn get capacity => integer().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
@@ -124,8 +127,20 @@ class Enrollments extends Table {
   RealColumn get customDiscount => real().nullable()();
   TextColumn get status => text().withDefault(const Constant('active'))();
   TextColumn get notes => text().nullable()();
+  BoolColumn get isTransferred => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class EnrollmentWaitlist extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().references(Students, #id)();
+  TextColumn get subjectGroupId => text().references(SubjectGroups, #id)();
+  DateTimeColumn get requestedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
 
   @override
@@ -271,7 +286,7 @@ class SchoolLevels extends Table {
 }
 
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -302,7 +317,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -342,6 +357,25 @@ class AppDatabase extends _$AppDatabase {
           ],
         ));
         await m.createTable(schoolClosures);
+      }
+      if (from < 6) {
+        await m.alterTable(TableMigration(subjectGroups,
+          newColumns: [
+            subjectGroups.capacity,
+            subjectGroups.isArchived,
+          ],
+        ));
+        await m.alterTable(TableMigration(classrooms,
+          newColumns: [
+            classrooms.isArchived,
+          ],
+        ));
+        await m.alterTable(TableMigration(enrollments,
+          newColumns: [
+            enrollments.isTransferred,
+          ],
+        ));
+        await m.createTable(enrollmentWaitlist);
       }
     },
   );
