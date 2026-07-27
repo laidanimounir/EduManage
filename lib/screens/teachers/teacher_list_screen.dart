@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
@@ -12,7 +11,6 @@ import '../../repositories/teacher_repository.dart';
 import '../../repositories/teacher_subject_group_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/transaction_service.dart';
-import '../../repositories/transaction_repository.dart';
 import '../../repositories/audit_log_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../widgets/shell_dialog.dart';
@@ -399,21 +397,6 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     ]);
   }
 
-  Future<String> _subjectNames(Teacher t) async {
-    if (_subjectNamesCache.containsKey(t.id)) return _subjectNamesCache[t.id]!;
-    final junctions = _junctionCache[t.id] ?? await _junctionRepo.getByTeacher(t.id);
-    _junctionCache[t.id] = junctions;
-    if (junctions.isEmpty) return '—';
-    final names = <String>[];
-    for (final j in junctions) {
-      final g = await _groupRepo.getById(j.subjectGroupId);
-      if (g != null) names.add(g.nameAr);
-    }
-    final result = names.isEmpty ? '—' : names.join(', ');
-    _subjectNamesCache[t.id] = result;
-    return result;
-  }
-
   Future<void> _preloadSubjectNames() async {
     for (final t in _rows) {
       final junctions = _junctionCache[t.id] ?? await _junctionRepo.getByTeacher(t.id);
@@ -446,8 +429,6 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   String _salaryLabel(String salaryType, AppLocalizations l10n) {
     return salaryType == 'percentage' ? l10n.salaryTypePercentage : l10n.salaryTypeFixed;
   }
-
-  String _formatDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 
   Widget _buildPaginationBar(AppLocalizations l10n, int totalPages) {
     final first = _page * _pageSize + 1;
