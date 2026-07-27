@@ -50,6 +50,10 @@ class Teachers extends Table {
   TextColumn get salaryType => text().withDefault(const Constant('percentage'))();
   RealColumn get teacherSharePct => real().nullable()();
   RealColumn get teacherFixedAmount => real().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  TextColumn get photoPath => text().nullable()();
+  TextColumn get gender => text().nullable()();
+  IntColumn get overdueThresholdDays => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
@@ -153,6 +157,7 @@ class Transactions extends Table {
   TextColumn get createdByUserId => text().nullable()();
   TextColumn get deviceId => text()();
   TextColumn get referenceTransactionId => text().nullable()();
+  TextColumn get rateSnapshot => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -231,6 +236,17 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+class TeacherSubjectGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get teacherId => text().references(Teachers, #id)();
+  TextColumn get subjectGroupId => text().references(SubjectGroups, #id)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class SchoolLevels extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -243,7 +259,7 @@ class SchoolLevels extends Table {
 }
 
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, SchoolLevels],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolLevels],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -274,7 +290,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -290,6 +306,22 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.createTable(schoolLevels);
+      }
+      if (from < 4) {
+        await m.alterTable(TableMigration(teachers,
+          newColumns: [
+            teachers.isArchived,
+            teachers.photoPath,
+            teachers.gender,
+            teachers.overdueThresholdDays,
+          ],
+        ));
+        await m.alterTable(TableMigration(transactions,
+          newColumns: [
+            transactions.rateSnapshot,
+          ],
+        ));
+        await m.createTable(teacherSubjectGroups);
       }
     },
   );
