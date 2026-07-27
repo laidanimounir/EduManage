@@ -41,4 +41,5 @@ class PhosphorIcons {
   static const table = IconData(0xe476, fontFamily: _family);
   static const envelope = IconData(0xe214, fontFamily: _family);
   static const camera = IconData(0xe10e, fontFamily: _family);
+  static const calendar = IconData(0xe104, fontFamily: _family);
 }

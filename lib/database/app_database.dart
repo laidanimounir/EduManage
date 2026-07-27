@@ -448,7 +448,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<Transaction>> getTeacherPayoutHistory(String teacherId) {
-    return (db.select(db.transactions)
+    return (select(transactions)
       ..where((t) => t.teacherId.equals(teacherId) & t.type.equals('teacher_payout'))
       ..orderBy([(t) => OrderingTerm.desc(t.transactionDate)]))
         .get();

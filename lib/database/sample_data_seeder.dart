@@ -5,6 +5,7 @@ import '../repositories/session_repository.dart';
 import '../repositories/enrollment_repository.dart';
 import '../repositories/classroom_repository.dart';
 import '../repositories/school_level_repository.dart';
+import '../repositories/teacher_subject_group_repository.dart';
 import '../database/app_database.dart';
 import 'package:drift/drift.dart';
 
@@ -98,6 +99,10 @@ class SampleDataSeeder {
       subjectFr: const Value('Langue anglaise'),
       schoolLevel: const Value('middle'),
     ));
+
+    final junctionRepo = TeacherSubjectGroupRepository(db);
+    await junctionRepo.assign(t1Id, g1Id);
+    await junctionRepo.assign(t2Id, g2Id);
 
     final sessionRepo = SessionRepository(db);
     final startTime = DateTime(2026, 1, 1, 0, 0);
