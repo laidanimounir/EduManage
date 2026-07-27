@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' hide Column, Table;
+import '../../constants/phosphor_icons.dart';
+import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/subject_group_repository.dart';
-import 'package:drift/drift.dart' hide Column;
+import '../../repositories/session_repository.dart';
+import '../../widgets/shell_dialog.dart';
+import '../../widgets/shell_badge.dart';
+import '../../widgets/shell_section_header.dart';
+import '../../widgets/shell_filter_chip.dart';
+import '../../widgets/shell_input_decoration.dart';
+import '../../widgets/app_loading.dart';
 
 class EnrollmentScreen extends StatefulWidget {
   final AppDatabase database;
@@ -21,64 +30,118 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   List<Student> _students = [];
   List<SubjectGroup> _groups = [];
   bool _loading = true;
-  String _viewMode = 'all';
+  String _statusFilter = 'all';
+  Set<String> _selectedIds = {};
+  Map<String, String> _studentNames = {};
+  Map<String, String> _groupNames = {};
 
   @override
   void initState() { super.initState(); _enrollRepo = EnrollmentRepository(widget.database); _studentRepo = StudentRepository(widget.database); _groupRepo = SubjectGroupRepository(widget.database); _load(); }
-  Future<void> _load() async { setState(() => _loading = true); _enrollments = await _enrollRepo.getAll(); _students = await _studentRepo.getAll(); _groups = await _groupRepo.getAll(); setState(() => _loading = false); }
+  Future<void> _load() async { setState(() => _loading = true); _enrollments = await _enrollRepo.getAll(); _students = await _studentRepo.getAll(); _groups = await _groupRepo.getAll(); _studentNames.clear(); _groupNames.clear(); for (final s in _students) { _studentNames[s.id] = '${s.firstNameAr} ${s.lastNameAr}'; } for (final g in _groups) { _groupNames[g.id] = g.nameAr; } _selectedIds.clear(); if (mounted) setState(() => _loading = false); }
 
-  Future<void> _showForm() async {
+  List<Enrollment> get filtered => _enrollments.where((e) => _statusFilter == 'all' || e.status == _statusFilter).toList();
+
+  void _toggleSelectAll() {
+    setState(() { if (_selectedIds.length == filtered.length) { _selectedIds.clear(); } else { _selectedIds = filtered.map((e) => e.id).toSet(); } });
+  }
+
+  Future<void> _bulkSetStatus(String status) async {
+    for (final id in _selectedIds.toList()) { await _enrollRepo.updateStatus(id, status); }
+    _load();
+  }
+
+  void _showAddDialog() async {
     final l10n = AppLocalizations.of(context);
-    String? studentId; String? groupId; final priceCtrl = TextEditingController(); final discountCtrl = TextEditingController();
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
-      title: Text(l10n.enrollStudent),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        DropdownButtonFormField<String>(value: studentId, decoration: InputDecoration(labelText: l10n.students), items: _students.map((s) => DropdownMenuItem(value: s.id, child: Text('${s.firstNameAr} ${s.lastNameAr} (${s.code})'))).toList(), onChanged: (v) => setSt(() => studentId = v)),
-        DropdownButtonFormField<String>(value: groupId, decoration: InputDecoration(labelText: l10n.groups), items: _groups.map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr))).toList(), onChanged: (v) => setSt(() => groupId = v)),
-        TextFormField(controller: priceCtrl, decoration: InputDecoration(labelText: l10n.customPrice), keyboardType: TextInputType.number),
-        TextFormField(controller: discountCtrl, decoration: InputDecoration(labelText: l10n.discount), keyboardType: TextInputType.number),
+    String? studentId, groupId;
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
+      maxWidth: 450, title: l10n.enrollStudent,
+      body: Column(children: [
+        DropdownButtonFormField<String>(value: studentId, decoration: ShellInputDecoration.dropdown(hintText: l10n.students), items: _students.map((s) => DropdownMenuItem(value: s.id, child: Text('${s.firstNameAr} ${s.lastNameAr} (${s.code})', style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => studentId = v)),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(value: groupId, decoration: ShellInputDecoration.dropdown(hintText: l10n.groups), items: _groups.map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => groupId = v)),
+        const SizedBox(height: 20),
+        SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: Text(l10n.enrollStudent))),
       ]),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
     )));
     if (ok == true && studentId != null && groupId != null) {
-      await _enrollRepo.create(EnrollmentsCompanion(
-        studentId: Value(studentId!), subjectGroupId: Value(groupId!),
-        customPriceOverride: Value(double.tryParse(priceCtrl.text)),
-        customDiscount: Value(double.tryParse(discountCtrl.text)),
-      ));
+      await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!)));
       _load();
     }
   }
 
-  String _studentName(String id) { final s = _students.cast<Student?>().firstWhere((s) => s?.id == id, orElse: () => null); return s != null ? '${s.firstNameAr} ${s.lastNameAr}' : id; }
-  String _groupName(String id) { final g = _groups.cast<SubjectGroup?>().firstWhere((g) => g?.id == id, orElse: () => null); return g != null ? g.nameAr : id; }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hasSelection = _selectedIds.isNotEmpty;
+
     return Scaffold(
-      floatingActionButton: FloatingActionButton(onPressed: _showForm, child: const Icon(Icons.add)),
-      body: _loading ? const Center(child: CircularProgressIndicator()) : _enrollments.isEmpty ? Center(child: Text(l10n.noEnrollments)) : ListView.builder(itemCount: _enrollments.length, itemBuilder: (_, i) {
-        final e = _enrollments[i];
-        return Card(child: ListTile(
-          title: Text(_studentName(e.studentId)),
-          subtitle: Text('${_groupName(e.subjectGroupId)}  |  ${l10n.status}: ${e.status}'),
-          trailing: PopupMenuButton<String>(onSelected: (action) async {
-            if (action == 'drop') {
-              await _enrollRepo.updateStatus(e.id, 'inactive');
-            } else if (action == 'activate') {
-              await _enrollRepo.updateStatus(e.id, 'active');
-            } else if (action == 'delete') {
-              await _enrollRepo.delete(e.id);
-            }
-            _load();
-          }, itemBuilder: (_) => [
-            PopupMenuItem(value: 'activate', child: Text(l10n.active)),
-            PopupMenuItem(value: 'drop', child: Text(l10n.dropEnrollment)),
-            PopupMenuItem(value: 'delete', child: Text(l10n.delete, style: const TextStyle(color: Colors.red))),
-          ]),
-        ));
-      }),
+      backgroundColor: ContentTokens.background,
+      body: Column(children: [
+        if (hasSelection) _buildSelectionBar(l10n),
+        _buildToolbar(l10n),
+        Expanded(child: _buildBody(l10n)),
+      ]),
     );
   }
+
+  Widget _buildSelectionBar(AppLocalizations l10n) {
+    return Container(padding: const EdgeInsetsDirectional.only(start: 12, end: 12, top: 8, bottom: 8), decoration: const BoxDecoration(color: ShellTokens.accentMuted, border: Border(bottom: BorderSide(color: ShellTokens.accent))), child: Row(children: [
+      Text('${_selectedIds.length} ${l10n.selected}', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+      const Spacer(),
+      TextButton(onPressed: () => _bulkSetStatus('active'), child: Text(l10n.active, style: const TextStyle(fontSize: 11, color: SemanticTokens.success))),
+      TextButton(onPressed: () => _bulkSetStatus('inactive'), child: Text(l10n.dropEnrollment, style: const TextStyle(fontSize: 11, color: SemanticTokens.error))),
+      TextButton.icon(onPressed: _toggleSelectAll, icon: Icon(_selectedIds.length == filtered.length ? PhosphorIcons.arrowLeft : PhosphorIcons.squaresFour, size: 16), label: Text(_selectedIds.length == filtered.length ? l10n.clearSelection : l10n.selectAll), style: TextButton.styleFrom(foregroundColor: ShellTokens.textPrimary)),
+    ]));
+  }
+
+  Widget _buildToolbar(AppLocalizations l10n) {
+    return Padding(padding: const EdgeInsets.fromLTRB(12, 10, 12, 6), child: Row(children: [
+      Expanded(child: Row(children: [
+        ShellFilterChip(label: l10n.all, selected: _statusFilter == 'all', onTap: () { _statusFilter = 'all'; setState(() {}); }),
+        ShellFilterChip(label: l10n.active, selected: _statusFilter == 'active', onTap: () { _statusFilter = 'active'; setState(() {}); }),
+        ShellFilterChip(label: l10n.inactive, selected: _statusFilter == 'inactive', onTap: () { _statusFilter = 'inactive'; setState(() {}); }),
+      ])),
+      SizedBox(height: 34, child: FilledButton.icon(onPressed: _showAddDialog, icon: const Icon(PhosphorIcons.plus, size: 14), label: Text(l10n.enrollStudent, style: const TextStyle(fontSize: 12)), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12)))),
+    ]));
+  }
+
+  Widget _buildBody(AppLocalizations l10n) {
+    if (_loading) return const AppLoading();
+    final rows = filtered;
+    return Column(children: [
+      Table(columnWidths: _columnWidths(), defaultVerticalAlignment: TableCellVerticalAlignment.middle, border: const TableBorder(bottom: BorderSide(color: ShellTokens.chromeBorder)), children: [_buildHeaderRow(l10n)]),
+      Expanded(child: SingleChildScrollView(child: Table(columnWidths: _columnWidths(), defaultVerticalAlignment: TableCellVerticalAlignment.middle, border: TableBorder(horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5)), children: rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)).toList()))),
+    ]);
+  }
+
+  Map<int, TableColumnWidth> _columnWidths() => const {
+    0: FixedColumnWidth(44), 1: FlexColumnWidth(2), 2: FlexColumnWidth(2), 3: FlexColumnWidth(1.5), 4: FlexColumnWidth(1), 5: IntrinsicColumnWidth(),
+  };
+
+  TableRow _buildHeaderRow(AppLocalizations l10n) {
+    return TableRow(decoration: const BoxDecoration(color: ShellTokens.chromeSurface, border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder))), children: [
+      _hdrCell(PhosphorIcons.checkSquare, null), _hdrCell(null, l10n.student), _hdrCell(null, l10n.groups), _hdrCell(null, l10n.date), _hdrCell(null, l10n.status), _hdrCell(PhosphorIcons.gear, null),
+    ]);
+  }
+  Widget _hdrCell(IconData? icon, String? label) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Row(mainAxisSize: MainAxisSize.min, children: [
+    if (icon != null) InkWell(onTap: _toggleSelectAll, child: Icon(icon, size: 14, color: ShellTokens.textSecondary)) else Text(label ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.3)),
+  ]));
+
+  TableRow _buildDataRow(Enrollment e, int index, AppLocalizations l10n) {
+    final isSel = _selectedIds.contains(e.id);
+    final even = index.isEven;
+    return TableRow(decoration: BoxDecoration(color: isSel ? ShellTokens.accentMuted.withValues(alpha: 0.3) : even ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3)), children: [
+      _chkCell(e, isSel),
+      _txtCell(_studentNames[e.studentId] ?? e.studentId),
+      _txtCell(_groupNames[e.subjectGroupId] ?? e.subjectGroupId),
+      _txtCell('${e.enrollmentDate.year}-${e.enrollmentDate.month.toString().padLeft(2, '0')}-${e.enrollmentDate.day.toString().padLeft(2, '0')}'),
+      Row(children: [e.status == 'active' ? ShellBadge(label: l10n.active, color: SemanticTokens.success) : ShellBadge(label: l10n.inactive, color: const Color(0xFFC2823A))]),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(icon: Icon(e.status == 'active' ? PhosphorIcons.x : PhosphorIcons.checkCircle, size: 13), onPressed: () async { await _enrollRepo.updateStatus(e.id, e.status == 'active' ? 'inactive' : 'active'); _load(); }, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: e.status == 'active' ? SemanticTokens.warning : SemanticTokens.success),
+      ]),
+    ]);
+  }
+
+  Widget _chkCell(Enrollment e, bool sel) => GestureDetector(onTap: () => setState(() { if (sel) { _selectedIds.remove(e.id); } else { _selectedIds.add(e.id); } }), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10), child: Container(width: 14, height: 14, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), border: Border.all(color: sel ? ShellTokens.accent : ShellTokens.textDisabled, width: 1.5), color: sel ? ShellTokens.accent : Colors.transparent), child: sel ? const Icon(Icons.check, size: 9, color: ShellTokens.chromeBase) : null)));
+  Widget _txtCell(String t) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), child: Text(t, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis));
 }
