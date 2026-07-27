@@ -45,6 +45,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   Map<String, List<TeacherSubjectGroup>> _junctionCache = {};
   Map<String, String> _subjectNamesCache = {};
   Map<String, bool> _overdueCache = {};
+  Set<String> _teachingNowIds = {};
   final _searchCtrl = TextEditingController();
 
   @override
@@ -76,6 +77,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     if (mounted) setState(() { _rows = result.teachers; _total = result.total; _loading = false; });
     _preloadSubjectNames();
     _preloadOverdueStatus();
+    _preloadTeachingNow();
   }
 
   void _onStatusFilterChanged(String v) { _statusFilter = v; _page = 0; _fetchPage(); }
@@ -335,20 +337,22 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     final isEven = index.isEven;
     final ended = t.employmentEndDate != null;
     final overdue = _overdueCache[t.id] ?? false;
+    final isTeachingNow = _teachingNowIds.contains(t.id);
 
     return TableRow(
       decoration: BoxDecoration(
         color: isSelected ? ShellTokens.accentMuted.withValues(alpha: 0.3)
+            : isTeachingNow ? SemanticTokens.success.withValues(alpha: 0.08)
             : ended ? SemanticTokens.warning.withValues(alpha: 0.06)
             : isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3),
       ),
       children: [
         _buildCheckCell(t, isSelected),
-        GestureDetector(onTap: () => _openDetail(t), child: _buildNameCellContent(t, overdue, l10n)),
+        GestureDetector(onTap: () => _openDetail(t), child: _buildNameCellContent(t, overdue, isTeachingNow, l10n)),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(t.code)),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_salaryLabel(t.salaryType, l10n))),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_subjectNamesCache[t.id] ?? '...')),
-        GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: overdue ? ShellBadge(label: l10n.overdue, color: const Color(0xFFC2823A)) : const SizedBox.shrink()),
+        GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: isTeachingNow ? ShellBadge(label: l10n.liveNow.replaceAll('● ', ''), color: SemanticTokens.success) : overdue ? ShellBadge(label: l10n.overdue, color: const Color(0xFFC2823A)) : const SizedBox.shrink()),
         _buildActionsCell(t),
       ],
     );
@@ -375,7 +379,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     );
   }
 
-  Widget _buildNameCellContent(Teacher t, bool overdue, AppLocalizations l10n) {
+  Widget _buildNameCellContent(Teacher t, bool overdue, bool isTeachingNow, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(children: [
@@ -422,6 +426,20 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       if (lastPayout == null) { _overdueCache[t.id] = true; continue; }
       final daysSince = DateTime.now().difference(lastPayout).inDays;
       _overdueCache[t.id] = daysSince > t.overdueThresholdDays!;
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _preloadTeachingNow() async {
+    final now = DateTime.now();
+    for (final t in _rows) {
+      final sessions = await SessionRepository(widget.database).getByTeacher(t.id);
+      for (final s in sessions) {
+        if (await widget.database.isSessionHappeningNow(s.id, now)) {
+          _teachingNowIds.add(t.id);
+          break;
+        }
+      }
     }
     if (mounted) setState(() {});
   }
@@ -481,6 +499,10 @@ class _TeacherDetailDialog extends StatelessWidget {
         ShellSectionHeader(text: l10n.teacherFinancialStatus),
         const SizedBox(height: 8),
         _TeacherFinancialSummary(database: database, teacherId: teacher.id, l10n: l10n),
+        const SizedBox(height: 16),
+        ShellSectionHeader(text: l10n.perSessionEarnings),
+        const SizedBox(height: 8),
+        _PerSessionEarningsList(database: database, teacherId: teacher.id, l10n: l10n),
         const SizedBox(height: 16),
         ShellSectionHeader(text: l10n.teacherPayoutHistory),
         const SizedBox(height: 8),
@@ -567,6 +589,7 @@ class _SubjectList extends StatefulWidget {
 
 class _SubjectListState extends State<_SubjectList> {
   List<SubjectGroup> _groups = [];
+  Map<String, List<Session>> _groupSessions = {};
   bool _loading = true;
 
   @override
@@ -575,22 +598,42 @@ class _SubjectListState extends State<_SubjectList> {
   Future<void> _load() async {
     final repo = TeacherSubjectGroupRepository(widget.database);
     final assigned = await repo.getAssignedGroups(widget.teacherId);
-    if (mounted) setState(() { _groups = assigned; _loading = false; });
+    final sessionRepo = SessionRepository(widget.database);
+    final sessions = await sessionRepo.getByTeacher(widget.teacherId);
+    final groupSessionMap = <String, List<Session>>{};
+    for (final s in sessions) {
+      groupSessionMap.putIfAbsent(s.subjectGroupId, () => []).add(s);
+    }
+    if (mounted) setState(() { _groups = assigned; _groupSessions = groupSessionMap; _loading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
     if (_groups.isEmpty) return Text(widget.l10n.noData, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
-    return Column(children: _groups.map((g) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Expanded(child: Text(g.nameAr, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
-        Text(_levelLabel(g.schoolLevel, widget.l10n), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
-      ]),
-    )).toList());
+    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return Column(children: _groups.map((g) {
+      final groupSessions = _groupSessions[g.id] ?? [];
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(g.nameAr, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+            Text(_levelLabel(g.schoolLevel, widget.l10n), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+          ]),
+          if (groupSessions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Column(children: groupSessions.map((s) => Text(
+                '${days[s.dayOfWeek]} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}-${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled),
+              )).toList()),
+            ),
+        ]),
+      );
+    }).toList());
   }
 
   String _levelLabel(String? level, AppLocalizations l10n) {
@@ -653,6 +696,66 @@ class _TeacherFinancialSummaryState extends State<_TeacherFinancialSummary> {
   }
 }
 
+class _PerSessionEarningsList extends StatefulWidget {
+  final AppDatabase database;
+  final String teacherId;
+  final AppLocalizations l10n;
+  const _PerSessionEarningsList({required this.database, required this.teacherId, required this.l10n});
+  @override
+  State<_PerSessionEarningsList> createState() => _PerSessionEarningsListState();
+}
+
+class _PerSessionEarningsListState extends State<_PerSessionEarningsList> {
+  List<Map<String, dynamic>> _earnings = [];
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    _earnings = await widget.database.getTeacherSessionEarnings(widget.teacherId);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
+    if (_earnings.isEmpty) return Text(widget.l10n.noData, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
+
+    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return Column(children: _earnings.map((e) {
+      final day = days[e['day_of_week'] as int? ?? 0];
+      final h = (e['start_time'] as DateTime).hour;
+      final m = (e['start_time'] as DateTime).minute.toString().padLeft(2, '0');
+      final att = e['attendance_count'] ?? 0;
+      final paid = (e['paid'] as double?) ?? 0.0;
+      final deducted = (e['deducted'] as double?) ?? 0.0;
+      final monthPrice = (e['monthly_price'] as double?) ?? 0.0;
+      final sessionsPerMonth = (e['sessions_per_month'] as int?) ?? 1;
+      final perSessionPrice = sessionsPerMonth > 0 ? monthPrice / sessionsPerMonth : 0.0;
+      final sharePct = e['teacher_share_pct'] as double?;
+      final fixedAmt = e['teacher_fixed_amount'] as double?;
+      final rateStr = fixedAmt != null ? '${fixedAmt.toStringAsFixed(0)} DA' : sharePct != null ? '${sharePct.toStringAsFixed(0)}%' : 'def';
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${e['group_name'] ?? ''}', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+            Text('$day $h:$m · Rate: $rateStr · $att @{widget.l10n.attendance.toLowerCase()} · ${perSessionPrice.toStringAsFixed(0)}/session', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+          ])),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('${paid.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
+            if (deducted > 0) Text('-${deducted.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 9, color: SemanticTokens.error)),
+          ]),
+        ]),
+      );
+    }).toList());
+  }
+}
+
 class _PayoutHistoryList extends StatefulWidget {
   final AppDatabase database;
   final String teacherId;
@@ -677,15 +780,15 @@ class _PayoutHistoryListState extends State<_PayoutHistoryList> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
-    if (_txns.isEmpty) return Text(widget.l10n.noTeacherPayouts, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
     return Column(children: [
-      ..._txns.take(10).map((tx) => Padding(
+      if (_txns.isNotEmpty) ..._txns.take(10).map((tx) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(children: [
           Expanded(child: Text(_fmtDate(tx.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary))),
           Text('${tx.amount.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
         ]),
       )),
+      if (_txns.isEmpty) Text(widget.l10n.noTeacherPayouts, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled)),
       const SizedBox(height: 8),
       FilledButton.icon(
         onPressed: () => _payNow(),

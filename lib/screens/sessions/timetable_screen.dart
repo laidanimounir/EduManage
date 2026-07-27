@@ -17,7 +17,7 @@ class TimetableScreen extends StatefulWidget {
   State<TimetableScreen> createState() => _TimetableScreenState();
 }
 
-class _TimetableScreenState extends State<TimetableScreen> {
+class _TimetableScreenState extends State<TimetableScreen> with WidgetsBindingObserver {
   late final SessionRepository _repo;
   List<Session> _allSessions = [];
   bool _loading = true;
@@ -42,6 +42,24 @@ class _TimetableScreenState extends State<TimetableScreen> {
     super.initState();
     _repo = SessionRepository(widget.database);
     _load();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_allSessions.isNotEmpty) _load();
   }
 
   Future<void> _load() async {

@@ -20,6 +20,7 @@ import '../../widgets/app_loading.dart';
 import '../../widgets/group_assignment_dialog.dart';
 import '../../repositories/school_level_repository.dart';
 import '../../repositories/subject_group_repository.dart';
+import '../../repositories/session_repository.dart';
 import '../../repositories/transaction_service.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -1214,36 +1215,33 @@ class _EnrollmentRow extends StatefulWidget {
 
 class _EnrollmentRowState extends State<_EnrollmentRow> {
   String _groupName = '';
+  String _sessionInfo = '';
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final group = await SubjectGroupRepository(widget.database).getById(widget.enrollment.subjectGroupId);
-    if (mounted) setState(() => _groupName = group?.nameAr ?? widget.enrollment.subjectGroupId);
+    final sessions = await SessionRepository(widget.database).getAll();
+    final relevant = sessions.where((s) => s.subjectGroupId == widget.enrollment.subjectGroupId && s.isActive && !s.isArchived).toList();
+    final days = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final info = relevant.map((s) => '${days[s.dayOfWeek]} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}').join(', ');
+    if (mounted) setState(() { _groupName = group?.nameAr ?? widget.enrollment.subjectGroupId; _sessionInfo = info; });
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Container(
-            width: 6, height: 6,
-            decoration: BoxDecoration(
-              color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled,
-              shape: BoxShape.circle,
-            ),
-          ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled, shape: BoxShape.circle)),
           const SizedBox(width: 8),
           Expanded(child: Text(_groupName, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
           Text(widget.enrollment.status, style: TextStyle(fontSize: 10, color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled)),
-        ],
-      ),
+        ]),
+        if (_sessionInfo.isNotEmpty) Padding(padding: const EdgeInsets.only(left: 14), child: Text(_sessionInfo, style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled))),
+      ]),
     );
   }
 }

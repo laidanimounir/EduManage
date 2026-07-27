@@ -10,6 +10,8 @@ import '../../repositories/subject_group_repository.dart';
 import '../../repositories/classroom_repository.dart';
 import '../../repositories/transaction_service.dart';
 import '../../repositories/audit_log_repository.dart';
+import '../../repositories/enrollment_repository.dart';
+import '../../repositories/student_repository.dart';
 import '../../utils/date_helper.dart';
 import '../../widgets/shell_dialog.dart';
 import '../../widgets/shell_badge.dart';
@@ -108,6 +110,10 @@ class _SessionListScreenState extends State<SessionListScreen> {
     if (result == true) _fetchPage();
   }
 
+  void _openDetail(Session s) {
+    showDialog(context: context, builder: (_) => _SessionDetailDialog(database: widget.database, session: s, l10n: AppLocalizations.of(context)));
+  }
+
   Future<void> _confirmArchive(Session s) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
@@ -174,6 +180,7 @@ class _SessionListScreenState extends State<SessionListScreen> {
           backgroundColor: ShellTokens.chromeSurface,
         ));
       }
+      _fetchPage();
     }
   }
 
@@ -281,11 +288,11 @@ class _SessionListScreenState extends State<SessionListScreen> {
 
     return TableRow(decoration: BoxDecoration(color: isSelected ? ShellTokens.accentMuted.withValues(alpha: 0.3) : isLive ? SemanticTokens.success.withValues(alpha: 0.08) : isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3)), children: [
       _buildCheckCell(s, isSelected),
-      _buildTextCell('${DateHelper.formatDayOfWeek(s.dayOfWeek, Localizations.localeOf(context).languageCode)} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}-${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}'),
-      _buildTextCell('${_groupNameCache[s.subjectGroupId] ?? ''}'),
-      _buildTextCell(_teacherNameCache[s.teacherId] ?? ''),
-      _buildTextCell(_classroomNameCache[s.classroomId] ?? ''),
-      _buildTextCell('${s.monthlyPrice.toStringAsFixed(0)} DA'),
+      GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque, child: _buildTextCell('${DateHelper.formatDayOfWeek(s.dayOfWeek, Localizations.localeOf(context).languageCode)} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}-${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}')),
+      GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque, child: _buildTextCell('${_groupNameCache[s.subjectGroupId] ?? ''}')),
+      GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque, child: _buildTextCell(_teacherNameCache[s.teacherId] ?? '')),
+      GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque, child: _buildTextCell(_classroomNameCache[s.classroomId] ?? '')),
+      GestureDetector(onTap: () => _openDetail(s), behavior: HitTestBehavior.opaque, child: _buildTextCell('${s.monthlyPrice.toStringAsFixed(0)} DA')),
       Row(mainAxisSize: MainAxisSize.min, children: [if (isLive) ShellBadge(label: l10n.liveNow.replaceAll('● ', ''), color: SemanticTokens.success), if (!s.isActive) ShellBadge(label: l10n.inactive, color: const Color(0xFFC2823A)), if (s.isArchived) ShellBadge(label: l10n.archived, color: ShellTokens.textDisabled)]),
       _buildActionsCell(s),
     ]);
@@ -531,6 +538,136 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
           const Icon(PhosphorIcons.clock, size: 14, color: ShellTokens.textSecondary),
         ]),
       ),
+    );
+  }
+}
+
+class _SessionDetailDialog extends StatefulWidget {
+  final AppDatabase database;
+  final Session session;
+  final AppLocalizations l10n;
+  const _SessionDetailDialog({required this.database, required this.session, required this.l10n});
+  @override
+  State<_SessionDetailDialog> createState() => _SessionDetailDialogState();
+}
+
+class _SessionDetailDialogState extends State<_SessionDetailDialog> {
+  List<Map<String, dynamic>> _attendanceHistory = [];
+  List<Enrollment> _enrollments = [];
+  String _groupName = '';
+  String _teacherName = '';
+  String _roomName = '';
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final group = await SubjectGroupRepository(widget.database).getById(widget.session.subjectGroupId);
+    final teacher = await TeacherRepository(widget.database).getById(widget.session.teacherId);
+    final room = await ClassroomRepository(widget.database).getById(widget.session.classroomId);
+    final enrollments = await EnrollmentRepository(widget.database).getBySubjectGroup(widget.session.subjectGroupId);
+    final history = await widget.database.getSessionAttendanceHistory(widget.session.id);
+    if (mounted) setState(() {
+      _groupName = group?.nameAr ?? widget.session.subjectGroupId;
+      _teacherName = teacher != null ? '${teacher.firstNameAr} ${teacher.lastNameAr}' : widget.session.teacherId;
+      _roomName = room?.nameAr ?? widget.session.classroomId;
+      _enrollments = enrollments;
+      _attendanceHistory = history;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    if (_loading) return const Dialog(child: SizedBox(height: 100, child: Center(child: CircularProgressIndicator(color: ShellTokens.accent))));
+    final s = widget.session;
+
+    return ShellDialog(
+      maxWidth: 520,
+      title: _groupName,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ShellSectionHeader(text: l10n.personalInfo),
+        const SizedBox(height: 8),
+        _infoRow(l10n.dayOfWeek, DateHelper.formatDayOfWeek(s.dayOfWeek, Localizations.localeOf(context).languageCode)),
+        _infoRow(l10n.time, '${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')} - ${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}'),
+        _infoRow(l10n.teacher, _teacherName),
+        _infoRow(l10n.classroom, _roomName),
+        _infoRow(l10n.monthlyPrice, '${s.monthlyPrice.toStringAsFixed(0)} DA'),
+        _infoRow(l10n.sessionsPerMonth, '${s.sessionsPerMonth}'),
+        const SizedBox(height: 16),
+        ShellSectionHeader(text: l10n.enrolledStudents),
+        const SizedBox(height: 8),
+        if (_enrollments.isEmpty)
+          Text(l10n.noEnrollments, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled))
+        else
+          ..._enrollments.map((e) => _EnrolledStudentRow(enrollment: e, database: widget.database)),
+        const SizedBox(height: 16),
+        ShellSectionHeader(text: l10n.sessionAttendanceHistory),
+        const SizedBox(height: 8),
+        if (_attendanceHistory.isEmpty)
+          Text(l10n.noData, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled))
+        else
+          ..._attendanceHistory.take(20).map((a) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              Expanded(child: Text(a['student_first_name'] != null ? '${a['student_first_name']} ${a['student_last_name']} (${a['student_code']})' : '${a['person_type']}', style: const TextStyle(fontSize: 10, color: ShellTokens.textPrimary))),
+              Text(_fmtDate(a['attendance_date'] as DateTime), style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary)),
+              if ((a['is_cancelled'] as int?) == 1)
+                ShellBadge(label: l10n.cancelled, color: SemanticTokens.warning),
+              if ((a['is_school_closed'] as int?) == 1)
+                ShellBadge(label: l10n.schoolClosed, color: SemanticTokens.error),
+            ]),
+          )),
+      ]),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+      ]),
+    );
+  }
+
+  String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+}
+
+class _EnrolledStudentRow extends StatefulWidget {
+  final Enrollment enrollment;
+  final AppDatabase database;
+  const _EnrolledStudentRow({required this.enrollment, required this.database});
+  @override
+  State<_EnrolledStudentRow> createState() => _EnrolledStudentRowState();
+}
+
+class _EnrolledStudentRowState extends State<_EnrolledStudentRow> {
+  String _studentName = '';
+  String _code = '';
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final repo = StudentRepository(widget.database);
+    final s = await repo.getById(widget.enrollment.studentId);
+    if (mounted && s != null) setState(() { _studentName = '${s.firstNameAr} ${s.lastNameAr}'; _code = s.code; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(children: [
+        Container(width: 6, height: 6, decoration: BoxDecoration(color: widget.enrollment.status == 'active' ? SemanticTokens.success : ShellTokens.textDisabled, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(_studentName.isEmpty ? widget.enrollment.studentId : _studentName, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+        if (_code.isNotEmpty) Text(_code, style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary)),
+      ]),
     );
   }
 }
