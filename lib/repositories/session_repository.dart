@@ -200,7 +200,7 @@ class SessionRepository extends BaseRepository {
     await (db.delete(db.sessions)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<List<Session>> fetchPage({
+  Future<({List<Session> sessions, int total})> fetchPage({
     int offset = 0,
     int limit = 20,
     String? statusFilter,

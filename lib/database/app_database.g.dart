@@ -3639,6 +3639,21 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3688,6 +3703,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     teacherSharePct,
     teacherFixedAmount,
     isActive,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -3809,6 +3825,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3886,6 +3908,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3920,6 +3946,7 @@ class Session extends DataClass implements Insertable<Session> {
   final double? teacherSharePct;
   final double? teacherFixedAmount;
   final bool isActive;
+  final bool isArchived;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
@@ -3936,6 +3963,7 @@ class Session extends DataClass implements Insertable<Session> {
     this.teacherSharePct,
     this.teacherFixedAmount,
     required this.isActive,
+    required this.isArchived,
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
@@ -3959,6 +3987,7 @@ class Session extends DataClass implements Insertable<Session> {
       map['teacher_fixed_amount'] = Variable<double>(teacherFixedAmount);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
@@ -3983,6 +4012,7 @@ class Session extends DataClass implements Insertable<Session> {
           ? const Value.absent()
           : Value(teacherFixedAmount),
       isActive: Value(isActive),
+      isArchived: Value(isArchived),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
@@ -4009,6 +4039,7 @@ class Session extends DataClass implements Insertable<Session> {
         json['teacherFixedAmount'],
       ),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
@@ -4030,6 +4061,7 @@ class Session extends DataClass implements Insertable<Session> {
       'teacherSharePct': serializer.toJson<double?>(teacherSharePct),
       'teacherFixedAmount': serializer.toJson<double?>(teacherFixedAmount),
       'isActive': serializer.toJson<bool>(isActive),
+      'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
@@ -4049,6 +4081,7 @@ class Session extends DataClass implements Insertable<Session> {
     Value<double?> teacherSharePct = const Value.absent(),
     Value<double?> teacherFixedAmount = const Value.absent(),
     bool? isActive,
+    bool? isArchived,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
@@ -4069,6 +4102,7 @@ class Session extends DataClass implements Insertable<Session> {
         ? teacherFixedAmount.value
         : this.teacherFixedAmount,
     isActive: isActive ?? this.isActive,
+    isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
@@ -4099,6 +4133,9 @@ class Session extends DataClass implements Insertable<Session> {
           ? data.teacherFixedAmount.value
           : this.teacherFixedAmount,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
@@ -4120,6 +4157,7 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('teacherSharePct: $teacherSharePct, ')
           ..write('teacherFixedAmount: $teacherFixedAmount, ')
           ..write('isActive: $isActive, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId')
@@ -4141,6 +4179,7 @@ class Session extends DataClass implements Insertable<Session> {
     teacherSharePct,
     teacherFixedAmount,
     isActive,
+    isArchived,
     createdAt,
     updatedAt,
     deviceId,
@@ -4161,6 +4200,7 @@ class Session extends DataClass implements Insertable<Session> {
           other.teacherSharePct == this.teacherSharePct &&
           other.teacherFixedAmount == this.teacherFixedAmount &&
           other.isActive == this.isActive &&
+          other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId);
@@ -4179,6 +4219,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<double?> teacherSharePct;
   final Value<double?> teacherFixedAmount;
   final Value<bool> isActive;
+  final Value<bool> isArchived;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
@@ -4196,6 +4237,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.teacherSharePct = const Value.absent(),
     this.teacherFixedAmount = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -4214,6 +4256,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.teacherSharePct = const Value.absent(),
     this.teacherFixedAmount = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
@@ -4241,6 +4284,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<double>? teacherSharePct,
     Expression<double>? teacherFixedAmount,
     Expression<bool>? isActive,
+    Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
@@ -4260,6 +4304,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (teacherFixedAmount != null)
         'teacher_fixed_amount': teacherFixedAmount,
       if (isActive != null) 'is_active': isActive,
+      if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
@@ -4280,6 +4325,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<double?>? teacherSharePct,
     Value<double?>? teacherFixedAmount,
     Value<bool>? isActive,
+    Value<bool>? isArchived,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
@@ -4298,6 +4344,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       teacherSharePct: teacherSharePct ?? this.teacherSharePct,
       teacherFixedAmount: teacherFixedAmount ?? this.teacherFixedAmount,
       isActive: isActive ?? this.isActive,
+      isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
@@ -4344,6 +4391,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4374,6 +4424,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('teacherSharePct: $teacherSharePct, ')
           ..write('teacherFixedAmount: $teacherFixedAmount, ')
           ..write('isActive: $isActive, ')
+          ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
@@ -9469,6 +9520,371 @@ class TeacherSubjectGroupsCompanion
   }
 }
 
+class $SchoolClosuresTable extends SchoolClosures
+    with TableInfo<$SchoolClosuresTable, SchoolClosure> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SchoolClosuresTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closureDateMeta = const VerificationMeta(
+    'closureDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closureDate = GeneratedColumn<DateTime>(
+    'closure_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    closureDate,
+    reason,
+    createdAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'school_closures';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SchoolClosure> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('closure_date')) {
+      context.handle(
+        _closureDateMeta,
+        closureDate.isAcceptableOrUnknown(
+          data['closure_date']!,
+          _closureDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_closureDateMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SchoolClosure map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SchoolClosure(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      closureDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closure_date'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $SchoolClosuresTable createAlias(String alias) {
+    return $SchoolClosuresTable(attachedDatabase, alias);
+  }
+}
+
+class SchoolClosure extends DataClass implements Insertable<SchoolClosure> {
+  final String id;
+  final DateTime closureDate;
+  final String? reason;
+  final DateTime createdAt;
+  final String deviceId;
+  const SchoolClosure({
+    required this.id,
+    required this.closureDate,
+    this.reason,
+    required this.createdAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['closure_date'] = Variable<DateTime>(closureDate);
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  SchoolClosuresCompanion toCompanion(bool nullToAbsent) {
+    return SchoolClosuresCompanion(
+      id: Value(id),
+      closureDate: Value(closureDate),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      createdAt: Value(createdAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory SchoolClosure.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SchoolClosure(
+      id: serializer.fromJson<String>(json['id']),
+      closureDate: serializer.fromJson<DateTime>(json['closureDate']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'closureDate': serializer.toJson<DateTime>(closureDate),
+      'reason': serializer.toJson<String?>(reason),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  SchoolClosure copyWith({
+    String? id,
+    DateTime? closureDate,
+    Value<String?> reason = const Value.absent(),
+    DateTime? createdAt,
+    String? deviceId,
+  }) => SchoolClosure(
+    id: id ?? this.id,
+    closureDate: closureDate ?? this.closureDate,
+    reason: reason.present ? reason.value : this.reason,
+    createdAt: createdAt ?? this.createdAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  SchoolClosure copyWithCompanion(SchoolClosuresCompanion data) {
+    return SchoolClosure(
+      id: data.id.present ? data.id.value : this.id,
+      closureDate: data.closureDate.present
+          ? data.closureDate.value
+          : this.closureDate,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SchoolClosure(')
+          ..write('id: $id, ')
+          ..write('closureDate: $closureDate, ')
+          ..write('reason: $reason, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, closureDate, reason, createdAt, deviceId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SchoolClosure &&
+          other.id == this.id &&
+          other.closureDate == this.closureDate &&
+          other.reason == this.reason &&
+          other.createdAt == this.createdAt &&
+          other.deviceId == this.deviceId);
+}
+
+class SchoolClosuresCompanion extends UpdateCompanion<SchoolClosure> {
+  final Value<String> id;
+  final Value<DateTime> closureDate;
+  final Value<String?> reason;
+  final Value<DateTime> createdAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const SchoolClosuresCompanion({
+    this.id = const Value.absent(),
+    this.closureDate = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SchoolClosuresCompanion.insert({
+    required String id,
+    required DateTime closureDate,
+    this.reason = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       closureDate = Value(closureDate),
+       deviceId = Value(deviceId);
+  static Insertable<SchoolClosure> custom({
+    Expression<String>? id,
+    Expression<DateTime>? closureDate,
+    Expression<String>? reason,
+    Expression<DateTime>? createdAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (closureDate != null) 'closure_date': closureDate,
+      if (reason != null) 'reason': reason,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SchoolClosuresCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? closureDate,
+    Value<String?>? reason,
+    Value<DateTime>? createdAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return SchoolClosuresCompanion(
+      id: id ?? this.id,
+      closureDate: closureDate ?? this.closureDate,
+      reason: reason ?? this.reason,
+      createdAt: createdAt ?? this.createdAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (closureDate.present) {
+      map['closure_date'] = Variable<DateTime>(closureDate.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SchoolClosuresCompanion(')
+          ..write('id: $id, ')
+          ..write('closureDate: $closureDate, ')
+          ..write('reason: $reason, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SchoolLevelsTable extends SchoolLevels
     with TableInfo<$SchoolLevelsTable, SchoolLevel> {
   @override
@@ -9843,6 +10259,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingsTable settings = $SettingsTable(this);
   late final $TeacherSubjectGroupsTable teacherSubjectGroups =
       $TeacherSubjectGroupsTable(this);
+  late final $SchoolClosuresTable schoolClosures = $SchoolClosuresTable(this);
   late final $SchoolLevelsTable schoolLevels = $SchoolLevelsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -9863,6 +10280,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     studentCards,
     settings,
     teacherSubjectGroups,
+    schoolClosures,
     schoolLevels,
   ];
 }
@@ -12690,6 +13108,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<double?> teacherSharePct,
       Value<double?> teacherFixedAmount,
       Value<bool> isActive,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
@@ -12709,6 +13128,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<double?> teacherSharePct,
       Value<double?> teacherFixedAmount,
       Value<bool> isActive,
+      Value<bool> isArchived,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
@@ -12877,6 +13297,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13094,6 +13519,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -13222,6 +13652,11 @@ class $$SessionsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -13424,6 +13859,7 @@ class $$SessionsTableTableManager
                 Value<double?> teacherSharePct = const Value.absent(),
                 Value<double?> teacherFixedAmount = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
@@ -13441,6 +13877,7 @@ class $$SessionsTableTableManager
                 teacherSharePct: teacherSharePct,
                 teacherFixedAmount: teacherFixedAmount,
                 isActive: isActive,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -13460,6 +13897,7 @@ class $$SessionsTableTableManager
                 Value<double?> teacherSharePct = const Value.absent(),
                 Value<double?> teacherFixedAmount = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
@@ -13477,6 +13915,7 @@ class $$SessionsTableTableManager
                 teacherSharePct: teacherSharePct,
                 teacherFixedAmount: teacherFixedAmount,
                 isActive: isActive,
+                isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -17817,6 +18256,210 @@ typedef $$TeacherSubjectGroupsTableProcessedTableManager =
       TeacherSubjectGroup,
       PrefetchHooks Function({bool teacherId, bool subjectGroupId})
     >;
+typedef $$SchoolClosuresTableCreateCompanionBuilder =
+    SchoolClosuresCompanion Function({
+      required String id,
+      required DateTime closureDate,
+      Value<String?> reason,
+      Value<DateTime> createdAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$SchoolClosuresTableUpdateCompanionBuilder =
+    SchoolClosuresCompanion Function({
+      Value<String> id,
+      Value<DateTime> closureDate,
+      Value<String?> reason,
+      Value<DateTime> createdAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+class $$SchoolClosuresTableFilterComposer
+    extends Composer<_$AppDatabase, $SchoolClosuresTable> {
+  $$SchoolClosuresTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closureDate => $composableBuilder(
+    column: $table.closureDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SchoolClosuresTableOrderingComposer
+    extends Composer<_$AppDatabase, $SchoolClosuresTable> {
+  $$SchoolClosuresTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closureDate => $composableBuilder(
+    column: $table.closureDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SchoolClosuresTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SchoolClosuresTable> {
+  $$SchoolClosuresTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get closureDate => $composableBuilder(
+    column: $table.closureDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$SchoolClosuresTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SchoolClosuresTable,
+          SchoolClosure,
+          $$SchoolClosuresTableFilterComposer,
+          $$SchoolClosuresTableOrderingComposer,
+          $$SchoolClosuresTableAnnotationComposer,
+          $$SchoolClosuresTableCreateCompanionBuilder,
+          $$SchoolClosuresTableUpdateCompanionBuilder,
+          (
+            SchoolClosure,
+            BaseReferences<_$AppDatabase, $SchoolClosuresTable, SchoolClosure>,
+          ),
+          SchoolClosure,
+          PrefetchHooks Function()
+        > {
+  $$SchoolClosuresTableTableManager(
+    _$AppDatabase db,
+    $SchoolClosuresTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SchoolClosuresTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SchoolClosuresTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SchoolClosuresTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> closureDate = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SchoolClosuresCompanion(
+                id: id,
+                closureDate: closureDate,
+                reason: reason,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime closureDate,
+                Value<String?> reason = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => SchoolClosuresCompanion.insert(
+                id: id,
+                closureDate: closureDate,
+                reason: reason,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SchoolClosuresTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SchoolClosuresTable,
+      SchoolClosure,
+      $$SchoolClosuresTableFilterComposer,
+      $$SchoolClosuresTableOrderingComposer,
+      $$SchoolClosuresTableAnnotationComposer,
+      $$SchoolClosuresTableCreateCompanionBuilder,
+      $$SchoolClosuresTableUpdateCompanionBuilder,
+      (
+        SchoolClosure,
+        BaseReferences<_$AppDatabase, $SchoolClosuresTable, SchoolClosure>,
+      ),
+      SchoolClosure,
+      PrefetchHooks Function()
+    >;
 typedef $$SchoolLevelsTableCreateCompanionBuilder =
     SchoolLevelsCompanion Function({
       required String id,
@@ -18049,6 +18692,8 @@ class $AppDatabaseManager {
       $$SettingsTableTableManager(_db, _db.settings);
   $$TeacherSubjectGroupsTableTableManager get teacherSubjectGroups =>
       $$TeacherSubjectGroupsTableTableManager(_db, _db.teacherSubjectGroups);
+  $$SchoolClosuresTableTableManager get schoolClosures =>
+      $$SchoolClosuresTableTableManager(_db, _db.schoolClosures);
   $$SchoolLevelsTableTableManager get schoolLevels =>
       $$SchoolLevelsTableTableManager(_db, _db.schoolLevels);
 }

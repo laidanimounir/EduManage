@@ -3,8 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
+import '../utils/date_helper.dart';
 
 part 'app_database.g.dart';
 
@@ -472,5 +472,65 @@ class AppDatabase extends _$AppDatabase {
       ..where((t) => t.teacherId.equals(teacherId) & t.type.equals('teacher_payout'))
       ..orderBy([(t) => OrderingTerm.desc(t.transactionDate)]))
         .get();
+  }
+
+  Future<List<Map<String, dynamic>>> getSessionAttendanceHistory(String sessionId) {
+    final query = customSelect(
+      'SELECT a.attendance_date, a.check_in_time, a.person_type, '
+      's.first_name_ar AS student_first_name, s.last_name_ar AS student_last_name, '
+      's.code AS student_code, '
+      'CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END AS is_cancelled, '
+      'CASE WHEN sc.id IS NOT NULL THEN 1 ELSE 0 END AS is_school_closed '
+      'FROM attendance a '
+      'LEFT JOIN students s ON a.student_id = s.id '
+      'LEFT JOIN cancellations c ON c.session_id = a.session_id AND c.cancel_date = a.attendance_date '
+      'LEFT JOIN school_closures sc ON sc.closure_date = a.attendance_date '
+      'WHERE a.session_id = ? '
+      'ORDER BY a.attendance_date DESC, a.check_in_time DESC',
+      variables: [Variable.withString(sessionId)],
+    );
+    return query.map((row) => row.read).get();
+  }
+
+  Future<List<Map<String, dynamic>>> getTeacherSessionEarnings(String teacherId) {
+    final query = customSelect(
+      'SELECT s.id AS session_id, sg.name_ar AS group_name, s.day_of_week, '
+      's.start_time, s.end_time, s.monthly_price, s.sessions_per_month, '
+      's.teacher_share_pct, s.teacher_fixed_amount, '
+      '(SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id) AS attendance_count, '
+      'COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.session_id = s.id AND t.teacher_id = s.teacher_id AND t.type = \'teacher_payout\'), 0) AS paid, '
+      'COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.session_id = s.id AND t.teacher_id = s.teacher_id AND t.type = \'session_cancellation_reversal\'), 0) AS deducted '
+      'FROM sessions s '
+      'JOIN subject_groups sg ON s.subject_group_id = sg.id '
+      'WHERE s.teacher_id = ? AND s.is_archived = 0 '
+      'ORDER BY s.day_of_week, s.start_time',
+      variables: [Variable.withString(teacherId)],
+    );
+    return query.map((row) => row.read).get();
+  }
+
+  Future<bool> isSessionHappeningNow(String sessionId, DateTime now) async {
+    final session = await (select(sessions)
+      ..where((t) => t.id.equals(sessionId)))
+        .getSingleOrNull();
+    if (session == null || !session.isActive || session.isArchived) return false;
+    if (session.dayOfWeek != now.weekday) return false;
+
+    final timeInRange = DateHelper.isTimeInRange(now, session.startTime, session.endTime);
+    if (!timeInRange) return false;
+
+    final closed = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM school_closures WHERE closure_date = ?',
+      variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day))],
+    ).map((row) => row.read<int>('cnt')).getSingle();
+    if (closed > 0) return false;
+
+    final cancelled = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM cancellations WHERE session_id = ? AND cancel_date = ?',
+      variables: [Variable.withString(sessionId), Variable.withDateTime(DateTime(now.year, now.month, now.day))],
+    ).map((row) => row.read<int>('cnt')).getSingle();
+    if (cancelled > 0) return false;
+
+    return true;
   }
 }
