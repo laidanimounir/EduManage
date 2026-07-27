@@ -400,4 +400,57 @@ class AppDatabase extends _$AppDatabase {
     }
     return map;
   }
+
+  Future<double> getTeacherTotalEarned(String teacherId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(CASE '
+      'WHEN type IN (\'teacher_payout\', \'correction\') THEN amount '
+      'WHEN type IN (\'reversal\') THEN -amount '
+      'ELSE 0 END), 0) AS total '
+      'FROM transactions WHERE teacher_id = ?',
+      variables: [Variable.withString(teacherId)],
+    );
+    return query.map((row) => row.read<double>('total')).getSingle();
+  }
+
+  Future<double> getTeacherTotalPaid(String teacherId) {
+    final query = customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total '
+      'FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\'',
+      variables: [Variable.withString(teacherId)],
+    );
+    return query.map((row) => row.read<double>('total')).getSingle();
+  }
+
+  Future<int> getTeacherAttendanceCount(String teacherId) {
+    final query = customSelect(
+      'SELECT COUNT(*) AS cnt FROM attendance WHERE teacher_id = ?',
+      variables: [Variable.withString(teacherId)],
+    );
+    return query.map((row) => row.read<int>('cnt')).getSingle();
+  }
+
+  Future<bool> hasTeacherTransactions(String teacherId) async {
+    final result = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM transactions WHERE teacher_id = ?',
+      variables: [Variable.withString(teacherId)],
+    ).getSingle();
+    return result.read<int>('cnt') > 0;
+  }
+
+  Future<DateTime?> getTeacherLastPayoutDate(String teacherId) async {
+    final result = await customSelect(
+      'SELECT transaction_date FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\' ORDER BY transaction_date DESC LIMIT 1',
+      variables: [Variable.withString(teacherId)],
+    ).get();
+    if (result.isEmpty) return null;
+    return result.first.read<DateTime>('transaction_date');
+  }
+
+  Future<List<Transaction>> getTeacherPayoutHistory(String teacherId) {
+    return (db.select(db.transactions)
+      ..where((t) => t.teacherId.equals(teacherId) & t.type.equals('teacher_payout'))
+      ..orderBy([(t) => OrderingTerm.desc(t.transactionDate)]))
+        .get();
+  }
 }

@@ -6,6 +6,7 @@ import 'transaction_repository.dart';
 import 'enrollment_repository.dart';
 import 'session_repository.dart';
 import 'audit_log_repository.dart';
+import 'attendance_repository.dart';
 import 'package:drift/drift.dart';
 
 class TransactionService extends BaseRepository {
@@ -13,12 +14,14 @@ class TransactionService extends BaseRepository {
   final EnrollmentRepository _enrollmentRepo;
   final SessionRepository _sessionRepo;
   final AuditLogRepository _auditRepo;
+  final AttendanceRepository _attendanceRepo;
 
   TransactionService(super.db)
       : _txRepo = TransactionRepository(db),
         _enrollmentRepo = EnrollmentRepository(db),
         _sessionRepo = SessionRepository(db),
-        _auditRepo = AuditLogRepository(db);
+        _auditRepo = AuditLogRepository(db),
+        _attendanceRepo = AttendanceRepository(db);
 
   Future<String> createSessionCharge({
     required String studentId,
@@ -121,15 +124,26 @@ class TransactionService extends BaseRepository {
     final session = await _sessionRepo.getById(sessionId);
     if (session == null) throw ArgumentError('Session not found');
 
+    final attendanceCount = await _getSessionAttendanceCount(sessionId, txDate);
+
     double amount;
+    String rateSnapshotStr;
     if (session.teacherFixedAmount != null) {
       amount = session.teacherFixedAmount!;
+      rateSnapshotStr = 'fixed:${session.teacherFixedAmount!.toStringAsFixed(0)}';
     } else if (session.teacherSharePct != null && session.sessionsPerMonth > 0) {
       final perSessionPrice = session.monthlyPrice / session.sessionsPerMonth;
-      amount = perSessionPrice * session.teacherSharePct! / 100;
+      final perStudentAmount = perSessionPrice * session.teacherSharePct! / 100;
+      amount = perStudentAmount * attendanceCount;
+      rateSnapshotStr = 'pct:${session.teacherSharePct!.toStringAsFixed(1)},base:${session.monthlyPrice.toStringAsFixed(0)},sessions:${session.sessionsPerMonth},students:${attendanceCount}';
     } else {
       amount = 0;
+      rateSnapshotStr = 'none';
     }
+
+    final fullNote = note != null
+        ? '$rateSnapshotStr | $note'
+        : rateSnapshotStr;
 
     final id = await _txRepo.insert(TransactionsCompanion(
       teacherId: Value(teacherId),
@@ -137,7 +151,8 @@ class TransactionService extends BaseRepository {
       type: const Value('teacher_payout'),
       amount: Value(amount),
       transactionDate: Value(txDate),
-      note: Value(note),
+      note: Value(fullNote),
+      rateSnapshot: Value(rateSnapshotStr),
       createdByUserId: Value(createdByUserId),
     ));
 
@@ -146,10 +161,23 @@ class TransactionService extends BaseRepository {
       action: const Value('teacher_payout_created'),
       entityType: const Value('transaction'),
       entityId: Value(id),
-      details: Value('Teacher: $teacherId, Session: $sessionId, Amount: $amount'),
+      details: Value('Teacher: $teacherId, Session: $sessionId, Amount: $amount, Rate: $rateSnapshotStr'),
     ));
 
     return id;
+  }
+
+  Future<int> _getSessionAttendanceCount(String sessionId, DateTime date) async {
+    final dateStart = DateTime(date.year, date.month, date.day);
+    final dateEnd = dateStart.add(const Duration(days: 1));
+    final records = await (db.select(db.attendance)
+      ..where((t) =>
+          t.sessionId.equals(sessionId) &
+          t.attendanceDate.isBiggerOrEqualValue(dateStart) &
+          t.attendanceDate.isSmallerThanValue(dateEnd) &
+          t.studentId.isNotNull()))
+        .get();
+    return records.length;
   }
 
   Future<String> createExpense({

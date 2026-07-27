@@ -1989,6 +1989,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'selected'**
   String get selected;
+
+  /// No description provided for @archiveTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive Teacher'**
+  String get archiveTeacher;
+
+  /// No description provided for @archiveTeacherConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive this teacher? Their financial history and sessions will be preserved. They can be restored later.'**
+  String get archiveTeacherConfirm;
+
+  /// No description provided for @archiveTeacherWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This teacher has transactions or active sessions.'**
+  String get archiveTeacherWarning;
+
+  /// No description provided for @restoreTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Teacher'**
+  String get restoreTeacher;
+
+  /// No description provided for @editTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Teacher'**
+  String get editTeacher;
+
+  /// No description provided for @teacherFinancialStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Financial Status'**
+  String get teacherFinancialStatus;
+
+  /// No description provided for @teacherTotalEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Earned'**
+  String get teacherTotalEarned;
+
+  /// No description provided for @teacherBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get teacherBalance;
+
+  /// No description provided for @teacherAttendanceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance Count'**
+  String get teacherAttendanceCount;
+
+  /// No description provided for @teacherSubjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Subjects'**
+  String get teacherSubjects;
+
+  /// No description provided for @teacherSubjectAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject Assignment'**
+  String get teacherSubjectAssignment;
+
+  /// No description provided for @teacherSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get teacherSessions;
+
+  /// No description provided for @noTeacherSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions assigned'**
+  String get noTeacherSessions;
+
+  /// No description provided for @noTeacherPayouts.
+  ///
+  /// In en, this message translates to:
+  /// **'No payout history'**
+  String get noTeacherPayouts;
+
+  /// No description provided for @payTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay Now'**
+  String get payTeacher;
+
+  /// No description provided for @payTeacherConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a payout for this teacher\'s sessions? Calculated amount will be based on actual attendance.'**
+  String get payTeacherConfirm;
+
+  /// No description provided for @teacherPayoutHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Payout History'**
+  String get teacherPayoutHistory;
+
+  /// No description provided for @overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get overdue;
+
+  /// No description provided for @overdueThresholdDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue Threshold (Days)'**
+  String get overdueThresholdDays;
+
+  /// No description provided for @overdueThresholdDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of days without payment before flagged as overdue. Leave empty to disable.'**
+  String get overdueThresholdDescription;
+
+  /// No description provided for @salaryTypePercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage'**
+  String get salaryTypePercentage;
+
+  /// No description provided for @salaryTypeFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed Amount'**
+  String get salaryTypeFixed;
+
+  /// No description provided for @teacherSalaryChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher salary changed'**
+  String get teacherSalaryChanged;
+
+  /// No description provided for @salaryChangeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary Change History'**
+  String get salaryChangeHistory;
+
+  /// No description provided for @noSalaryChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No salary changes recorded'**
+  String get noSalaryChanges;
+
+  /// No description provided for @columnSalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get columnSalary;
+
+  /// No description provided for @columnSubjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Subjects'**
+  String get columnSubjects;
+
+  /// No description provided for @columnPayoutStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Payout'**
+  String get columnPayoutStatus;
+
+  /// No description provided for @ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get ended;
+
+  /// No description provided for @payoutRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Payout recorded'**
+  String get payoutRecorded;
+
+  /// No description provided for @teacherCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher Code'**
+  String get teacherCode;
 }
 
 class _AppLocalizationsDelegate

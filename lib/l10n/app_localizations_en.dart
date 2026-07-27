@@ -965,4 +965,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selected => 'selected';
+
+  @override
+  String get archiveTeacher => 'Archive Teacher';
+
+  @override
+  String get archiveTeacherConfirm =>
+      'Archive this teacher? Their financial history and sessions will be preserved. They can be restored later.';
+
+  @override
+  String get archiveTeacherWarning =>
+      'This teacher has transactions or active sessions.';
+
+  @override
+  String get restoreTeacher => 'Restore Teacher';
+
+  @override
+  String get editTeacher => 'Edit Teacher';
+
+  @override
+  String get teacherFinancialStatus => 'Financial Status';
+
+  @override
+  String get teacherTotalEarned => 'Total Earned';
+
+  @override
+  String get teacherBalance => 'Balance';
+
+  @override
+  String get teacherAttendanceCount => 'Attendance Count';
+
+  @override
+  String get teacherSubjects => 'Subjects';
+
+  @override
+  String get teacherSubjectAssignment => 'Subject Assignment';
+
+  @override
+  String get teacherSessions => 'Sessions';
+
+  @override
+  String get noTeacherSessions => 'No sessions assigned';
+
+  @override
+  String get noTeacherPayouts => 'No payout history';
+
+  @override
+  String get payTeacher => 'Pay Now';
+
+  @override
+  String get payTeacherConfirm =>
+      'Record a payout for this teacher\'s sessions? Calculated amount will be based on actual attendance.';
+
+  @override
+  String get teacherPayoutHistory => 'Payout History';
+
+  @override
+  String get overdue => 'Overdue';
+
+  @override
+  String get overdueThresholdDays => 'Overdue Threshold (Days)';
+
+  @override
+  String get overdueThresholdDescription =>
+      'Number of days without payment before flagged as overdue. Leave empty to disable.';
+
+  @override
+  String get salaryTypePercentage => 'Percentage';
+
+  @override
+  String get salaryTypeFixed => 'Fixed Amount';
+
+  @override
+  String get teacherSalaryChanged => 'Teacher salary changed';
+
+  @override
+  String get salaryChangeHistory => 'Salary Change History';
+
+  @override
+  String get noSalaryChanges => 'No salary changes recorded';
+
+  @override
+  String get columnSalary => 'Salary';
+
+  @override
+  String get columnSubjects => 'Subjects';
+
+  @override
+  String get columnPayoutStatus => 'Payout';
+
+  @override
+  String get ended => 'Ended';
+
+  @override
+  String get payoutRecorded => 'Payout recorded';
+
+  @override
+  String get teacherCode => 'Teacher Code';
 }

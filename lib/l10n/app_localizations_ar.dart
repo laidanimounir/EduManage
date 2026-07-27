@@ -962,4 +962,100 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get selected => 'محدد';
+
+  @override
+  String get archiveTeacher => 'أرشفة المعلم';
+
+  @override
+  String get archiveTeacherConfirm =>
+      'أرشفة هذا المعلم؟ سيتم الاحتفاظ بتاريخه المالي وجلساته. يمكن استعادته لاحقًا.';
+
+  @override
+  String get archiveTeacherWarning => 'هذا المعلم لديه معاملات أو جلسات نشطة.';
+
+  @override
+  String get restoreTeacher => 'استعادة المعلم';
+
+  @override
+  String get editTeacher => 'تعديل المعلم';
+
+  @override
+  String get teacherFinancialStatus => 'الحالة المالية';
+
+  @override
+  String get teacherTotalEarned => 'إجمالي المستحقات';
+
+  @override
+  String get teacherBalance => 'الرصيد';
+
+  @override
+  String get teacherAttendanceCount => 'عدد الحضور';
+
+  @override
+  String get teacherSubjects => 'المواد';
+
+  @override
+  String get teacherSubjectAssignment => 'تعيين المواد';
+
+  @override
+  String get teacherSessions => 'الجلسات';
+
+  @override
+  String get noTeacherSessions => 'لا توجد جلسات';
+
+  @override
+  String get noTeacherPayouts => 'لا يوجد سجل مدفوعات';
+
+  @override
+  String get payTeacher => 'دفع الآن';
+
+  @override
+  String get payTeacherConfirm =>
+      'تسجيل دفعة لجلسات هذا المعلم؟ سيتم احتساب المبلغ بناءً على الحضور الفعلي.';
+
+  @override
+  String get teacherPayoutHistory => 'سجل المدفوعات';
+
+  @override
+  String get overdue => 'متأخر';
+
+  @override
+  String get overdueThresholdDays => 'حد التأخير (أيام)';
+
+  @override
+  String get overdueThresholdDescription =>
+      'عدد الأيام بدون دفع قبل اعتباره متأخرًا. اتركه فارغًا لتعطيله.';
+
+  @override
+  String get salaryTypePercentage => 'نسبة مئوية';
+
+  @override
+  String get salaryTypeFixed => 'مبلغ ثابت';
+
+  @override
+  String get teacherSalaryChanged => 'تم تغيير راتب المعلم';
+
+  @override
+  String get salaryChangeHistory => 'سجل تغيير الراتب';
+
+  @override
+  String get noSalaryChanges => 'لا توجد تغييرات مسجلة';
+
+  @override
+  String get columnSalary => 'الراتب';
+
+  @override
+  String get columnSubjects => 'المواد';
+
+  @override
+  String get columnPayoutStatus => 'الدفع';
+
+  @override
+  String get ended => 'منتهي';
+
+  @override
+  String get payoutRecorded => 'تم تسجيل الدفع';
+
+  @override
+  String get teacherCode => 'كود المعلم';
 }
