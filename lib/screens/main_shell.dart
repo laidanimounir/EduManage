@@ -13,6 +13,7 @@ import 'students/student_list_screen.dart';
 import 'students/student_balances_screen.dart';
 import 'teachers/teacher_list_screen.dart';
 import 'sessions/session_list_screen.dart';
+import 'sessions/timetable_screen.dart';
 import 'groups/subject_group_list_screen.dart';
 import 'classrooms/classroom_list_screen.dart';
 import 'payments/unified_payment_screen.dart';
@@ -67,6 +68,7 @@ class _MainShellState extends State<MainShell> {
         _NavItem(PhosphorIcons.users, l10n.students),
         _NavItem(PhosphorIcons.chalkboardTeacher, l10n.teachers),
         _NavItem(PhosphorIcons.clock, l10n.sessions),
+        _NavItem(PhosphorIcons.table, l10n.timetable),
         _NavItem(PhosphorIcons.usersThree, l10n.groups),
         _NavItem(PhosphorIcons.building, l10n.classrooms),
         _NavItem(PhosphorIcons.notebook, l10n.enrollments),
@@ -86,6 +88,7 @@ class _MainShellState extends State<MainShell> {
         StudentListScreen(database: widget.database),
         TeacherListScreen(database: widget.database),
         SessionListScreen(database: widget.database),
+        TimetableScreen(database: widget.database),
         SubjectGroupListScreen(database: widget.database),
         ClassroomListScreen(database: widget.database),
         EnrollmentScreen(database: widget.database),
@@ -258,9 +261,9 @@ class _MainShellState extends State<MainShell> {
 
     final sections = [
       _SidebarSection(label: l10n.sidebarSectionCore, indices: [0, 1]),
-      _SidebarSection(label: l10n.sidebarSectionManage, indices: [2, 3, 4, 5, 6, 7]),
-      _SidebarSection(label: l10n.sidebarSectionFinance, indices: [8, 9, 10]),
-      _SidebarSection(label: l10n.sidebarSectionSystem, indices: [11, 12, 13, 14]),
+      _SidebarSection(label: l10n.sidebarSectionManage, indices: [2, 3, 4, 5, 6, 7, 8]),
+      _SidebarSection(label: l10n.sidebarSectionFinance, indices: [9, 10, 11]),
+      _SidebarSection(label: l10n.sidebarSectionSystem, indices: [12, 13, 14, 15]),
     ];
 
     final widgets = <Widget>[];
