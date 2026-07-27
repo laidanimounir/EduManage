@@ -1062,4 +1062,112 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherCode => 'Teacher Code';
+
+  @override
+  String get timetable => 'Timetable';
+
+  @override
+  String get weeklyTimetable => 'Weekly Timetable';
+
+  @override
+  String get liveNow => '● Live Now';
+
+  @override
+  String get cancelled => 'Cancelled';
+
+  @override
+  String get schoolClosed => 'School Closed';
+
+  @override
+  String sessionCancelledNotice(Object session, Object date) {
+    return 'Session \"$session\" on $date was cancelled — a replacement session should be scheduled.';
+  }
+
+  @override
+  String get sessionCancellationReversal => 'Session Cancellation Reversal';
+
+  @override
+  String refundedSessionCancelled(Object date) {
+    return 'Refunded — session cancelled on $date';
+  }
+
+  @override
+  String deductedSessionCancelled(Object date) {
+    return 'Deducted — session cancelled on $date';
+  }
+
+  @override
+  String get conflictTeacher =>
+      'This teacher already has a session at this time on this day.';
+
+  @override
+  String get conflictClassroom =>
+      'This classroom is already booked at this time on this day.';
+
+  @override
+  String get conflictGroupWarning =>
+      'This group already has a session at this time on this day (parallel section).';
+
+  @override
+  String get sessionAttendanceHistory => 'Attendance History';
+
+  @override
+  String get perSessionEarnings => 'Per-Session Earnings';
+
+  @override
+  String get needsMakeup => 'Needs Makeup';
+
+  @override
+  String get schoolClosure => 'School Closure';
+
+  @override
+  String get addSchoolClosure => 'Close School on Date';
+
+  @override
+  String get closureReason => 'Reason';
+
+  @override
+  String get noSessionsScheduled => 'No sessions scheduled';
+
+  @override
+  String teacherDefaultRate(Object rate) {
+    return 'Teacher default ($rate)';
+  }
+
+  @override
+  String get overrideRate => 'Override rate';
+
+  @override
+  String get monthly => 'Monthly';
+
+  @override
+  String get price => 'Price';
+
+  @override
+  String get time => 'Time';
+
+  @override
+  String get classroom => 'Classroom';
+
+  @override
+  String get activeSessions => 'Active';
+
+  @override
+  String get inactiveSessions => 'Inactive';
+
+  @override
+  String get archivedSessions => 'Archived';
+
+  @override
+  String get restoreSession => 'Restore Session';
+
+  @override
+  String get archiveSession => 'Archive Session';
+
+  @override
+  String get archiveSessionConfirm =>
+      'Archive this session? It will be hidden from all views. Financial history is preserved.';
+
+  @override
+  String get groupName => 'Group';
 }

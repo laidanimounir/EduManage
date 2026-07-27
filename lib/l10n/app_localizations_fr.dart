@@ -1063,4 +1063,112 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get teacherCode => 'Code enseignant';
+
+  @override
+  String get timetable => 'Emploi du temps';
+
+  @override
+  String get weeklyTimetable => 'Emploi du temps hebdomadaire';
+
+  @override
+  String get liveNow => '● En cours';
+
+  @override
+  String get cancelled => 'Annulé';
+
+  @override
+  String get schoolClosed => 'École fermée';
+
+  @override
+  String sessionCancelledNotice(Object session, Object date) {
+    return 'La séance \"$session\" du $date a été annulée — une séance de remplacement doit être planifiée.';
+  }
+
+  @override
+  String get sessionCancellationReversal => 'Remboursement annulation';
+
+  @override
+  String refundedSessionCancelled(Object date) {
+    return 'Remboursé — séance annulée le $date';
+  }
+
+  @override
+  String deductedSessionCancelled(Object date) {
+    return 'Déduit — séance annulée le $date';
+  }
+
+  @override
+  String get conflictTeacher =>
+      'Cet enseignant a déjà une séance à cette heure ce jour-là.';
+
+  @override
+  String get conflictClassroom =>
+      'Cette salle est déjà réservée à cette heure ce jour-là.';
+
+  @override
+  String get conflictGroupWarning =>
+      'Ce groupe a déjà une séance à cette heure ce jour-là (section parallèle).';
+
+  @override
+  String get sessionAttendanceHistory => 'Historique de présence';
+
+  @override
+  String get perSessionEarnings => 'Gains par séance';
+
+  @override
+  String get needsMakeup => 'Remplacement requis';
+
+  @override
+  String get schoolClosure => 'Fermeture de l\'école';
+
+  @override
+  String get addSchoolClosure => 'Fermer l\'école le';
+
+  @override
+  String get closureReason => 'Raison';
+
+  @override
+  String get noSessionsScheduled => 'Aucune séance programmée';
+
+  @override
+  String teacherDefaultRate(Object rate) {
+    return 'Taux par défaut ($rate)';
+  }
+
+  @override
+  String get overrideRate => 'Remplacer le taux';
+
+  @override
+  String get monthly => 'Mensuel';
+
+  @override
+  String get price => 'Prix';
+
+  @override
+  String get time => 'Heure';
+
+  @override
+  String get classroom => 'Salle';
+
+  @override
+  String get activeSessions => 'Actives';
+
+  @override
+  String get inactiveSessions => 'Inactives';
+
+  @override
+  String get archivedSessions => 'Archivées';
+
+  @override
+  String get restoreSession => 'Restaurer la séance';
+
+  @override
+  String get archiveSession => 'Archiver la séance';
+
+  @override
+  String get archiveSessionConfirm =>
+      'Archiver cette séance ? Elle sera masquée. L\'historique financier est préservé.';
+
+  @override
+  String get groupName => 'Groupe';
 }

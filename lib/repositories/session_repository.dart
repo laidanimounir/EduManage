@@ -64,25 +64,6 @@ class SessionRepository extends BaseRepository {
     return activeSessions.where((s) => s.teacherId == teacherId).toList();
   }
 
-  Future<String> create(SessionsCompanion entry) async {
-    final id = UuidHelper.generate();
-    final deviceId = await DeviceId.get();
-    await db.into(db.sessions).insert(
-          entry.copyWith(id: Value(id), deviceId: Value(deviceId)),
-        );
-    return id;
-  }
-
-  Future<void> update(String id, SessionsCompanion entry) async {
-    final deviceId = await DeviceId.get();
-    await (db.update(db.sessions)..where((t) => t.id.equals(id)))
-        .write(entry.copyWith(deviceId: Value(deviceId)));
-  }
-
-  Future<void> delete(String id) async {
-    await (db.delete(db.sessions)..where((t) => t.id.equals(id))).go();
-  }
-
   Future<List<AttendanceData>> getAttendanceDataForDate(
       String sessionId, DateTime date) {
     final dateStart = DateTime(date.year, date.month, date.day);

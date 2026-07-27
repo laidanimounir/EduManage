@@ -3,8 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
-import '../utils/date_helper.dart';
 
 part 'app_database.g.dart';
 
@@ -474,7 +474,7 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  Future<List<Map<String, dynamic>>> getSessionAttendanceHistory(String sessionId) {
+  Future<List<Map<String, dynamic>>> getSessionAttendanceHistory(String sessionId) async {
     final query = customSelect(
       'SELECT a.attendance_date, a.check_in_time, a.person_type, '
       's.first_name_ar AS student_first_name, s.last_name_ar AS student_last_name, '
@@ -489,10 +489,20 @@ class AppDatabase extends _$AppDatabase {
       'ORDER BY a.attendance_date DESC, a.check_in_time DESC',
       variables: [Variable.withString(sessionId)],
     );
-    return query.map((row) => row.read).get();
+    final rows = await query.get();
+    return rows.map((row) => {
+      'attendance_date': row.read<DateTime>('attendance_date'),
+      'check_in_time': row.read<DateTime>('check_in_time'),
+      'person_type': row.read<String>('person_type'),
+      'student_first_name': row.read<String?>('student_first_name'),
+      'student_last_name': row.read<String?>('student_last_name'),
+      'student_code': row.read<String?>('student_code'),
+      'is_cancelled': row.read<int>('is_cancelled'),
+      'is_school_closed': row.read<int>('is_school_closed'),
+    }).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getTeacherSessionEarnings(String teacherId) {
+  Future<List<Map<String, dynamic>>> getTeacherSessionEarnings(String teacherId) async {
     final query = customSelect(
       'SELECT s.id AS session_id, sg.name_ar AS group_name, s.day_of_week, '
       's.start_time, s.end_time, s.monthly_price, s.sessions_per_month, '
@@ -506,7 +516,21 @@ class AppDatabase extends _$AppDatabase {
       'ORDER BY s.day_of_week, s.start_time',
       variables: [Variable.withString(teacherId)],
     );
-    return query.map((row) => row.read).get();
+    final rows = await query.get();
+    return rows.map((row) => {
+      'session_id': row.read<String>('session_id'),
+      'group_name': row.read<String>('group_name'),
+      'day_of_week': row.read<int>('day_of_week'),
+      'start_time': row.read<DateTime>('start_time'),
+      'end_time': row.read<DateTime>('end_time'),
+      'monthly_price': row.read<double>('monthly_price'),
+      'sessions_per_month': row.read<int>('sessions_per_month'),
+      'teacher_share_pct': row.read<double?>('teacher_share_pct'),
+      'teacher_fixed_amount': row.read<double?>('teacher_fixed_amount'),
+      'attendance_count': row.read<int>('attendance_count'),
+      'paid': row.read<double>('paid'),
+      'deducted': row.read<double>('deducted'),
+    }).toList();
   }
 
   Future<bool> isSessionHappeningNow(String sessionId, DateTime now) async {
@@ -516,18 +540,21 @@ class AppDatabase extends _$AppDatabase {
     if (session == null || !session.isActive || session.isArchived) return false;
     if (session.dayOfWeek != now.weekday) return false;
 
-    final timeInRange = DateHelper.isTimeInRange(now, session.startTime, session.endTime);
-    if (!timeInRange) return false;
+    final checkMinutes = now.hour * 60 + now.minute;
+    final startMinutes = session.startTime.hour * 60 + session.startTime.minute;
+    final endMinutes = session.endTime.hour * 60 + session.endTime.minute;
+    if (checkMinutes < startMinutes || checkMinutes >= endMinutes) return false;
 
+    final dateClean = DateTime(now.year, now.month, now.day);
     final closed = await customSelect(
       'SELECT COUNT(*) AS cnt FROM school_closures WHERE closure_date = ?',
-      variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day))],
+      variables: [Variable.withDateTime(dateClean)],
     ).map((row) => row.read<int>('cnt')).getSingle();
     if (closed > 0) return false;
 
     final cancelled = await customSelect(
       'SELECT COUNT(*) AS cnt FROM cancellations WHERE session_id = ? AND cancel_date = ?',
-      variables: [Variable.withString(sessionId), Variable.withDateTime(DateTime(now.year, now.month, now.day))],
+      variables: [Variable.withString(sessionId), Variable.withDateTime(dateClean)],
     ).map((row) => row.read<int>('cnt')).getSingle();
     if (cancelled > 0) return false;
 

@@ -2175,6 +2175,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Teacher Code'**
   String get teacherCode;
+
+  /// No description provided for @timetable.
+  ///
+  /// In en, this message translates to:
+  /// **'Timetable'**
+  String get timetable;
+
+  /// No description provided for @weeklyTimetable.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Timetable'**
+  String get weeklyTimetable;
+
+  /// No description provided for @liveNow.
+  ///
+  /// In en, this message translates to:
+  /// **'● Live Now'**
+  String get liveNow;
+
+  /// No description provided for @cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelled;
+
+  /// No description provided for @schoolClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'School Closed'**
+  String get schoolClosed;
+
+  /// No description provided for @sessionCancelledNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Session \"{session}\" on {date} was cancelled — a replacement session should be scheduled.'**
+  String sessionCancelledNotice(Object session, Object date);
+
+  /// No description provided for @sessionCancellationReversal.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Cancellation Reversal'**
+  String get sessionCancellationReversal;
+
+  /// No description provided for @refundedSessionCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded — session cancelled on {date}'**
+  String refundedSessionCancelled(Object date);
+
+  /// No description provided for @deductedSessionCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Deducted — session cancelled on {date}'**
+  String deductedSessionCancelled(Object date);
+
+  /// No description provided for @conflictTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'This teacher already has a session at this time on this day.'**
+  String get conflictTeacher;
+
+  /// No description provided for @conflictClassroom.
+  ///
+  /// In en, this message translates to:
+  /// **'This classroom is already booked at this time on this day.'**
+  String get conflictClassroom;
+
+  /// No description provided for @conflictGroupWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This group already has a session at this time on this day (parallel section).'**
+  String get conflictGroupWarning;
+
+  /// No description provided for @sessionAttendanceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance History'**
+  String get sessionAttendanceHistory;
+
+  /// No description provided for @perSessionEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Per-Session Earnings'**
+  String get perSessionEarnings;
+
+  /// No description provided for @needsMakeup.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs Makeup'**
+  String get needsMakeup;
+
+  /// No description provided for @schoolClosure.
+  ///
+  /// In en, this message translates to:
+  /// **'School Closure'**
+  String get schoolClosure;
+
+  /// No description provided for @addSchoolClosure.
+  ///
+  /// In en, this message translates to:
+  /// **'Close School on Date'**
+  String get addSchoolClosure;
+
+  /// No description provided for @closureReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get closureReason;
+
+  /// No description provided for @noSessionsScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions scheduled'**
+  String get noSessionsScheduled;
+
+  /// No description provided for @teacherDefaultRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher default ({rate})'**
+  String teacherDefaultRate(Object rate);
+
+  /// No description provided for @overrideRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Override rate'**
+  String get overrideRate;
+
+  /// No description provided for @monthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get monthly;
+
+  /// No description provided for @price.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get price;
+
+  /// No description provided for @time.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get time;
+
+  /// No description provided for @classroom.
+  ///
+  /// In en, this message translates to:
+  /// **'Classroom'**
+  String get classroom;
+
+  /// No description provided for @activeSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeSessions;
+
+  /// No description provided for @inactiveSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactiveSessions;
+
+  /// No description provided for @archivedSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get archivedSessions;
+
+  /// No description provided for @restoreSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Session'**
+  String get restoreSession;
+
+  /// No description provided for @archiveSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive Session'**
+  String get archiveSession;
+
+  /// No description provided for @archiveSessionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive this session? It will be hidden from all views. Financial history is preserved.'**
+  String get archiveSessionConfirm;
+
+  /// No description provided for @groupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get groupName;
 }
 
 class _AppLocalizationsDelegate

@@ -1058,4 +1058,110 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get teacherCode => 'كود المعلم';
+
+  @override
+  String get timetable => 'الجدول';
+
+  @override
+  String get weeklyTimetable => 'الجدول الأسبوعي';
+
+  @override
+  String get liveNow => '● الآن';
+
+  @override
+  String get cancelled => 'ملغى';
+
+  @override
+  String get schoolClosed => 'المدرسة مغلقة';
+
+  @override
+  String sessionCancelledNotice(Object session, Object date) {
+    return 'تم إلغاء حصة \"$session\" بتاريخ $date — يجب جدولة حصة بديلة.';
+  }
+
+  @override
+  String get sessionCancellationReversal => 'استرداد إلغاء الحصة';
+
+  @override
+  String refundedSessionCancelled(Object date) {
+    return 'تم الاسترداد — ألغيت الحصة بتاريخ $date';
+  }
+
+  @override
+  String deductedSessionCancelled(Object date) {
+    return 'تم الخصم — ألغيت الحصة بتاريخ $date';
+  }
+
+  @override
+  String get conflictTeacher => 'هذا المعلم لديه حصة في نفس الوقت واليوم.';
+
+  @override
+  String get conflictClassroom => 'هذه القاعة محجوزة في نفس الوقت واليوم.';
+
+  @override
+  String get conflictGroupWarning =>
+      'هذه المجموعة لديها حصة في نفس الوقت واليوم (قسم مواز).';
+
+  @override
+  String get sessionAttendanceHistory => 'سجل الحضور';
+
+  @override
+  String get perSessionEarnings => 'أرباح كل حصة';
+
+  @override
+  String get needsMakeup => 'تحتاج تعويض';
+
+  @override
+  String get schoolClosure => 'إغلاق المدرسة';
+
+  @override
+  String get addSchoolClosure => 'إغلاق المدرسة في تاريخ';
+
+  @override
+  String get closureReason => 'السبب';
+
+  @override
+  String get noSessionsScheduled => 'لا توجد حصص مجدولة';
+
+  @override
+  String teacherDefaultRate(Object rate) {
+    return 'النسبة الافتراضية للمعلم ($rate)';
+  }
+
+  @override
+  String get overrideRate => 'تجاوز النسبة';
+
+  @override
+  String get monthly => 'شهري';
+
+  @override
+  String get price => 'السعر';
+
+  @override
+  String get time => 'الوقت';
+
+  @override
+  String get classroom => 'القاعة';
+
+  @override
+  String get activeSessions => 'نشط';
+
+  @override
+  String get inactiveSessions => 'غير نشط';
+
+  @override
+  String get archivedSessions => 'مؤرشفة';
+
+  @override
+  String get restoreSession => 'استعادة الحصة';
+
+  @override
+  String get archiveSession => 'أرشفة الحصة';
+
+  @override
+  String get archiveSessionConfirm =>
+      'أرشفة هذه الحصة؟ ستختفي من جميع المشاهدات. السجل المالي محفوظ.';
+
+  @override
+  String get groupName => 'المجموعة';
 }
