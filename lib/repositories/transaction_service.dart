@@ -3,6 +3,7 @@ import 'base_repository.dart';
 import 'transaction_repository.dart';
 import 'enrollment_repository.dart';
 import 'session_repository.dart';
+import 'teacher_repository.dart';
 import 'audit_log_repository.dart';
 import 'attendance_repository.dart';
 import 'package:drift/drift.dart';
@@ -124,16 +125,24 @@ class TransactionService extends BaseRepository {
 
     final attendanceCount = await _getSessionAttendanceCount(sessionId, txDate);
 
+    final teacher = await TeacherRepository(db).getById(teacherId);
+
     double amount;
     String rateSnapshotStr;
-    if (session.teacherFixedAmount != null) {
-      amount = session.teacherFixedAmount!;
-      rateSnapshotStr = 'fixed:${session.teacherFixedAmount!.toStringAsFixed(0)}';
-    } else if (session.teacherSharePct != null && session.sessionsPerMonth > 0) {
+    final effectiveFixed = session.teacherFixedAmount ?? teacher?.teacherFixedAmount;
+    final effectiveSharePct = session.teacherSharePct ?? teacher?.teacherSharePct;
+    final effectiveSalaryType = (session.teacherFixedAmount != null || session.teacherSharePct != null)
+        ? (session.teacherFixedAmount != null ? 'fixed' : 'percentage')
+        : teacher?.salaryType ?? 'percentage';
+
+    if (effectiveFixed != null && effectiveSalaryType == 'fixed') {
+      amount = effectiveFixed;
+      rateSnapshotStr = 'fixed:${effectiveFixed.toStringAsFixed(0)}';
+    } else if (effectiveSharePct != null && session.sessionsPerMonth > 0) {
       final perSessionPrice = session.monthlyPrice / session.sessionsPerMonth;
-      final perStudentAmount = perSessionPrice * session.teacherSharePct! / 100;
+      final perStudentAmount = perSessionPrice * effectiveSharePct / 100;
       amount = perStudentAmount * attendanceCount;
-      rateSnapshotStr = 'pct:${session.teacherSharePct!.toStringAsFixed(1)},base:${session.monthlyPrice.toStringAsFixed(0)},sessions:${session.sessionsPerMonth},students:${attendanceCount}';
+      rateSnapshotStr = 'pct:${effectiveSharePct.toStringAsFixed(1)},base:${session.monthlyPrice.toStringAsFixed(0)},sessions:${session.sessionsPerMonth},students:${attendanceCount}';
     } else {
       amount = 0;
       rateSnapshotStr = 'none';
