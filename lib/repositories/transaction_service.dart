@@ -318,6 +318,14 @@ class TransactionService extends BaseRepository {
   Future<bool> _isSessionCancelled(String sessionId, DateTime date) async {
     final dateStart = DateTime(date.year, date.month, date.day);
     final dateEnd = dateStart.add(const Duration(days: 1));
+
+    final closedResult = await (db.select(db.schoolClosures)
+      ..where((t) =>
+          t.closureDate.isBiggerOrEqualValue(dateStart) &
+          t.closureDate.isSmallerThanValue(dateEnd)))
+        .get();
+    if (closedResult.isNotEmpty) return true;
+
     final result = await (db.select(db.cancellations)
       ..where((t) =>
           t.sessionId.equals(sessionId) &
@@ -340,6 +348,76 @@ class TransactionService extends BaseRepository {
           t.transactionDate.isSmallerThanValue(dateEnd)))
         .get();
     return result.isNotEmpty;
+  }
+
+  Future<List<String>> reverseCancelledSessionCharges({
+    required String sessionId,
+    required DateTime date,
+    String? createdByUserId,
+  }) async {
+    final dateStart = DateTime(date.year, date.month, date.day);
+    final dateEnd = dateStart.add(const Duration(days: 1));
+    final reversedIds = <String>[];
+
+    final studentCharges = await (db.select(db.transactions)
+      ..where((t) =>
+          t.sessionId.equals(sessionId) &
+          t.type.equals('session_charge') &
+          t.transactionDate.isBiggerOrEqualValue(dateStart) &
+          t.transactionDate.isSmallerThanValue(dateEnd)))
+        .get();
+
+    for (final charge in studentCharges) {
+      final id = await _txRepo.insert(TransactionsCompanion(
+        studentId: Value(charge.studentId),
+        sessionId: Value(sessionId),
+        type: const Value('session_cancellation_reversal'),
+        amount: Value(charge.amount),
+        transactionDate: Value(date),
+        note: Value('Refunded — session cancelled on ${dateStart.toIso8601String().substring(0, 10)}'),
+        referenceTransactionId: Value(charge.id),
+        createdByUserId: Value(createdByUserId),
+      ));
+      reversedIds.add(id);
+      await _auditRepo.create(AuditLogCompanion(
+        userId: Value(createdByUserId ?? 'system'),
+        action: const Value('session_cancellation_reversal_created'),
+        entityType: const Value('transaction'),
+        entityId: Value(id),
+        details: Value('Student: ${charge.studentId}, Session: $sessionId, Amount: ${charge.amount}, Ref: ${charge.id}'),
+      ));
+    }
+
+    final teacherPayouts = await (db.select(db.transactions)
+      ..where((t) =>
+          t.sessionId.equals(sessionId) &
+          t.type.equals('teacher_payout') &
+          t.transactionDate.isBiggerOrEqualValue(dateStart) &
+          t.transactionDate.isSmallerThanValue(dateEnd)))
+        .get();
+
+    for (final payout in teacherPayouts) {
+      final id = await _txRepo.insert(TransactionsCompanion(
+        teacherId: Value(payout.teacherId),
+        sessionId: Value(sessionId),
+        type: const Value('session_cancellation_reversal'),
+        amount: Value(payout.amount),
+        transactionDate: Value(date),
+        note: Value('Deducted — session cancelled on ${dateStart.toIso8601String().substring(0, 10)}'),
+        referenceTransactionId: Value(payout.id),
+        createdByUserId: Value(createdByUserId),
+      ));
+      reversedIds.add(id);
+      await _auditRepo.create(AuditLogCompanion(
+        userId: Value(createdByUserId ?? 'system'),
+        action: const Value('session_cancellation_reversal_created'),
+        entityType: const Value('transaction'),
+        entityId: Value(id),
+        details: Value('Teacher: ${payout.teacherId}, Session: $sessionId, Amount: ${payout.amount}, Ref: ${payout.id}'),
+      ));
+    }
+
+    return reversedIds;
   }
 
   Future<String> createRegistrationFee({

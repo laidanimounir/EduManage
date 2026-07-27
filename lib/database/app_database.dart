@@ -106,6 +106,7 @@ class Sessions extends Table {
   RealColumn get teacherSharePct => real().nullable()();
   RealColumn get teacherFixedAmount => real().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
@@ -247,6 +248,17 @@ class TeacherSubjectGroups extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class SchoolClosures extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get closureDate => dateTime().unique()();
+  TextColumn get reason => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class SchoolLevels extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -259,7 +271,7 @@ class SchoolLevels extends Table {
 }
 
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolLevels],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -290,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -322,6 +334,14 @@ class AppDatabase extends _$AppDatabase {
           ],
         ));
         await m.createTable(teacherSubjectGroups);
+      }
+      if (from < 5) {
+        await m.alterTable(TableMigration(sessions,
+          newColumns: [
+            sessions.isArchived,
+          ],
+        ));
+        await m.createTable(schoolClosures);
       }
     },
   );

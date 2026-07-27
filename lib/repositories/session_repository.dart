@@ -94,4 +94,155 @@ class SessionRepository extends BaseRepository {
           t.attendanceDate.isSmallerThanValue(dateEnd)))
         .get();
   }
+
+  Future<List<Session>> getOverlappingSessions(
+    int dayOfWeek,
+    DateTime startTime,
+    DateTime endTime, {
+    String? excludeId,
+  }) {
+    var query = db.select(db.sessions)
+      ..where((t) =>
+          t.dayOfWeek.equals(dayOfWeek) &
+          t.startTime.isSmallerThanValue(endTime) &
+          t.endTime.isBiggerThanValue(startTime));
+    if (excludeId != null) {
+      query = query..where((t) => t.id.isNotValue(excludeId));
+    }
+    return query.get();
+  }
+
+  @override
+  Future<String> create(SessionsCompanion entry) async {
+    final id = UuidHelper.generate();
+    final deviceId = await DeviceId.get();
+    final completeEntry = entry.copyWith(id: Value(id), deviceId: Value(deviceId));
+
+    final dayOfWeek = entry.dayOfWeek.present ? entry.dayOfWeek.value : null;
+    final start = entry.startTime.present ? entry.startTime.value : null;
+    final end = entry.endTime.present ? entry.endTime.value : null;
+
+    if (dayOfWeek != null && start != null && end != null) {
+      await db.transaction(() async {
+        final conflicts = await getOverlappingSessions(dayOfWeek, start, end);
+        final teacherId = entry.teacherId.present ? entry.teacherId.value : null;
+        final classroomId = entry.classroomId.present ? entry.classroomId.value : null;
+
+        for (final c in conflicts) {
+          if (teacherId != null && c.teacherId == teacherId) {
+            throw StateError('CONFLICT_TEACHER');
+          }
+          if (classroomId != null && c.classroomId == classroomId) {
+            throw StateError('CONFLICT_CLASSROOM');
+          }
+        }
+
+        await db.into(db.sessions).insert(completeEntry);
+      });
+    } else {
+      await db.into(db.sessions).insert(completeEntry);
+    }
+    return id;
+  }
+
+  @override
+  Future<void> update(String id, SessionsCompanion entry) async {
+    final deviceId = await DeviceId.get();
+    final completeEntry = entry.copyWith(deviceId: Value(deviceId));
+
+    final dayOfWeek = entry.dayOfWeek.present ? entry.dayOfWeek.value : null;
+    final start = entry.startTime.present ? entry.startTime.value : null;
+    final end = entry.endTime.present ? entry.endTime.value : null;
+
+    if (dayOfWeek != null && start != null && end != null) {
+      await db.transaction(() async {
+        final conflicts = await getOverlappingSessions(dayOfWeek, start, end, excludeId: id);
+        final teacherId = entry.teacherId.present ? entry.teacherId.value : null;
+        final classroomId = entry.classroomId.present ? entry.classroomId.value : null;
+
+        for (final c in conflicts) {
+          if (teacherId != null && c.teacherId == teacherId) {
+            throw StateError('CONFLICT_TEACHER');
+          }
+          if (classroomId != null && c.classroomId == classroomId) {
+            throw StateError('CONFLICT_CLASSROOM');
+          }
+        }
+
+        await (db.update(db.sessions)..where((t) => t.id.equals(id)))
+            .write(completeEntry);
+      });
+    } else {
+      await (db.update(db.sessions)..where((t) => t.id.equals(id)))
+          .write(completeEntry);
+    }
+  }
+
+  Future<void> archive(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.sessions)..where((t) => t.id.equals(id)))
+        .write(SessionsCompanion(
+          isArchived: const Value(true),
+          deviceId: Value(deviceId),
+        ));
+  }
+
+  Future<void> restore(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.sessions)..where((t) => t.id.equals(id)))
+        .write(SessionsCompanion(
+          isArchived: const Value(false),
+          deviceId: Value(deviceId),
+        ));
+  }
+
+  Future<void> delete(String id) async {
+    await (db.delete(db.sessions)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<Session>> fetchPage({
+    int offset = 0,
+    int limit = 20,
+    String? statusFilter,
+    String? searchQuery,
+    int? dayFilter,
+    bool includeArchived = false,
+  }) async {
+    var query = db.select(db.sessions);
+
+    if (statusFilter != null && statusFilter != 'all') {
+      if (statusFilter == 'archived') {
+        query = query..where((t) => t.isArchived.equals(true));
+      } else if (statusFilter == 'inactive') {
+        query = query..where((t) => t.isArchived.equals(false) & t.isActive.equals(false));
+      } else {
+        query = query..where((t) => t.isArchived.equals(false) & t.isActive.equals(true));
+      }
+    } else {
+      query = query..where((t) => includeArchived
+          ? const Constant(true).equals(true)
+          : t.isArchived.equals(false));
+    }
+
+    if (dayFilter != null && dayFilter > 0) {
+      query = query..where((t) => t.dayOfWeek.equals(dayFilter));
+    }
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final q = '%${searchQuery.trim()}%';
+      query = query..where((t) =>
+        t.teacherId.like(q) |
+        t.subjectGroupId.like(q) |
+        t.classroomId.like(q),
+      );
+    }
+
+    final total = await query.map((r) => r.id).get().then((ids) => ids.length);
+
+    var allResults = await query.get();
+    allResults.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final sessions = allResults.skip(offset).take(limit).toList();
+
+    return (sessions: sessions, total: total);
+  }
 }
