@@ -1181,24 +1181,49 @@ class _EnrollmentListState extends State<_EnrollmentList> {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
     if (_enrollments.isEmpty) return Text(widget.l10n.noEnrollments, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
 
-    final activeCount = _enrollments.where((e) => e.status == 'active').length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(
-            widget.l10n.enrollmentCount('$activeCount'),
-            style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled),
-          ),
-        ),
-        ..._enrollments.map((e) => _EnrollmentRow(
-          enrollment: e,
-          database: widget.database,
-          l10n: widget.l10n,
+    final active = _enrollments.where((e) => e.status == 'active' && !e.isTransferred).toList();
+    final past = _enrollments.where((e) => e.status != 'active' || e.isTransferred).toList();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (active.isNotEmpty) ...[
+        Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(widget.l10n.enrollmentCount('${active.length}'), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+        ...active.map((e) => _EnrollmentRow(enrollment: e, database: widget.database, l10n: widget.l10n)),
+      ],
+      if (past.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Padding(padding: const EdgeInsets.only(bottom: 4), child: Text('Enrollment History (${past.length})', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+        ...past.map((e) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(children: [
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: ShellTokens.textDisabled, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(child: _PastEnrollmentLabel(enrollment: e, database: widget.database)),
+          ]),
         )),
       ],
-    );
+    ]);
+  }
+}
+
+class _PastEnrollmentLabel extends StatefulWidget {
+  final Enrollment enrollment;
+  final AppDatabase database;
+  const _PastEnrollmentLabel({required this.enrollment, required this.database});
+  @override
+  State<_PastEnrollmentLabel> createState() => _PastEnrollmentLabelState();
+}
+class _PastEnrollmentLabelState extends State<_PastEnrollmentLabel> {
+  String _groupName = '';
+  @override
+  void initState() { super.initState(); _load(); }
+  Future<void> _load() async {
+    final g = await SubjectGroupRepository(widget.database).getById(widget.enrollment.subjectGroupId);
+    if (mounted) setState(() => _groupName = g?.nameAr ?? widget.enrollment.subjectGroupId);
+  }
+  @override
+  Widget build(BuildContext context) {
+    final status = widget.enrollment.isTransferred ? 'Transferred' : widget.enrollment.status;
+    return Text('$_groupName — $status', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary));
   }
 }
 

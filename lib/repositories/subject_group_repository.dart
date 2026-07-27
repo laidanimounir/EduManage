@@ -55,4 +55,27 @@ class SubjectGroupRepository extends BaseRepository {
       ..where((t) => t.subjectGroupId.equals(groupId)))
         .get();
   }
+
+  Future<void> archive(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.subjectGroups)..where((t) => t.id.equals(id)))
+        .write(SubjectGroupsCompanion(isArchived: const Value(true), deviceId: Value(deviceId)));
+  }
+
+  Future<void> restore(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.subjectGroups)..where((t) => t.id.equals(id)))
+        .write(SubjectGroupsCompanion(isArchived: const Value(false), deviceId: Value(deviceId)));
+  }
+
+  Future<bool> hasActiveSessionsOrEnrollments(String groupId) async {
+    final sessions = await getSessions(groupId);
+    final enrollments = await getStudents(groupId);
+    return sessions.any((s) => s.isActive && !s.isArchived) || enrollments.any((e) => e.status == 'active');
+  }
+
+  Future<int> activeEnrollmentCount(String groupId) async {
+    final enrollments = await getStudents(groupId);
+    return enrollments.where((e) => e.status == 'active').length;
+  }
 }

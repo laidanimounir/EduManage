@@ -8,6 +8,8 @@ import '../../repositories/classroom_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../widgets/shell_dialog.dart';
+import '../../widgets/shell_badge.dart';
+import '../../widgets/shell_filter_chip.dart';
 import '../../widgets/shell_section_header.dart';
 import '../../widgets/shell_input_decoration.dart';
 import '../../widgets/app_loading.dart';
@@ -23,6 +25,7 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
   late final ClassroomRepository _repo;
   List<Classroom> _rows = [];
   bool _loading = true;
+  String _statusFilter = 'all';
   Set<String> _selectedIds = {};
   Map<String, int> _sessionCounts = {};
 
@@ -56,7 +59,28 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
   }
 
   void _openDetail(Classroom r) {
-    showDialog(context: context, builder: (_) => _RoomDetailDialog(database: widget.database, room: r, l10n: AppLocalizations.of(context)));
+    showDialog(context: context, builder: (_) => _RoomDetailDialog(database: widget.database, room: r, l10n: AppLocalizations.of(context))).then((_) => _fetchPage());
+  }
+
+  List<Classroom> get filtered => _rows.where((r) {
+    if (_statusFilter == 'archived') return r.isArchived;
+    if (_statusFilter == 'active') return !r.isArchived;
+    return true;
+  }).toList();
+
+  Future<void> _confirmArchive(Classroom r) async {
+    final l10n = AppLocalizations.of(context);
+    final hasActive = await _repo.hasActiveSessions(r.id);
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text(r.isArchived ? l10n.restore : l10n.archive, style: const TextStyle(color: ShellTokens.textPrimary)),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(r.isArchived ? 'Restore this classroom?' : 'Archive this classroom?', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+        if (hasActive && !r.isArchived) ...[const SizedBox(height: 8), Row(children: [const Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.warning), const SizedBox(width: 8), Expanded(child: Text('This classroom has active sessions.', style: const TextStyle(color: SemanticTokens.warning, fontSize: 12)))])],
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(r.isArchived ? l10n.restore : l10n.archive, style: const TextStyle(color: SemanticTokens.error)))],
+    ));
+    if (confirmed == true) { if (r.isArchived) { await _repo.restore(r.id); } else { await _repo.archive(r.id); } _fetchPage(); }
   }
 
   @override
@@ -84,15 +108,21 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
 
   Widget _buildToolbar(AppLocalizations l10n) {
     return Padding(padding: const EdgeInsets.fromLTRB(12, 10, 12, 6), child: Row(children: [
-      Expanded(child: SizedBox(height: 34, child: FilledButton.icon(onPressed: () => _openEdit(null), icon: const Icon(PhosphorIcons.plus, size: 14), label: Text(l10n.add, style: const TextStyle(fontSize: 12)), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12))))),
+      Expanded(child: Row(children: [
+        ShellFilterChip(label: l10n.all, selected: _statusFilter == 'all', onTap: () { _statusFilter = 'all'; setState(() {}); }),
+        ShellFilterChip(label: l10n.active, selected: _statusFilter == 'active', onTap: () { _statusFilter = 'active'; setState(() {}); }),
+        ShellFilterChip(label: l10n.archived, selected: _statusFilter == 'archived', onTap: () { _statusFilter = 'archived'; setState(() {}); }),
+      ])),
+      SizedBox(height: 34, child: FilledButton.icon(onPressed: () => _openEdit(null), icon: const Icon(PhosphorIcons.plus, size: 14), label: Text(l10n.add, style: const TextStyle(fontSize: 12)), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12)))),
     ]));
   }
 
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const AppLoading();
+    final rows = filtered;
     return Column(children: [
       Table(columnWidths: _columnWidths(), defaultVerticalAlignment: TableCellVerticalAlignment.middle, border: const TableBorder(bottom: BorderSide(color: ShellTokens.chromeBorder)), children: [_buildHeaderRow(l10n)]),
-      Expanded(child: SingleChildScrollView(child: Table(columnWidths: _columnWidths(), defaultVerticalAlignment: TableCellVerticalAlignment.middle, border: TableBorder(horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5)), children: _rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)).toList()))),
+      Expanded(child: SingleChildScrollView(child: Table(columnWidths: _columnWidths(), defaultVerticalAlignment: TableCellVerticalAlignment.middle, border: TableBorder(horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5)), children: rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)).toList()))),
     ]);
   }
 
@@ -117,7 +147,7 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
     final isSelected = _selectedIds.contains(r.id);
     final isEven = index.isEven;
     final capacityPct = r.capacity != null && r.capacity! > 0 && (_sessionCounts[r.id] ?? 0) > 0 ? '${(_sessionCounts[r.id]! * 100 ~/ r.capacity!).clamp(0, 999)}%' : '—';
-    return TableRow(decoration: BoxDecoration(color: isSelected ? ShellTokens.accentMuted.withValues(alpha: 0.3) : isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3)), children: [
+    return TableRow(decoration: BoxDecoration(color: isSelected ? ShellTokens.accentMuted.withValues(alpha: 0.3) : r.isArchived ? ShellTokens.chromeBase.withValues(alpha: 0.5) : isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3)), children: [
       _buildCheckCell(r, isSelected),
       GestureDetector(onTap: () => _openDetail(r), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(r.nameAr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)), if (r.nameFr != null && r.nameFr!.isNotEmpty) Text(r.nameFr!, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary))]))),
       GestureDetector(onTap: () => _openDetail(r), behavior: HitTestBehavior.opaque, child: _buildTextCell(r.floor?.toString() ?? '—')),
@@ -136,6 +166,7 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
   Widget _buildActionsCell(Classroom r) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       IconButton(icon: const Icon(PhosphorIcons.pencilSimple, size: 13), onPressed: () => _openEdit(r), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.textSecondary),
+      IconButton(icon: Icon(r.isArchived ? PhosphorIcons.arrowRight : PhosphorIcons.archive, size: 13), onPressed: () => _confirmArchive(r), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: r.isArchived ? ShellTokens.accent : ShellTokens.textSecondary),
     ]);
   }
 }

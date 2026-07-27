@@ -53,19 +53,101 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   void _showAddDialog() async {
     final l10n = AppLocalizations.of(context);
     String? studentId, groupId;
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
+    final result = await showDialog<String>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
       maxWidth: 450, title: l10n.enrollStudent,
       body: Column(children: [
         DropdownButtonFormField<String>(value: studentId, decoration: ShellInputDecoration.dropdown(hintText: l10n.students), items: _students.map((s) => DropdownMenuItem(value: s.id, child: Text('${s.firstNameAr} ${s.lastNameAr} (${s.code})', style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => studentId = v)),
         const SizedBox(height: 10),
-        DropdownButtonFormField<String>(value: groupId, decoration: ShellInputDecoration.dropdown(hintText: l10n.groups), items: _groups.map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => groupId = v)),
+        DropdownButtonFormField<String>(value: groupId, decoration: ShellInputDecoration.dropdown(hintText: l10n.groups), items: _groups.where((g) => !g.isArchived).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => groupId = v)),
         const SizedBox(height: 20),
-        SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: Text(l10n.enrollStudent))),
+        SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, 'enroll'), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: Text(l10n.enrollStudent))),
+        const SizedBox(height: 8),
+        SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), style: OutlinedButton.styleFrom(foregroundColor: ShellTokens.accent, side: const BorderSide(color: ShellTokens.accent), padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Add to Waitlist', style: TextStyle(fontSize: 12)))),
       ]),
     )));
-    if (ok == true && studentId != null && groupId != null) {
-      await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!)));
-      _load();
+    if (result != null && studentId != null && groupId != null) {
+      if (result == 'waitlist') {
+        await _enrollRepo.addToWaitlist(studentId!, groupId!);
+        _load();
+        return;
+      }
+      final groupRepo = SubjectGroupRepository(widget.database);
+      final g = await groupRepo.getById(groupId!);
+      final count = await groupRepo.activeEnrollmentCount(groupId!);
+      if (g?.capacity != null && count >= g!.capacity!) {
+        if (context.mounted) {
+          final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+            backgroundColor: ShellTokens.chromeSurface,
+            title: Text('Group is full ($count/${g.capacity})', style: const TextStyle(color: ShellTokens.textPrimary)),
+            content: const Text('Choose an action:', style: TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: Text(l10n.cancel)),
+              TextButton(onPressed: () => Navigator.pop(ctx, 'increase'), child: Text('Increase Capacity', style: const TextStyle(color: ShellTokens.accent))),
+              TextButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), child: const Text('Add to Waitlist', style: TextStyle(color: ShellTokens.accent))),
+            ],
+          ));
+          if (action == 'increase') {
+            final newCapCtrl = TextEditingController(text: '${g.capacity! + 1}');
+            final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+              backgroundColor: ShellTokens.chromeSurface, title: Text('Set new capacity', style: const TextStyle(color: ShellTokens.textPrimary)),
+              content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
+            ));
+            if (ok == true) { await groupRepo.update(groupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!))); _load(); }
+          } else if (action == 'waitlist') {
+            await _enrollRepo.addToWaitlist(studentId!, groupId!); _load();
+          }
+        }
+      } else {
+        await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!)));
+        _load();
+      }
+    }
+  }
+
+  void _showTransferDialog(Enrollment e) async {
+    final l10n = AppLocalizations.of(context);
+    String? toGroupId;
+    final result = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
+      maxWidth: 450, title: 'Transfer Student',
+      body: Column(children: [
+        Text('From: ${_groupNames[e.subjectGroupId] ?? e.subjectGroupId}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(value: toGroupId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination group'), items: _groups.where((g) => !g.isArchived && g.id != e.subjectGroupId).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toGroupId = v)),
+        const SizedBox(height: 20),
+        SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Transfer'))),
+      ]),
+    )));
+    if (result == true && toGroupId != null) {
+      final groupRepo = SubjectGroupRepository(widget.database);
+      final g = await groupRepo.getById(toGroupId!);
+      final count = await groupRepo.activeEnrollmentCount(toGroupId!);
+      if (g?.capacity != null && count >= g!.capacity!) {
+        if (context.mounted) {
+          final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+            backgroundColor: ShellTokens.chromeSurface,
+            title: Text('Destination group is full ($count/${g.capacity})', style: const TextStyle(color: ShellTokens.textPrimary)),
+            content: const Text('Choose action:', style: TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: Text(l10n.cancel)),
+              TextButton(onPressed: () => Navigator.pop(ctx, 'increase'), child: Text('Increase Capacity', style: const TextStyle(color: ShellTokens.accent))),
+              TextButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), child: const Text('Cancel Transfer', style: TextStyle(color: SemanticTokens.error))),
+            ],
+          ));
+          if (action == 'increase') {
+            final newCapCtrl = TextEditingController(text: '${g.capacity! + 1}');
+            final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+              backgroundColor: ShellTokens.chromeSurface, title: Text('Set new capacity', style: const TextStyle(color: ShellTokens.textPrimary)),
+              content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
+            ));
+            if (ok == true) { await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!); _load(); }
+          }
+        }
+      } else {
+        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!);
+        _load();
+      }
     }
   }
 
@@ -137,6 +219,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       _txtCell('${e.enrollmentDate.year}-${e.enrollmentDate.month.toString().padLeft(2, '0')}-${e.enrollmentDate.day.toString().padLeft(2, '0')}'),
       Row(children: [e.status == 'active' ? ShellBadge(label: l10n.active, color: SemanticTokens.success) : ShellBadge(label: l10n.inactive, color: const Color(0xFFC2823A))]),
       Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(icon: const Icon(PhosphorIcons.arrowsLeftRight, size: 12), onPressed: () => _showTransferDialog(e), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.textSecondary, tooltip: 'Transfer'),
         IconButton(icon: Icon(e.status == 'active' ? PhosphorIcons.x : PhosphorIcons.checkCircle, size: 13), onPressed: () async { await _enrollRepo.updateStatus(e.id, e.status == 'active' ? 'inactive' : 'active'); _load(); }, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: e.status == 'active' ? SemanticTokens.warning : SemanticTokens.success),
       ]),
     ]);

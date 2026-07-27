@@ -30,4 +30,23 @@ class ClassroomRepository extends BaseRepository {
   Future<void> delete(String id) async {
     await (db.delete(db.classrooms)..where((t) => t.id.equals(id))).go();
   }
+
+  Future<void> archive(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.classrooms)..where((t) => t.id.equals(id)))
+        .write(ClassroomsCompanion(isArchived: const Value(true), deviceId: Value(deviceId)));
+  }
+
+  Future<void> restore(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.classrooms)..where((t) => t.id.equals(id)))
+        .write(ClassroomsCompanion(isArchived: const Value(false), deviceId: Value(deviceId)));
+  }
+
+  Future<bool> hasActiveSessions(String classroomId) async {
+    final sessions = await (db.select(db.sessions)
+      ..where((t) => t.classroomId.equals(classroomId)))
+        .get();
+    return sessions.any((s) => s.isActive && !s.isArchived);
+  }
 }
