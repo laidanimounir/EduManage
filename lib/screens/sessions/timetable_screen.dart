@@ -111,6 +111,7 @@ class _TimetableScreenState extends State<TimetableScreen> with WidgetsBindingOb
       if (s.isArchived || !s.isActive) return false;
       final sStart = s.startTime.hour * 60 + s.startTime.minute;
       final sEnd = s.endTime.hour * 60 + s.endTime.minute;
+      if (sEnd - sStart > 480) return false;
       return sStart < slotEndMinutes && sEnd > slotStartMinutes;
     }).toList();
   }
@@ -168,17 +169,17 @@ class _TimetableScreenState extends State<TimetableScreen> with WidgetsBindingOb
   }
 
   List<String> _generateTimeSlots() {
-    if (_allSessions.isEmpty) return ['08:00', '10:00', '12:00', '14:00', '16:00'];
-    var minHour = 24;
-    var maxHour = 0;
+    if (_allSessions.isEmpty) return ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+    var minHour = 6;
+    var maxHour = 20;
     for (final s in _allSessions) {
       if (s.startTime.hour < minHour) minHour = s.startTime.hour;
       if (s.endTime.hour > maxHour) maxHour = s.endTime.hour;
     }
     minHour = (minHour ~/ 2) * 2;
-    maxHour = ((maxHour + 1) ~/ 2) * 2 + 2;
-    if (maxHour > 24) maxHour = 24;
-    return List.generate((maxHour - minHour) ~/ 2, (i) {
+    if (maxHour < 23) maxHour += 1;
+    maxHour = ((maxHour + 1) ~/ 2) * 2;
+    return List.generate(((maxHour - minHour) ~/ 2).clamp(1, 12), (i) {
       final h = minHour + i * 2;
       return '${h.toString().padLeft(2, '0')}:00';
     });
