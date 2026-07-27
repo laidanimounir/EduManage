@@ -64,16 +64,51 @@ for (final s in sessions) {
 
 ---
 
-## Deferred Items (Awaiting Confirmation)
+## Deferred Items
 
-1. **Pay Now fix** — described above. Needs decision on whether to add date-range picker, session selection checkboxes, or both.
+1. **Pay Now fix** — described above. Needs decision on whether to add date-range picker, session selection checkboxes, or both. NOT TOUCHED.
 
-2. **SubjectGroups archive/restore** — schema has no `isArchived` on SubjectGroups. Would require migration v6. Similar to how Students/Teachers/Sessions were handled. Flagged because it requires a schema change.
+2. ~~SubjectGroups archive/restore~~ — COMPLETED in Round 4.
 
-3. **Classrooms archive/restore** — same as above, no `isArchived` column.
+3. ~~Classrooms archive/restore~~ — COMPLETED in Round 4.
 
-4. **Enrollment start/end dates** — schema has `enrollmentDate` but no `endDate`. Adding `endDate` would enable scheduled drops and automated status transitions.
+4. **Enrollment end dates** — still deferred. Not needed since payment timestamp already serves as history reference.
 
-5. **Waitlist concept** — if a group is at capacity (Classroom capacity), enrollments would queue. Requires capacity tracking per group (not per classroom, which is different).
+5. ~~Waitlist concept~~ — COMPLETED in Round 4.
 
-6. **Enrollment transfer between groups** — moving a student from one group to another while preserving history.
+6. ~~Enrollment transfer~~ — COMPLETED in Round 4.
+
+---
+
+## Round 4 — Group Archiving, Classroom Archiving, Capacity+Waitlist, Transfer (2026-07-27)
+
+### Schema v6
+- `isArchived` on `subject_groups` + `classrooms`; `capacity` on `subject_groups`
+- `isTransferred` on `enrollments`; new `enrollment_waitlist` table
+
+### Group Archiving — Done
+- Archive/restore with confirmation dialog + active-session/enrollment warning
+- Archived filter chip; archived groups hidden from dropdowns
+
+### Classroom Archiving — Done  
+- Same pattern as groups
+
+### Capacity + Waitlist — Done
+- Capacity field (null = unlimited); enrollment blocked when full
+- User offered: increase capacity OR add to waitlist
+- Waitlist shown in group detail with "Move to active" per student
+- Manual promotion only; rechecks capacity before allowing
+
+### Enrollment Transfer — Done
+- `transferEnrollment()` marks original as `transferred_out`, creates new active row
+- Capacity-aware transfer: full destination → same capacity/waitlist choice
+- Transfer button per enrollment row; destination group picker dialog
+
+### Enrollment History — Done
+- Student detail: active enrollments (top) + history section (past/transferred)
+- Group name + status shown for each past enrollment
+
+### Consistency — Done
+- Student `_EnrollmentList` filters to `status=='active' && !isTransferred`
+- Enrollment add-dialog excludes archived groups
+- Transfer excludes source group + archived groups
