@@ -13,6 +13,7 @@ import '../../repositories/subject_group_repository.dart';
 import '../../repositories/transaction_service.dart';
 import '../../repositories/audit_log_repository.dart';
 import '../../repositories/session_repository.dart';
+import '../../utils/pdf_generator.dart';
 import '../../widgets/shell_dialog.dart';
 import '../../widgets/shell_badge.dart';
 import '../../widgets/shell_section_header.dart';
@@ -517,6 +518,23 @@ class _TeacherDetailDialog extends StatelessWidget {
           Navigator.pop(context);
           showDialog(context: context, builder: (_) => _TeacherEditDialog(database: database, teacher: teacher, l10n: l10n));
         }),
+        IconButton(
+          icon: const Icon(PhosphorIcons.file, size: 16), color: ShellTokens.accent,
+          onPressed: () async {
+            try {
+              final path = await PdfGenerator.generateTeacherStatement(database: database, teacherId: teacher.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Statement saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            }
+          },
+          tooltip: 'Print Statement',
+        ),
         const Spacer(),
         TextButton.icon(
           onPressed: () async {

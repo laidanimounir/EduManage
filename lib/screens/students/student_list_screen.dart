@@ -22,6 +22,7 @@ import '../../repositories/school_level_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/transaction_service.dart';
+import '../../utils/pdf_generator.dart';
 import '../../constants/app_constants.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -988,6 +989,27 @@ class _StudentDetailDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
+                    icon: const Icon(PhosphorIcons.receipt, size: 18, color: ShellTokens.accent),
+                    onPressed: () async {
+                      try {
+                        final path = await PdfGenerator.generateStudentReceipt(
+                          database: database,
+                          studentId: student.id,
+                          receiptNumber: 'REC-${DateTime.now().millisecondsSinceEpoch}',
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Receipt saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      }
+                    },
+                    tooltip: 'Generate Receipt',
+                  ),
+                  IconButton(
                     icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -1015,6 +1037,27 @@ class _StudentDetailDialog extends StatelessWidget {
                     _sectionHeader(l10n.financialStatus),
                     const SizedBox(height: 8),
                     _FinancialSummary(database: database, studentId: student.id, l10n: l10n),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final path = await PdfGenerator.generateStudentStatement(
+                            database: database, studentId: student.id,
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Statement saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          }
+                        }
+                      },
+                      icon: const Icon(PhosphorIcons.file, size: 14, color: ShellTokens.textSecondary),
+                      label: Text('Print Statement', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+                      style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+                    ),
                     const SizedBox(height: 16),
                     _sectionHeader(l10n.enrollments),
                     const SizedBox(height: 8),
