@@ -63,6 +63,10 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
   String _classroomFilter = 'all';
   List<Map<String, dynamic>> _classrooms = [];
 
+  String _viewMode = 'time';
+  List<Map<String, dynamic>> _roomGridData = [];
+  int? _roomFloorFilter;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +103,10 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
       if (!mounted) return;
       _liveCounts = counts;
       _reclassifySessions();
+      if (_viewMode == 'room') {
+        final roomRows = await widget.database.getTodayRoomGrid();
+        if (mounted) _roomGridData = roomRows;
+      }
       if (mounted) setState(() {});
     } catch (_) {}
   }
@@ -168,6 +176,9 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
         _completedSessions = completed;
         _loading = false;
       });
+
+      final roomRows = await widget.database.getTodayRoomGrid();
+      if (mounted) setState(() => _roomGridData = roomRows);
 
       final tc = await widget.database.getTodayTeacherCheckinCount();
       if (mounted) setState(() => _teacherCount = tc);
@@ -426,8 +437,294 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
                   _buildStickyTopBar(),
                   if (_showingStudentSearch) _buildStudentSearchBar(),
                   _buildTeacherCheckinSection(),
-                  Expanded(child: RefreshIndicator(onRefresh: _loadFullData, child: _buildBoard())),
+                  _buildViewToggle(),
+                  Expanded(child: RefreshIndicator(onRefresh: _loadFullData, child: _viewMode == 'time' ? _buildBoard() : _buildRoomGrid())),
                 ]),
+    );
+  }
+
+  Widget _buildViewToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder)),
+      ),
+      child: Row(children: [
+        _viewTab('By time', 'time'),
+        const SizedBox(width: 4),
+        _viewTab('By room', 'room'),
+      ]),
+    );
+  }
+
+  Widget _viewTab(String label, String mode) {
+    final active = _viewMode == mode;
+    return Material(
+      color: active ? ShellTokens.accentMuted : ShellTokens.chromeBase,
+      borderRadius: BorderRadius.circular(5),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(5),
+        onTap: () {
+          if (_viewMode != mode) {
+            setState(() => _viewMode = mode);
+            if (mode == 'room') _refreshLiveCounts();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: active ? ShellTokens.textPrimary : ShellTokens.textSecondary)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoomGrid() {
+    final now = DateTime.now();
+    final nowTime = TimeOfDay(hour: now.hour, minute: now.minute);
+
+    final roomMap = <String, Map<String, dynamic>>{};
+    for (final r in _roomGridData) {
+      final rid = r['classroom_id'] as String;
+      roomMap.putIfAbsent(rid, () => {
+        'classroom_id': rid,
+        'classroom_name': r['classroom_name'],
+        'capacity': r['capacity'],
+        'floor': r['floor'],
+        'sessions': <Map<String, dynamic>>[],
+      });
+    }
+
+    final studentRows = _roomGridData.where((r) => r['student_id'] != null).toList();
+    for (final r in studentRows) {
+      final rid = r['classroom_id'] as String;
+      final sid = r['session_id'] as String?;
+      if (sid == null) continue;
+      final room = roomMap[rid]!;
+      final sessions = room['sessions'] as List<Map<String, dynamic>>;
+      var session = sessions.cast<Map<String, dynamic>?>().firstWhere((s) => s!['session_id'] == sid, orElse: () => null);
+      if (session == null) {
+        session = {
+          'session_id': sid,
+          'group_name': r['group_name'],
+          'start_time': r['start_time'],
+          'end_time': r['end_time'],
+          'teacher_first': r['teacher_first'],
+          'teacher_last': r['teacher_last'],
+          'present': <Map<String, dynamic>>[],
+          'absent': <Map<String, dynamic>>[],
+        };
+        sessions.add(session);
+      }
+      final student = {
+        'student_id': r['student_id'],
+        'stu_first': r['stu_first'],
+        'stu_last': r['stu_last'],
+        'code': r['code'],
+        'photo_path': r['photo_path'],
+        'att_status': r['att_status'],
+        'check_in_time': r['check_in_time'],
+      };
+      if (r['att_status'] == 'present') {
+        (session['present'] as List).add(student);
+      } else {
+        (session['absent'] as List).add(student);
+      }
+    }
+
+    final floors = <int>{};
+    for (final room in roomMap.values) {
+      final f = room['floor'] as int?;
+      if (f != null) floors.add(f);
+    }
+
+    var rooms = roomMap.values.toList();
+
+    final sessionRows = _roomGridData.where((r) => r['session_id'] != null && r['student_id'] == null).toList();
+    final seenSessions = <String>{};
+    for (final r in sessionRows) {
+      final sid = r['session_id'] as String;
+      if (seenSessions.contains(sid)) continue;
+      seenSessions.add(sid);
+      final rid = r['classroom_id'] as String;
+      final room = roomMap[rid]!;
+      final sessions = room['sessions'] as List<Map<String, dynamic>>;
+      if (!sessions.any((s) => s['session_id'] == sid)) {
+        sessions.add({
+          'session_id': sid,
+          'group_name': r['group_name'],
+          'start_time': r['start_time'],
+          'end_time': r['end_time'],
+          'teacher_first': r['teacher_first'],
+          'teacher_last': r['teacher_last'],
+          'present': <Map<String, dynamic>>[],
+          'absent': <Map<String, dynamic>>[],
+        });
+      }
+    }
+
+    if (_roomFloorFilter != null) {
+      rooms = rooms.where((r) => r['floor'] == _roomFloorFilter).toList();
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(10),
+      children: [
+        if (floors.length > 1) ...[
+          SizedBox(
+            height: 30,
+            child: ListView(scrollDirection: Axis.horizontal, children: [
+              _buildFloorChip('All floors', _roomFloorFilter == null, () => setState(() => _roomFloorFilter = null)),
+              ...floors.map((f) => _buildFloorChip('Floor $f', _roomFloorFilter == f, () => setState(() => _roomFloorFilter = f))),
+            ]),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: rooms.map((room) => _buildRoomCard(room, now, nowTime)).toList(),
+        ),
+        if (rooms.isEmpty)
+          const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No classrooms available', style: TextStyle(fontSize: 13, color: ShellTokens.textDisabled)))),
+      ],
+    );
+  }
+
+  Widget _buildFloorChip(String label, bool selected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 6),
+      child: Material(
+        color: selected ? ShellTokens.accentMuted : ShellTokens.chromeSurface,
+        borderRadius: BorderRadius.circular(5),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(5),
+          onTap: onTap,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: selected ? ShellTokens.textPrimary : ShellTokens.textSecondary))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoomCard(Map<String, dynamic> room, DateTime now, TimeOfDay nowTime) {
+    final sessions = (room['sessions'] as List<Map<String, dynamic>>);
+    Map<String, dynamic>? activeSession;
+    Map<String, dynamic>? nextSession;
+
+    for (final s in sessions) {
+      final start = s['start_time'] as DateTime;
+      final end = s['end_time'] as DateTime;
+      final isLive = (nowTime.hour > start.hour || (nowTime.hour == start.hour && nowTime.minute >= start.minute)) &&
+          !(nowTime.hour > end.hour || (nowTime.hour == end.hour && nowTime.minute >= end.minute));
+      if (isLive) {
+        activeSession = s;
+        break;
+      }
+    }
+    if (activeSession == null) {
+      for (final s in sessions) {
+        final start = s['start_time'] as DateTime;
+        if (nowTime.hour < start.hour || (nowTime.hour == start.hour && nowTime.minute < start.minute)) {
+          nextSession = s;
+          break;
+        }
+      }
+    }
+
+    final present = (activeSession?['present'] as List?) ?? [];
+    final absent = (activeSession?['absent'] as List?) ?? [];
+    final total = present.length + absent.length;
+    final pct = total > 0 ? present.length / total : 0.0;
+
+    final sessionElapsed = activeSession != null
+        ? (now.hour * 60 + now.minute) - ((activeSession['start_time'] as DateTime).hour * 60 + (activeSession['start_time'] as DateTime).minute)
+        : 0;
+    final sessionDuration = activeSession != null
+        ? ((activeSession['end_time'] as DateTime).hour * 60 + (activeSession['end_time'] as DateTime).minute) - ((activeSession['start_time'] as DateTime).hour * 60 + (activeSession['start_time'] as DateTime).minute)
+        : 0;
+    final showAmber = activeSession != null && sessionDuration > 0 && sessionElapsed > sessionDuration / 2 && pct < 0.5;
+
+    return Card(
+      color: showAmber ? const Color(0xFFC2823A).withValues(alpha: 0.08) : ShellTokens.chromeSurface,
+      child: Container(
+        width: 280,
+        constraints: const BoxConstraints(maxHeight: 320),
+        padding: const EdgeInsets.all(10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            const Icon(PhosphorIcons.building, size: 14, color: ShellTokens.accent),
+            const SizedBox(width: 6),
+            Expanded(child: Text(room['classroom_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary))),
+            if (room['capacity'] != null)
+              Text('${room['capacity']}', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+          ]),
+          const SizedBox(height: 4),
+          if (activeSession != null) ...[
+            Row(children: [
+              const Icon(PhosphorIcons.clock, size: 11, color: SemanticTokens.success),
+              const SizedBox(width: 4),
+              Text(activeSession['group_name'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            ]),
+            const SizedBox(height: 2),
+            Row(children: [
+              const Icon(PhosphorIcons.chalkboardTeacher, size: 10, color: ShellTokens.textSecondary),
+              const SizedBox(width: 3),
+              Text('${activeSession['teacher_first'] ?? ''} ${activeSession['teacher_last'] ?? ''}', style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary)),
+              const SizedBox(width: 8),
+              Text('${present.length}/$total present', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: showAmber ? const Color(0xFFC2823A) : ShellTokens.textDisabled)),
+            ]),
+            const SizedBox(height: 2),
+            Text(_timeLabel(activeSession['start_time'], activeSession['end_time']), style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+            const SizedBox(height: 6),
+            _roomListSection('Present', present, SemanticTokens.success),
+            _roomListSection('Absent', absent, SemanticTokens.error),
+          ] else if (nextSession != null) ...[
+            Row(children: [
+              const Icon(PhosphorIcons.calendar, size: 11, color: ShellTokens.accent),
+              const SizedBox(width: 4),
+              Text(nextSession['group_name'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            ]),
+            const SizedBox(height: 2),
+            Text('Next at ${_timeLabel(nextSession['start_time'], nextSession['end_time'])}', style: const TextStyle(fontSize: 10, color: ShellTokens.accent)),
+          ] else ...[
+            const Row(children: [
+              Icon(PhosphorIcons.info, size: 11, color: ShellTokens.textDisabled),
+              SizedBox(width: 4),
+              Text('No sessions today', style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: ShellTokens.textDisabled)),
+            ]),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _roomListSection(String label, List list, Color color) {
+    if (list.isEmpty) return const SizedBox.shrink();
+    return Expanded(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Row(children: [
+          Icon(PhosphorIcons.checkCircle, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text('$label (${list.length})', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+        ]),
+        const SizedBox(height: 2),
+        Expanded(
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 20),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: list.length,
+              itemBuilder: (_, i) {
+                final s = list[i];
+                return Text(
+                  '${label == 'Absent' ? '\u00B7 ' : ''}${s['stu_first'] ?? ''} ${s['stu_last'] ?? ''}',
+                  style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
+            ),
+          ),
+        ),
+      ]),
     );
   }
 

@@ -1189,6 +1189,55 @@ class AppDatabase extends _$AppDatabase {
     return row.read<int>('cnt');
   }
 
+  Future<List<Map<String, dynamic>>> getTodayRoomGrid() async {
+    final now = DateTime.now();
+    final today = now.weekday;
+    return await customSelect(
+      'SELECT '
+      'c.id AS classroom_id, c.name_ar AS classroom_name, c.capacity, c.floor, '
+      's.id AS session_id, sg.name_ar AS group_name, s.start_time, s.end_time, '
+      't.first_name_ar AS teacher_first, t.last_name_ar AS teacher_last, '
+      'st.id AS student_id, st.first_name_ar AS stu_first, st.last_name_ar AS stu_last, '
+      'st.code, st.photo_path, '
+      'a.status AS att_status, a.check_in_time '
+      'FROM classrooms c '
+      'LEFT JOIN sessions s ON c.id = s.classroom_id '
+      '  AND s.day_of_week = ? AND s.is_active = 1 AND s.is_archived = 0 '
+      'LEFT JOIN subject_groups sg ON s.subject_group_id = sg.id '
+      'LEFT JOIN teachers t ON s.teacher_id = t.id '
+      'LEFT JOIN enrollments e ON e.subject_group_id = s.subject_group_id '
+      '  AND e.status = \'active\' AND e.is_transferred = 0 '
+      'LEFT JOIN students st ON st.id = e.student_id AND st.is_archived = 0 '
+      'LEFT JOIN attendance a ON a.student_id = st.id AND a.session_id = s.id '
+      '  AND a.attendance_date >= ? AND a.attendance_date < ? AND a.status = \'present\' '
+      'WHERE c.is_archived = 0 '
+      'ORDER BY c.floor, c.name_ar, s.start_time, st.first_name_ar',
+      variables: [
+        Variable.withInt(today),
+        Variable.withDateTime(DateTime(now.year, now.month, now.day)),
+        Variable.withDateTime(DateTime(now.year, now.month, now.day + 1)),
+      ],
+    ).map((r) => {
+      'classroom_id': r.read<String>('classroom_id'),
+      'classroom_name': r.read<String>('classroom_name'),
+      'capacity': r.read<int>('capacity'),
+      'floor': r.read<int?>('floor'),
+      'session_id': r.read<String?>('session_id'),
+      'group_name': r.read<String?>('group_name'),
+      'start_time': r.read<DateTime?>('start_time'),
+      'end_time': r.read<DateTime?>('end_time'),
+      'teacher_first': r.read<String?>('teacher_first'),
+      'teacher_last': r.read<String?>('teacher_last'),
+      'student_id': r.read<String?>('student_id'),
+      'stu_first': r.read<String?>('stu_first'),
+      'stu_last': r.read<String?>('stu_last'),
+      'code': r.read<String?>('code'),
+      'photo_path': r.read<String?>('photo_path'),
+      'att_status': r.read<String?>('att_status'),
+      'check_in_time': r.read<DateTime?>('check_in_time'),
+    }).get();
+  }
+
   Future<List<Map<String, dynamic>>> getTodaySessionsWithAttendance() async {
     final now = DateTime.now();
     final today = now.weekday;
