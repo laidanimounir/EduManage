@@ -62,6 +62,8 @@ class TransactionService extends BaseRepository {
 
     if (amount < 0) amount = 0;
 
+    final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';
+
     final id = await _txRepo.insert(TransactionsCompanion(
       studentId: Value(studentId),
       enrollmentId: Value(enrollmentId),
@@ -70,6 +72,7 @@ class TransactionService extends BaseRepository {
       amount: Value(amount),
       transactionDate: Value(txDate),
       note: Value(note),
+      priceSnapshot: Value(priceSnapshotStr),
       createdByUserId: Value(createdByUserId),
     ));
 
