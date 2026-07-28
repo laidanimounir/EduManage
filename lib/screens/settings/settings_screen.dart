@@ -4,6 +4,7 @@ import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/settings_repository.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/theme_tokens.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppDatabase database;
@@ -18,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final SettingsRepository _settingsRepo;
   int _sessionTimeout = AppConstants.defaultSessionTimeoutMinutes;
   double _registrationFeeAmount = 2000;
+  List<int> _agingBuckets = [30, 60, 90];
   bool _loading = true;
 
   @override
@@ -35,12 +37,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     final prefs = await SharedPreferences.getInstance();
     _registrationFeeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final ag1 = prefs.getInt('aging_bucket_1') ?? 30;
+    final ag2 = prefs.getInt('aging_bucket_2') ?? 60;
+    final ag3 = prefs.getInt('aging_bucket_3') ?? 90;
+    _agingBuckets = [ag1, ag2, ag3];
     setState(() => _loading = false);
+  }
+
+  Future<void> _saveAgingBucket(int index, int days) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('aging_bucket_${index + 1}', days);
+    setState(() => _agingBuckets[index] = days);
   }
 
   Future<void> _saveSessionTimeout(int minutes) async {
     await _settingsRepo.set('session_timeout_minutes', minutes.toString());
     setState(() => _sessionTimeout = minutes);
+  }
+
+  Widget _agingField(int index, String label, Color color) {
+    return Expanded(
+      child: Column(children: [
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: _agingBuckets[index].toString(),
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+          style: TextStyle(fontSize: 12, color: color),
+          onChanged: (v) {
+            final d = int.tryParse(v) ?? _agingBuckets[index];
+            if (d > 0) _saveAgingBucket(index, d);
+          },
+        ),
+      ]),
+    );
   }
 
   @override
@@ -149,6 +181,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Debt Aging Buckets (Days)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  const Text('Colors indicate how long a debt has been outstanding',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _agingField(0, 'Green', const Color(0xFF27AE60)),
+                    const SizedBox(width: 8),
+                    _agingField(1, 'Amber', SemanticTokens.warning),
+                    const SizedBox(width: 8),
+                    _agingField(2, 'Red', SemanticTokens.error),
+                  ]),
                 ],
               ),
             ),

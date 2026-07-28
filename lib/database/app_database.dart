@@ -801,4 +801,14 @@ class AppDatabase extends _$AppDatabase {
 
     return {'total': total, 'entries': entries};
   }
+
+  Future<DateTime?> getOldestUnpaidChargeDate(String studentId) async {
+    final result = await customSelect(
+      'SELECT MIN(t.transaction_date) AS oldest_date FROM transactions t '
+      'WHERE t.student_id = ? AND t.type IN (\'session_charge\', \'registration_fee\', \'correction\') '
+      'AND t.amount > COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa WHERE pa.charge_transaction_id = t.id), 0)',
+      variables: [Variable.withString(studentId)],
+    ).getSingle();
+    return result.read<DateTime?>('oldest_date');
+  }
 }

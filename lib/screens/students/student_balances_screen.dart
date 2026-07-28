@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:excel/excel.dart' hide Border;
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
@@ -50,13 +51,29 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
   Timer? _searchDebounce;
   List<_SelectOption> _levels = [];
   List<_SelectOption> _groups = [];
+  List<int> _agingBuckets = [30, 60, 90];
+  Map<String, int?> _agingDays = {};
 
   @override
   void initState() {
     super.initState();
     _studentRepo = StudentRepository(widget.database);
     _loadFilters();
+    _loadAgingSettings();
     _fetchPage();
+  }
+
+  Future<void> _loadAgingSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _agingBuckets = [
+          prefs.getInt('aging_bucket_1') ?? 30,
+          prefs.getInt('aging_bucket_2') ?? 60,
+          prefs.getInt('aging_bucket_3') ?? 90,
+        ];
+      });
+    }
   }
 
   @override
@@ -99,10 +116,17 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
         sortField: _sortColumn != null ? sortMap[_sortColumn] : 'debt',
         sortAsc: _sortAsc,
       );
+      final entries = (result['entries'] as List).cast<Map<String, dynamic>>();
+      final agingDays = <String, int?>{};
+      for (final e in entries) {
+        final oldest = await widget.database.getOldestUnpaidChargeDate(e['studentId'] as String);
+        agingDays[e['studentId'] as String] = oldest != null ? DateTime.now().difference(oldest).inDays : null;
+      }
       if (mounted) {
         setState(() {
-          _rows = (result['entries'] as List).cast<Map<String, dynamic>>();
+          _rows = entries;
           _total = result['total'] as int;
+          _agingDays = agingDays;
           _loading = false;
         });
       }
@@ -342,10 +366,14 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
   TableRow _buildDataRow(Map<String, dynamic> entry, int index, AppLocalizations l10n) {
     final balance = entry['balance'] as double;
     final isEven = index.isEven;
+    final days = _agingDays[entry['studentId'] as String];
+    final agingColor = _agingColor(days);
 
     return TableRow(
       decoration: BoxDecoration(
-        color: isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3),
+        color: agingColor != null
+            ? agingColor.withValues(alpha: 0.08)
+            : isEven ? Colors.transparent : ShellTokens.chromeBase.withValues(alpha: 0.3),
       ),
       children: [
         GestureDetector(
@@ -353,11 +381,17 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text('${entry['firstName']} ${entry['lastName']}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-              if (entry['schoolLevel'] != null)
-                Text(entry['schoolLevel'] as String, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text('${entry['firstName']} ${entry['lastName']}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                  if (entry['schoolLevel'] != null)
+                    Text(entry['schoolLevel'] as String, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+                ]),
+              ),
+              if (days != null && days > 0)
+                Text('${days}d', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: agingColor ?? ShellTokens.textDisabled)),
             ]),
           ),
         ),
@@ -388,6 +422,14 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Text(t, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
     );
+  }
+
+  Color? _agingColor(int? days) {
+    if (days == null || days <= 0) return null;
+    if (days > _agingBuckets[2]) return SemanticTokens.error;
+    if (days > _agingBuckets[1]) return const Color(0xFFE67E22);
+    if (days > _agingBuckets[0]) return SemanticTokens.warning;
+    return null;
   }
 
   Widget _buildPagination(AppLocalizations l10n, int totalPages) {
