@@ -350,17 +350,33 @@ for (final s in sessions) {
 
 ## Deferred Items
 
-1. **Pay Now fix** â€” described above. Needs decision on whether to add date-range picker, session selection checkboxes, or both. NOT TOUCHED.
+1. ~~Pay Now fix~~ â€” FIXED in Round 5. Added deduplication check, cancellation check, session selection with attendance summary, date picker, and improved UI with ShellDialog.
 
 2. ~~SubjectGroups archive/restore~~ â€” COMPLETED in Round 4.
 
 3. ~~Classrooms archive/restore~~ â€” COMPLETED in Round 4.
 
-4. **Enrollment end dates** â€” still deferred. Not needed since payment timestamp already serves as history reference.
+4. **Enrollment end dates** â€” still deferred.
 
 5. ~~Waitlist concept~~ â€” COMPLETED in Round 4.
 
 6. ~~Enrollment transfer~~ â€” COMPLETED in Round 4.
+
+7. **Family accounts** â€” deferred. Requires new tables (families, family_members), manual linking UI, family-level discount application.
+
+8. **Attendance-based billing cycles** â€” deferred. Requires billing_cycles table, per-student cycle tracking, cycle completion logic. Note: School closures vs single-session cancellations need clearer distinction in how they affect a student's billing cycle count and whether a make-up session is auto-added.
+
+9. **Refunds and credit notes** â€” deferred. Requires refund workflow (cash refund vs credit note), automatic credit balance application, credit_note tracking.
+
+10. **KPI dashboard** â€” deferred. Requires free-date-range-driven KPI cards (total revenue, outstanding, collection rate, net balance, avg days-to-pay), bar chart library.
+
+11. **Bulk payment recording** â€” deferred. Requires multi-student selection, per-student breakdown, atomic batch transaction.
+
+12. **Student/Teacher PDF statements** â€” deferred. Requires full-history PDF generation per student/teacher.
+
+13. **PDF receipt with QR code** â€” deferred. Requires QR generation library, monthly printable receipt per student.
+
+14. **Unbilled-but-active indicator** â€” deferred. Requires tracking which enrolled students have no session_charge for current cycle.
 
 ---
 
@@ -396,3 +412,162 @@ for (final s in sessions) {
 - Student `_EnrollmentList` filters to `status=='active' && !isTransferred`
 - Enrollment add-dialog excludes archived groups
 - Transfer excludes source group + archived groups
+
+---
+
+## Round 5 — Payments & Debts Overhaul (2026-07-28)
+
+### Schema Changes
+- **v7:** Added `paymentMethod` (text) and `priceSnapshot` (text) columns to `transactions`
+- **v8:** Added `payment_allocations` table (id, paymentTransactionId, chargeTransactionId, amount)
+- **v9:** Added `closed_periods` table (id, year, month, closedAt, closedByUserId)
+
+### Payments Screen — Complete Rebuild
+- Dense table with all 10 transaction types (session_charge, student_payment, registration_fee, registration_fee_payment, teacher_payout, expense, correction, reversal, discount, session_cancellation_reversal)
+- Student/teacher name resolution via SQL JOIN
+- Color-coded type badges (blue=charges, green=payments, purple=teacher payouts, orange=expenses, red=corrections/reversals)
+- Filter chips per type, date range picker (from/to), debounced search
+- Sortable headers (date, amount, type), ShellPaginationBar
+- Checkbox multi-select with selection bar
+- PDF/Excel export stubs (matching app pattern)
+- Transaction detail ShellDialog (all fields, rateSnapshot, priceSnapshot, reference transaction, audit info)
+- Record Payment ShellDialog (student selector, amount, payment method dropdown, note, FIFO auto-allocation toggle with charge checkboxes)
+- Record Expense ShellDialog (amount, category dropdown, note)
+- Void/Reverse Transaction ShellDialog (mandatory reason field, creates linked reversal)
+- Per-student financial history dialog (charges/paid/balance summary + full transaction list)
+- Month-end Close Period dialog (year/month selector, pre-close summary showing revenue/expenses/outstanding/net)
+- Balance Transfer dialog (from/to student, amount, mandatory reason, audit logged)
+- Period guard: all createStudentPayment/createExpense/createTeacherPayout calls check isPeriodClosed() and throw StateError if period is closed
+
+### Outstanding Debts Screen — Complete Rebuild
+- Dense table with school level, total charged, total paid, remaining columns
+- DB-level pagination (scales to 500+ students)
+- DB-level sorting (name, debt, code)
+- Filter chips: All / Has Debt / Settled / Credit Balance
+- Filter dropdowns: School Level, Subject Group
+- Debounced search field
+- Click-through to student balance detail ShellDialog (charged/paid/balance cards, Record Payment button, View History button)
+- Debt aging: per-row color tinting based on configurable bucket thresholds, with "Xd" aging label
+- Excel export (functional, writes to documents directory)
+
+### Debt Aging Settings
+- Configurable 3-tier aging buckets in Settings screen (stored in SharedPreferences)
+- Default: 30 days (green?amber), 60 days (amber), 90 days (red)
+- Outstanding Debts list queries oldest unpaid charge date per student and tints rows accordingly
+
+### Pay Now Bug — FIXED
+- Added deduplication check in createTeacherPayout (prevents double-payout for same session/date)
+- Added cancellation check in createTeacherPayout (throws StateError if session is cancelled)
+- Replaced AlertDialog with ShellDialog showing session list with checkboxes, attendance counts, per-session amounts, and date picker
+- Shows pre-payment calculated total before confirming
+- Error handling: per-session try/catch with success/skip counts in result SnackBar
+
+### Partial Payment Allocation
+- FIFO auto-allocation: payment applied to oldest unpaid charges first by default
+- Manual allocation toggle: shows unpaid charge checkboxes with remaining amounts, running total
+- payment_allocations table tracks per-charge paid vs remaining
+- getUnpaidCharges() returns charges with remaining balance for allocation UI
+
+### Correction & Reversal Mandatory Reasons
+- createCorrection: note parameter changed from String? to required String with empty-check guard
+- createReversal: note parameter changed from String? to required String with empty-check guard
+- VoidTransactionDialog enforces reason field before saving
+
+### Archive Warning for Pending Balance
+- Student archive confirmation dialog now checks getStudentBalance() and shows red warning with outstanding amount
+
+### Historical Price Snapshot for Student Charges
+- createSessionCharge now snapshots price:amount, monthly:rate, perMonth:sessionsCount into priceSnapshot column
+
+### Teacher Payout Accuracy
+- Pay Now session selection allows choosing which sessions to pay (not blanket all-active)
+- Pre-payment summary shows attendance count per session and calculated amount before confirming
+
+### Balance Transfer
+- Transfer dialog: select from/to student, enter amount, mandatory reason
+- Creates payment transaction on destination student with transfer metadata
+- Full audit trail via audit_log entries
+
+### Period Close Guard
+- isPeriodClosed() check in createStudentPayment, createExpense, createTeacherPayout, createBalanceTransfer
+- Prevents retroactive edits to closed periods
+- Close Period dialog shows revenue/expenses/outstanding/net summary before committing
+
+---
+
+## PAYMENTS (REBUILT)
+- [ ] **99. Payments — dense table visual**
+  - Open sidebar ? Payments. Verify: dark theme, zebra stripes, 8 columns (checkbox, date, type badge, student/teacher name, amount, method, notes, actions).
+- [ ] **100. Payments — type filter chips**
+  - Click each filter chip (All, Payments, Charges, Registration Fee, Teacher Payouts, Expenses, Corrections, Reversals) ? only matching transactions shown. Click active chip again ? returns to All.
+- [ ] **101. Payments — date range filter**
+  - Click "From" date button ? pick a date ? only transactions after that date. Click X to clear. Same for "To".
+- [ ] **102. Payments — search**
+  - Type a student name or teacher name in the search field ? results filter live. Clear button resets.
+- [ ] **103. Payments — sortable headers**
+  - Click "Date" header ? sorted ascending. Click again ? descending. Same for Amount.
+- [ ] **104. Payments — pagination**
+  - Verify "Showing 1–X of Y" footer with prev/next buttons. Navigate pages.
+- [ ] **105. Payments — checkbox multi-select**
+  - Click checkbox column header ? all rows selected, selection bar appears. Clear selection.
+- [ ] **106. Payments — transaction detail dialog**
+  - Click any row ? ShellDialog shows: Transaction ID, date, type, amount, student/teacher name, session group if applicable, payment method, note, rate/price snapshot, reference transaction, audit timestamps.
+- [ ] **107. Payments — record payment dialog**
+  - Click "+" button ? ShellDialog. Search for a student ? select. Enter amount, choose payment method (Cash/Card/Bank Transfer/Mobile), add note. Save ? new payment appears in list.
+- [ ] **108. Payments — manual payment allocation**
+  - In record payment dialog: toggle "Manual Allocation" ? unpaid charges appear with checkboxes. Check one ? allocated total updates. Unchecked ? FIFO applies automatically.
+- [ ] **109. Payments — record expense dialog**
+  - Open from Payments screen. Enter amount, choose category (Rent/Salary/Materials/Utilities/Other), add note. Save ? expense appears in list.
+- [ ] **110. Payments — void/reverse transaction**
+  - Click counter-clockwise arrow on a non-reversal row ? ShellDialog. Enter mandatory reason ? confirm. New reversal transaction created and linked to original.
+- [ ] **111. Payments — per-student history**
+  - Click receipt icon ? search for a student ? ShellDialog shows: charged/paid/balance cards, full transaction history with date/type/note/amount.
+- [ ] **112. Payments — correction badge**
+  - Find a correction transaction. Verify it has a distinct red badge visually different from charges/payments.
+
+## OUTSTANDING DEBTS (REBUILT)
+- [ ] **113. Debts — dense table**
+  - Open sidebar ? Outstanding Debts. Verify: dark theme, zebra stripes, 6 columns (name, school level, total charged, total paid, remaining, code). Balance column colored red (positive) or green (zero/negative).
+- [ ] **114. Debts — filter chips**
+  - Click "Debt" ? only positive-balance students. Click "Settled" ? only zero balance. Click "Credit" ? only negative balance. Click "All" ? everyone.
+- [ ] **115. Debts — level/group filter**
+  - Select a school level from dropdown ? list filters. Select a group ? list filters. Select "All" ? resets.
+- [ ] **116. Debts — search**
+  - Type a student name/code ? results filter. Clear ? resets.
+- [ ] **117. Debts — sortable headers**
+  - Click "Remaining" header ? sorted by balance. Click "Name" ? sorted by name. Arrow indicators show direction.
+- [ ] **118. Debts — pagination**
+  - Verify footer pagination works with prev/next. Large datasets should page correctly.
+- [ ] **119. Debts — student detail dialog**
+  - Click any row ? ShellDialog shows: student name/code, charged/paid/balance cards. "Record Payment" button opens quick-pay dialog. "View History" opens full transaction history.
+- [ ] **120. Debts — debt aging visual**
+  - If any student has unpaid charges older than aging bucket thresholds, verify their row has a colored tint (amber/orange/red) and shows "Xd" aging label.
+- [ ] **121. Debts — Excel export**
+  - Click Excel icon ? verify file written to documents directory with student data.
+
+## TEACHER PAYOUTS (FIXED)
+- [ ] **122. Pay Now — session selection**
+  - Open a teacher's detail ? click "Pay Now". Verify: ShellDialog shows date picker, session list with checkboxes, attendance counts, per-session amounts, and calculated total.
+- [ ] **123. Pay Now — deduplication**
+  - Pay Now for a session, try to Pay Now again for same date ? should skip with "skipped" count in SnackBar.
+- [ ] **124. Pay Now — cancellation check**
+  - Cancel a session for today, try to Pay Now ? should skip that session gracefully.
+
+## SETTINGS — DEBT AGING
+- [ ] **125. Debt aging buckets**
+  - Open sidebar ? Settings. Verify "Debt Aging Buckets" section with 3 number fields (Green/Amber/Red days). Change a value ? it persists after re-opening Settings.
+
+## MONTH-END CLOSING
+- [ ] **126. Close Period dialog**
+  - From Payments toolbar, click archive/close period icon. Select year/month ? click search ? verify summary shows Revenue, Expenses, Outstanding Debt, Net.
+- [ ] **127. Close Period guard**
+  - Close a period. Try to record a payment for that month ? should fail with "Cannot modify transactions in a closed period" error.
+
+## BALANCE TRANSFER
+- [ ] **128. Balance Transfer dialog**
+  - From Payments toolbar, click ? icon. Select From/To students, enter amount and reason ? save. Verify new payment appears in destination student's history.
+
+## ARCHIVE WARNING
+- [ ] **129. Archive warning for balance**
+  - Give a student an outstanding balance. Try to archive them ? verify red warning shows balance amount.
+
