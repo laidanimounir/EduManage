@@ -287,8 +287,20 @@ class SchoolLevels extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class PaymentAllocations extends Table {
+  TextColumn get id => text()();
+  TextColumn get paymentTransactionId => text().references(Transactions, #id)();
+  TextColumn get chargeTransactionId => text().references(Transactions, #id)();
+  RealColumn get amount => real()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -319,7 +331,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -386,6 +398,9 @@ class AppDatabase extends _$AppDatabase {
             transactions.priceSnapshot,
           ],
         ));
+      }
+      if (from < 8) {
+        await m.createTable(paymentAllocations);
       }
     },
   );

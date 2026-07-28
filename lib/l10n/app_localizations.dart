@@ -2433,6 +2433,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Group'**
   String get group;
+
+  /// No description provided for @allocatePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual Allocation'**
+  String get allocatePayment;
+
+  /// No description provided for @unpaidCharges.
+  ///
+  /// In en, this message translates to:
+  /// **'unpaid charges'**
+  String get unpaidCharges;
+
+  /// No description provided for @ifUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'if unchecked'**
+  String get ifUnchecked;
+
+  /// No description provided for @allocatedTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Allocated'**
+  String get allocatedTotal;
 }
 
 class _AppLocalizationsDelegate

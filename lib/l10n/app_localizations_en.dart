@@ -1203,4 +1203,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get group => 'Group';
+
+  @override
+  String get allocatePayment => 'Manual Allocation';
+
+  @override
+  String get unpaidCharges => 'unpaid charges';
+
+  @override
+  String get ifUnchecked => 'if unchecked';
+
+  @override
+  String get allocatedTotal => 'Allocated';
 }

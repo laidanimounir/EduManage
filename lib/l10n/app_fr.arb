@@ -404,5 +404,9 @@
   "createdAt": "Créé le",
   "operationFailed": "Échec de l'opération",
   "selectStudent": "Sélectionner élève",
-  "group": "Groupe"
+  "group": "Groupe",
+  "allocatePayment": "Allocation manuelle",
+  "unpaidCharges": "frais impayés",
+  "ifUnchecked": "si décoché",
+  "allocatedTotal": "Alloué"
 }

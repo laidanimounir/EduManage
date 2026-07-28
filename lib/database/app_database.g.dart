@@ -10937,6 +10937,445 @@ class SchoolLevelsCompanion extends UpdateCompanion<SchoolLevel> {
   }
 }
 
+class $PaymentAllocationsTable extends PaymentAllocations
+    with TableInfo<$PaymentAllocationsTable, PaymentAllocation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentAllocationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentTransactionIdMeta =
+      const VerificationMeta('paymentTransactionId');
+  @override
+  late final GeneratedColumn<String> paymentTransactionId =
+      GeneratedColumn<String>(
+        'payment_transaction_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES transactions (id)',
+        ),
+      );
+  static const VerificationMeta _chargeTransactionIdMeta =
+      const VerificationMeta('chargeTransactionId');
+  @override
+  late final GeneratedColumn<String> chargeTransactionId =
+      GeneratedColumn<String>(
+        'charge_transaction_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES transactions (id)',
+        ),
+      );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    paymentTransactionId,
+    chargeTransactionId,
+    amount,
+    createdAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payment_allocations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentAllocation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payment_transaction_id')) {
+      context.handle(
+        _paymentTransactionIdMeta,
+        paymentTransactionId.isAcceptableOrUnknown(
+          data['payment_transaction_id']!,
+          _paymentTransactionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentTransactionIdMeta);
+    }
+    if (data.containsKey('charge_transaction_id')) {
+      context.handle(
+        _chargeTransactionIdMeta,
+        chargeTransactionId.isAcceptableOrUnknown(
+          data['charge_transaction_id']!,
+          _chargeTransactionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chargeTransactionIdMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentAllocation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentAllocation(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      paymentTransactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_transaction_id'],
+      )!,
+      chargeTransactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}charge_transaction_id'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PaymentAllocationsTable createAlias(String alias) {
+    return $PaymentAllocationsTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentAllocation extends DataClass
+    implements Insertable<PaymentAllocation> {
+  final String id;
+  final String paymentTransactionId;
+  final String chargeTransactionId;
+  final double amount;
+  final DateTime createdAt;
+  final String deviceId;
+  const PaymentAllocation({
+    required this.id,
+    required this.paymentTransactionId,
+    required this.chargeTransactionId,
+    required this.amount,
+    required this.createdAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['payment_transaction_id'] = Variable<String>(paymentTransactionId);
+    map['charge_transaction_id'] = Variable<String>(chargeTransactionId);
+    map['amount'] = Variable<double>(amount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  PaymentAllocationsCompanion toCompanion(bool nullToAbsent) {
+    return PaymentAllocationsCompanion(
+      id: Value(id),
+      paymentTransactionId: Value(paymentTransactionId),
+      chargeTransactionId: Value(chargeTransactionId),
+      amount: Value(amount),
+      createdAt: Value(createdAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory PaymentAllocation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentAllocation(
+      id: serializer.fromJson<String>(json['id']),
+      paymentTransactionId: serializer.fromJson<String>(
+        json['paymentTransactionId'],
+      ),
+      chargeTransactionId: serializer.fromJson<String>(
+        json['chargeTransactionId'],
+      ),
+      amount: serializer.fromJson<double>(json['amount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'paymentTransactionId': serializer.toJson<String>(paymentTransactionId),
+      'chargeTransactionId': serializer.toJson<String>(chargeTransactionId),
+      'amount': serializer.toJson<double>(amount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  PaymentAllocation copyWith({
+    String? id,
+    String? paymentTransactionId,
+    String? chargeTransactionId,
+    double? amount,
+    DateTime? createdAt,
+    String? deviceId,
+  }) => PaymentAllocation(
+    id: id ?? this.id,
+    paymentTransactionId: paymentTransactionId ?? this.paymentTransactionId,
+    chargeTransactionId: chargeTransactionId ?? this.chargeTransactionId,
+    amount: amount ?? this.amount,
+    createdAt: createdAt ?? this.createdAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  PaymentAllocation copyWithCompanion(PaymentAllocationsCompanion data) {
+    return PaymentAllocation(
+      id: data.id.present ? data.id.value : this.id,
+      paymentTransactionId: data.paymentTransactionId.present
+          ? data.paymentTransactionId.value
+          : this.paymentTransactionId,
+      chargeTransactionId: data.chargeTransactionId.present
+          ? data.chargeTransactionId.value
+          : this.chargeTransactionId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentAllocation(')
+          ..write('id: $id, ')
+          ..write('paymentTransactionId: $paymentTransactionId, ')
+          ..write('chargeTransactionId: $chargeTransactionId, ')
+          ..write('amount: $amount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    paymentTransactionId,
+    chargeTransactionId,
+    amount,
+    createdAt,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentAllocation &&
+          other.id == this.id &&
+          other.paymentTransactionId == this.paymentTransactionId &&
+          other.chargeTransactionId == this.chargeTransactionId &&
+          other.amount == this.amount &&
+          other.createdAt == this.createdAt &&
+          other.deviceId == this.deviceId);
+}
+
+class PaymentAllocationsCompanion extends UpdateCompanion<PaymentAllocation> {
+  final Value<String> id;
+  final Value<String> paymentTransactionId;
+  final Value<String> chargeTransactionId;
+  final Value<double> amount;
+  final Value<DateTime> createdAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const PaymentAllocationsCompanion({
+    this.id = const Value.absent(),
+    this.paymentTransactionId = const Value.absent(),
+    this.chargeTransactionId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PaymentAllocationsCompanion.insert({
+    required String id,
+    required String paymentTransactionId,
+    required String chargeTransactionId,
+    required double amount,
+    this.createdAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       paymentTransactionId = Value(paymentTransactionId),
+       chargeTransactionId = Value(chargeTransactionId),
+       amount = Value(amount),
+       deviceId = Value(deviceId);
+  static Insertable<PaymentAllocation> custom({
+    Expression<String>? id,
+    Expression<String>? paymentTransactionId,
+    Expression<String>? chargeTransactionId,
+    Expression<double>? amount,
+    Expression<DateTime>? createdAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (paymentTransactionId != null)
+        'payment_transaction_id': paymentTransactionId,
+      if (chargeTransactionId != null)
+        'charge_transaction_id': chargeTransactionId,
+      if (amount != null) 'amount': amount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PaymentAllocationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? paymentTransactionId,
+    Value<String>? chargeTransactionId,
+    Value<double>? amount,
+    Value<DateTime>? createdAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return PaymentAllocationsCompanion(
+      id: id ?? this.id,
+      paymentTransactionId: paymentTransactionId ?? this.paymentTransactionId,
+      chargeTransactionId: chargeTransactionId ?? this.chargeTransactionId,
+      amount: amount ?? this.amount,
+      createdAt: createdAt ?? this.createdAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (paymentTransactionId.present) {
+      map['payment_transaction_id'] = Variable<String>(
+        paymentTransactionId.value,
+      );
+    }
+    if (chargeTransactionId.present) {
+      map['charge_transaction_id'] = Variable<String>(
+        chargeTransactionId.value,
+      );
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentAllocationsCompanion(')
+          ..write('id: $id, ')
+          ..write('paymentTransactionId: $paymentTransactionId, ')
+          ..write('chargeTransactionId: $chargeTransactionId, ')
+          ..write('amount: $amount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10959,6 +11398,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $TeacherSubjectGroupsTable(this);
   late final $SchoolClosuresTable schoolClosures = $SchoolClosuresTable(this);
   late final $SchoolLevelsTable schoolLevels = $SchoolLevelsTable(this);
+  late final $PaymentAllocationsTable paymentAllocations =
+      $PaymentAllocationsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10981,6 +11422,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     teacherSubjectGroups,
     schoolClosures,
     schoolLevels,
+    paymentAllocations,
   ];
 }
 
@@ -20107,6 +20549,459 @@ typedef $$SchoolLevelsTableProcessedTableManager =
       SchoolLevel,
       PrefetchHooks Function()
     >;
+typedef $$PaymentAllocationsTableCreateCompanionBuilder =
+    PaymentAllocationsCompanion Function({
+      required String id,
+      required String paymentTransactionId,
+      required String chargeTransactionId,
+      required double amount,
+      Value<DateTime> createdAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$PaymentAllocationsTableUpdateCompanionBuilder =
+    PaymentAllocationsCompanion Function({
+      Value<String> id,
+      Value<String> paymentTransactionId,
+      Value<String> chargeTransactionId,
+      Value<double> amount,
+      Value<DateTime> createdAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$PaymentAllocationsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PaymentAllocationsTable,
+          PaymentAllocation
+        > {
+  $$PaymentAllocationsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TransactionsTable _paymentTransactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        'payment_allocations__payment_transaction_id__transactions__id',
+      );
+
+  $$TransactionsTableProcessedTableManager get paymentTransactionId {
+    final $_column = $_itemColumn<String>('payment_transaction_id')!;
+
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _paymentTransactionIdTable($_db),
+    );
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _chargeTransactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        'payment_allocations__charge_transaction_id__transactions__id',
+      );
+
+  $$TransactionsTableProcessedTableManager get chargeTransactionId {
+    final $_column = $_itemColumn<String>('charge_transaction_id')!;
+
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chargeTransactionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PaymentAllocationsTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentAllocationsTable> {
+  $$PaymentAllocationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TransactionsTableFilterComposer get paymentTransactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get chargeTransactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chargeTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentAllocationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentAllocationsTable> {
+  $$PaymentAllocationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TransactionsTableOrderingComposer get paymentTransactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get chargeTransactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chargeTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentAllocationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentAllocationsTable> {
+  $$PaymentAllocationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  $$TransactionsTableAnnotationComposer get paymentTransactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get chargeTransactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chargeTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentAllocationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentAllocationsTable,
+          PaymentAllocation,
+          $$PaymentAllocationsTableFilterComposer,
+          $$PaymentAllocationsTableOrderingComposer,
+          $$PaymentAllocationsTableAnnotationComposer,
+          $$PaymentAllocationsTableCreateCompanionBuilder,
+          $$PaymentAllocationsTableUpdateCompanionBuilder,
+          (PaymentAllocation, $$PaymentAllocationsTableReferences),
+          PaymentAllocation,
+          PrefetchHooks Function({
+            bool paymentTransactionId,
+            bool chargeTransactionId,
+          })
+        > {
+  $$PaymentAllocationsTableTableManager(
+    _$AppDatabase db,
+    $PaymentAllocationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentAllocationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentAllocationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentAllocationsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> paymentTransactionId = const Value.absent(),
+                Value<String> chargeTransactionId = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentAllocationsCompanion(
+                id: id,
+                paymentTransactionId: paymentTransactionId,
+                chargeTransactionId: chargeTransactionId,
+                amount: amount,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String paymentTransactionId,
+                required String chargeTransactionId,
+                required double amount,
+                Value<DateTime> createdAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentAllocationsCompanion.insert(
+                id: id,
+                paymentTransactionId: paymentTransactionId,
+                chargeTransactionId: chargeTransactionId,
+                amount: amount,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaymentAllocationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({paymentTransactionId = false, chargeTransactionId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (paymentTransactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.paymentTransactionId,
+                                    referencedTable:
+                                        $$PaymentAllocationsTableReferences
+                                            ._paymentTransactionIdTable(db),
+                                    referencedColumn:
+                                        $$PaymentAllocationsTableReferences
+                                            ._paymentTransactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (chargeTransactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.chargeTransactionId,
+                                    referencedTable:
+                                        $$PaymentAllocationsTableReferences
+                                            ._chargeTransactionIdTable(db),
+                                    referencedColumn:
+                                        $$PaymentAllocationsTableReferences
+                                            ._chargeTransactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PaymentAllocationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentAllocationsTable,
+      PaymentAllocation,
+      $$PaymentAllocationsTableFilterComposer,
+      $$PaymentAllocationsTableOrderingComposer,
+      $$PaymentAllocationsTableAnnotationComposer,
+      $$PaymentAllocationsTableCreateCompanionBuilder,
+      $$PaymentAllocationsTableUpdateCompanionBuilder,
+      (PaymentAllocation, $$PaymentAllocationsTableReferences),
+      PaymentAllocation,
+      PrefetchHooks Function({
+        bool paymentTransactionId,
+        bool chargeTransactionId,
+      })
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -20145,4 +21040,6 @@ class $AppDatabaseManager {
       $$SchoolClosuresTableTableManager(_db, _db.schoolClosures);
   $$SchoolLevelsTableTableManager get schoolLevels =>
       $$SchoolLevelsTableTableManager(_db, _db.schoolLevels);
+  $$PaymentAllocationsTableTableManager get paymentAllocations =>
+      $$PaymentAllocationsTableTableManager(_db, _db.paymentAllocations);
 }

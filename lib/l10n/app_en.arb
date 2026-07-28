@@ -404,5 +404,9 @@
   "createdAt": "Created At",
   "operationFailed": "Operation failed",
   "selectStudent": "Select Student",
-  "group": "Group"
+  "group": "Group",
+  "allocatePayment": "Manual Allocation",
+  "unpaidCharges": "unpaid charges",
+  "ifUnchecked": "if unchecked",
+  "allocatedTotal": "Allocated"
 }

@@ -1197,4 +1197,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get group => 'مجموعة';
+
+  @override
+  String get allocatePayment => 'تخصيص يدوي';
+
+  @override
+  String get unpaidCharges => 'رسوم غير مدفوعة';
+
+  @override
+  String get ifUnchecked => 'عند الإلغاء';
+
+  @override
+  String get allocatedTotal => 'المخصص';
 }

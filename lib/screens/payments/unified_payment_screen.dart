@@ -766,6 +766,9 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
   Student? _student;
   String _method = 'cash';
   bool _saving = false;
+  List<Map<String, dynamic>> _charges = [];
+  Set<String> _selectedCharges = {};
+  bool _showAllocation = false;
 
   @override
   void dispose() {
@@ -813,7 +816,17 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
       ),
     );
     ctrl.dispose();
-    if (student != null && mounted) setState(() => _student = student);
+    if (student != null && mounted) {
+      setState(() => _student = student);
+      _loadCharges();
+    }
+  }
+
+  Future<void> _loadCharges() async {
+    if (_student == null) return;
+    final service = TransactionService(widget.database);
+    final charges = await service.getUnpaidCharges(_student!.id);
+    if (mounted) setState(() => _charges = charges);
   }
 
   Future<void> _save() async {
@@ -826,10 +839,29 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
     setState(() => _saving = true);
     try {
       final txService = TransactionService(widget.database);
+      Map<String, double>? allocations;
+      if (_showAllocation && _selectedCharges.isNotEmpty) {
+        final allocTotal = _selectedCharges.fold<double>(0, (sum, id) {
+          final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
+          return sum + (charge['remaining'] as double);
+        });
+        if (allocTotal > amount) {
+          if (mounted) setState(() => _saving = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.amountMustBePositive)));
+          return;
+        }
+        allocations = {};
+        for (final id in _selectedCharges) {
+          final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
+          allocations![id] = (charge['remaining'] as double);
+        }
+      }
       await txService.createStudentPayment(
         studentId: _student!.id,
         amount: amount,
         note: _noteCtrl.text,
+        paymentMethod: _method,
+        allocations: allocations,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
@@ -840,8 +872,14 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final allocTotal = _showAllocation
+        ? _selectedCharges.fold<double>(0, (sum, id) {
+            final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
+            return sum + (charge['remaining'] as double);
+          })
+        : 0.0;
     return ShellDialog(
-      maxWidth: 440, title: l10n.recordPayment,
+      maxWidth: 520, maxHeight: 650, title: l10n.recordPayment,
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ShellSectionHeader(text: l10n.student, withBorder: false),
         const SizedBox(height: 6),
@@ -856,15 +894,12 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           Row(children: [
             const Icon(PhosphorIcons.users, size: 16, color: ShellTokens.accent),
             const SizedBox(width: 8),
-            Text('${_student!.firstNameAr} ${_student!.lastNameAr}',
-              style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 6),
-            Text(_student!.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+            Flexible(child: Text('${_student!.firstNameAr} ${_student!.lastNameAr} (${_student!.code})',
+              style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary, fontWeight: FontWeight.w600))),
           ]),
         const SizedBox(height: 12),
         TextField(
-          controller: _amountCtrl,
-          keyboardType: TextInputType.number,
+          controller: _amountCtrl, keyboardType: TextInputType.number,
           decoration: ShellInputDecoration.textField(hintText: '${l10n.amount} (${AppConstants.currencySymbol})'),
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
         ),
@@ -886,6 +921,52 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           decoration: ShellInputDecoration.textField(hintText: l10n.note),
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
         ),
+        if (_charges.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: Text(l10n.allocatePayment, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+            subtitle: Text('${_charges.length} ${l10n.unpaidCharges} (FIFO ${l10n.ifUnchecked})',
+              style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+            value: _showAllocation,
+            onChanged: (v) => setState(() => _showAllocation = v),
+            dense: true, contentPadding: EdgeInsets.zero,
+            activeColor: ShellTokens.accent,
+          ),
+          if (_showAllocation)
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true, itemCount: _charges.length,
+                itemBuilder: (_, i) {
+                  final c = _charges[i];
+                  final tx = c['transaction'] as Transaction;
+                  final rem = c['remaining'] as double;
+                  final id = tx.id;
+                  final sel = _selectedCharges.contains(id);
+                  return CheckboxListTile(
+                    value: sel,
+                    onChanged: (v) {
+                      setState(() {
+                        if (v == true) { _selectedCharges.add(id); } else { _selectedCharges.remove(id); }
+                      });
+                    },
+                    dense: true, contentPadding: EdgeInsets.zero,
+                    title: Text('${tx.amount.toStringAsFixed(0)} DA — ${_fmtDate(tx.transactionDate)}',
+                      style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+                    subtitle: Text('${l10n.remaining}: ${rem.toStringAsFixed(0)} DA',
+                      style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+                    activeColor: ShellTokens.accent, checkColor: ShellTokens.chromeBase,
+                  );
+                },
+              ),
+            ),
+          if (_showAllocation)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text('${l10n.allocatedTotal}: ${allocTotal.toStringAsFixed(0)} DA',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                  color: allocTotal > 0 ? ShellTokens.textPrimary : ShellTokens.textDisabled)),
+            ),
+        ],
         const SizedBox(height: 16),
         SizedBox(width: double.infinity, child: FilledButton(
           onPressed: _saving ? null : _save,
@@ -895,6 +976,8 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
       ]),
     );
   }
+
+  String _fmtDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   String _methodLabel(String m, AppLocalizations l10n) {
     switch (m) {

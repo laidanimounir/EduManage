@@ -404,5 +404,9 @@
   "createdAt": "تاريخ الإنشاء",
   "operationFailed": "فشلت العملية",
   "selectStudent": "اختيار طالب",
-  "group": "مجموعة"
+  "group": "مجموعة",
+  "allocatePayment": "تخصيص يدوي",
+  "unpaidCharges": "رسوم غير مدفوعة",
+  "ifUnchecked": "عند الإلغاء",
+  "allocatedTotal": "المخصص"
 }

@@ -6,6 +6,8 @@ import 'session_repository.dart';
 import 'teacher_repository.dart';
 import 'audit_log_repository.dart';
 import 'attendance_repository.dart';
+import '../utils/uuid_helper.dart';
+import '../utils/device_id.dart';
 import 'package:drift/drift.dart';
 
 class TransactionService extends BaseRepository {
@@ -88,6 +90,8 @@ class TransactionService extends BaseRepository {
     String? enrollmentId,
     String? note,
     String? createdByUserId,
+    String? paymentMethod,
+    Map<String, double>? allocations,
   }) async {
     if (amount <= 0) throw ArgumentError('Amount must be positive');
 
@@ -98,18 +102,92 @@ class TransactionService extends BaseRepository {
       amount: Value(amount),
       transactionDate: Value(DateTime.now()),
       note: Value(note),
+      paymentMethod: Value(paymentMethod ?? 'cash'),
       createdByUserId: Value(createdByUserId),
     ));
+
+    Map<String, double> resolvedAllocations;
+    if (allocations != null && allocations.isNotEmpty) {
+      resolvedAllocations = allocations;
+    } else {
+      resolvedAllocations = await _fifoAllocate(studentId, amount);
+    }
+
+    for (final entry in resolvedAllocations.entries) {
+      await db.into(db.paymentAllocations).insert(PaymentAllocationsCompanion(
+        id: Value(UuidHelper.generate()),
+        paymentTransactionId: Value(id),
+        chargeTransactionId: Value(entry.key),
+        amount: Value(entry.value),
+        deviceId: Value(await DeviceId.get()),
+      ));
+    }
 
     await _auditRepo.create(AuditLogCompanion(
       userId: Value(createdByUserId ?? 'system'),
       action: const Value('student_payment_received'),
       entityType: const Value('transaction'),
       entityId: Value(id),
-      details: Value('Student: $studentId, Amount: $amount'),
+      details: Value('Student: $studentId, Amount: $amount, Method: ${paymentMethod ?? 'cash'}'),
     ));
 
     return id;
+  }
+
+  Future<Map<String, double>> _fifoAllocate(String studentId, double paymentAmount) async {
+    final charges = await (db.select(db.transactions)
+      ..where((t) =>
+          t.studentId.equals(studentId) &
+          t.type.isIn(['session_charge', 'registration_fee', 'correction']))
+      ..orderBy([(t) => OrderingTerm.asc(t.transactionDate)]))
+        .get();
+
+    final allocations = <String, double>{};
+    double remaining = paymentAmount;
+
+    for (final charge in charges) {
+      if (remaining <= 0) break;
+      final alreadyAllocated = await _getAllocatedAmount(charge.id);
+      final unpaid = charge.amount - alreadyAllocated;
+      if (unpaid <= 0) continue;
+
+      final alloc = remaining >= unpaid ? unpaid : remaining;
+      allocations[charge.id] = alloc;
+      remaining -= alloc;
+    }
+
+    return allocations;
+  }
+
+  Future<double> _getAllocatedAmount(String chargeTransactionId) async {
+    final result = await (db.select(db.paymentAllocations)
+      ..where((t) => t.chargeTransactionId.equals(chargeTransactionId)))
+        .get();
+    return result.fold<double>(0, (sum, a) => sum + a.amount);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnpaidCharges(String studentId) async {
+    final charges = await (db.select(db.transactions)
+      ..where((t) =>
+          t.studentId.equals(studentId) &
+          t.type.isIn(['session_charge', 'registration_fee', 'correction']))
+      ..orderBy([(t) => OrderingTerm.asc(t.transactionDate)]))
+        .get();
+
+    final result = <Map<String, dynamic>>[];
+    for (final charge in charges) {
+      final allocated = await _getAllocatedAmount(charge.id);
+      final remaining = charge.amount - allocated;
+      if (remaining > 0) {
+        result.add({
+          'transaction': charge,
+          'remaining': remaining,
+          'total': charge.amount,
+          'paid': allocated,
+        });
+      }
+    }
+    return result;
   }
 
   Future<String> createTeacherPayout({
