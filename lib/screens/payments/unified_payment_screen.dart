@@ -24,6 +24,7 @@ import '../../widgets/shell_input_decoration.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
 import '../../constants/app_constants.dart';
+import 'student_history_dialog.dart';
 
 class UnifiedPaymentScreen extends StatefulWidget {
   final AppDatabase database;
@@ -191,7 +192,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     if (student != null && mounted) {
       showDialog(
         context: context,
-        builder: (_) => _StudentHistoryDialog(database: widget.database, studentId: student.id),
+        builder: (_) => StudentHistoryDialog(database: widget.database, studentId: student.id),
       );
     }
   }
@@ -1097,130 +1098,4 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
       ]),
     );
   }
-}
-
-class _StudentHistoryDialog extends StatefulWidget {
-  final AppDatabase database;
-  final String studentId;
-  const _StudentHistoryDialog({required this.database, required this.studentId});
-  @override
-  State<_StudentHistoryDialog> createState() => _StudentHistoryDialogState();
-}
-
-class _StudentHistoryDialogState extends State<_StudentHistoryDialog> {
-  List<Transaction> _txs = [];
-  String _studentName = '';
-  double _charged = 0;
-  double _paid = 0;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final results = await Future.wait([
-      widget.database.getStudentTotalCharged(widget.studentId),
-      widget.database.getStudentTotalPaid(widget.studentId),
-      TransactionRepository(widget.database).getByStudent(widget.studentId),
-      widget.database.customSelect(
-        'SELECT first_name_ar, last_name_ar FROM students WHERE id = ?',
-        variables: [Variable.withString(widget.studentId)],
-      ).map((r) => '${r.read<String>('first_name_ar')} ${r.read<String>('last_name_ar')}').getSingle(),
-    ]);
-    if (mounted) {
-      setState(() {
-        _charged = results[0] as double;
-        _paid = results[1] as double;
-        _txs = results[2] as List<Transaction>;
-        _studentName = results[3] as String;
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final balance = _charged - _paid;
-    return ShellDialog(
-      maxWidth: 700, maxHeight: 650, title: _studentName,
-      body: _loading
-          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _statCard(l10n.totalCharged, _charged, const Color(0xFF4A90D9)),
-          const SizedBox(width: 8),
-          _statCard(l10n.totalPaid, _paid, SemanticTokens.success),
-          const SizedBox(width: 8),
-          _statCard(l10n.remaining, balance, balance > 0 ? SemanticTokens.error : SemanticTokens.success),
-        ]),
-        const SizedBox(height: 12),
-        ShellSectionHeader(text: l10n.paymentHistory, withBorder: true),
-        const SizedBox(height: 4),
-        Flexible(
-          child: _txs.isEmpty
-              ? Center(child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled)))
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _txs.length,
-                  itemBuilder: (_, i) {
-                    final t = _txs[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(children: [
-                        SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
-                        SizedBox(width: 90, child: _txBadge(t.type, l10n)),
-                        Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                        Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                            color: t.type == 'student_payment' || t.type == 'discount' || t.type == 'reversal' ? SemanticTokens.success : SemanticTokens.error)),
-                      ]),
-                    );
-                  },
-                ),
-        ),
-      ]),
-    );
-  }
-
-  Widget _statCard(String label, double value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-        child: Column(children: [
-          Text('${value.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
-        ]),
-      ),
-    );
-  }
-
-  Widget _txBadge(String type, AppLocalizations l10n) {
-    String label;
-    Color color;
-    switch (type) {
-      case 'session_charge': label = l10n.sessionCharges; color = const Color(0xFF4A90D9); break;
-      case 'student_payment': label = l10n.payments; color = SemanticTokens.success; break;
-      case 'registration_fee': label = l10n.registrationFee; color = const Color(0xFF4A90D9); break;
-      case 'registration_fee_payment': label = l10n.registrationFeePayment; color = SemanticTokens.success; break;
-      case 'discount': label = l10n.discount; color = const Color(0xFF27AE60); break;
-      case 'reversal': label = l10n.reversal; color = const Color(0xFFE74C3C); break;
-      case 'session_cancellation_reversal': label = l10n.sessionCancellationReversal; color = const Color(0xFFE74C3C); break;
-      case 'correction': label = l10n.correction; color = const Color(0xFFE74C3C); break;
-      default: label = type; color = ShellTokens.textDisabled;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(3)),
-      child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: color)),
-    );
-  }
-
-  String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
