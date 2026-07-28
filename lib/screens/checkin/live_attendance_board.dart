@@ -591,6 +591,13 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
             ],
             const Spacer(),
             TextButton.icon(
+              onPressed: () => _cancelSession(s),
+              icon: const Icon(PhosphorIcons.x, size: 12),
+              label: const Text('Cancel', style: TextStyle(fontSize: 10)),
+              style: TextButton.styleFrom(foregroundColor: SemanticTokens.error, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), minimumSize: Size.zero),
+            ),
+            const SizedBox(width: 4),
+            TextButton.icon(
               onPressed: () => _openRoster(s),
               icon: const Icon(PhosphorIcons.usersThree, size: 12),
               label: const Text('View Roster', style: TextStyle(fontSize: 10)),
@@ -640,6 +647,37 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
     final now = DateTime.now();
     final endToday = DateTime(now.year, now.month, now.day, end.hour, end.minute);
     return endToday.difference(now).inMinutes;
+  }
+
+  Future<void> _cancelSession(Map<String, dynamic> s) async {
+    final reasonCtrl = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text('Cancel Session'),
+        content: SizedBox(width: 300, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(title: Text(s['group_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
+          ListTile(title: const Text('Date'), subtitle: Text('${selectedDate.year}/${selectedDate.month}/${selectedDate.day}'), trailing: const Icon(PhosphorIcons.calendar, size: 18), onTap: () async {
+            final d = await showDatePicker(context: ctx, initialDate: selectedDate, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+            if (d != null) setSt(() => selectedDate = d);
+          }),
+          TextField(controller: reasonCtrl, decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder())),
+        ])),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm'))],
+      )),
+    );
+    if (confirmed == true) {
+      try {
+        final txService = TransactionService(widget.database);
+        final reversedCount = await txService.reverseCancelledSessionCharges(sessionId: s['id'] as String, date: selectedDate, createdByUserId: widget.currentUserId);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Session cancelled. ${reversedCount.length} reversal(s) created.'), backgroundColor: ShellTokens.chromeSurface));
+        _loadFullData();
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
+    reasonCtrl.dispose();
   }
 }
 
@@ -751,6 +789,53 @@ class _SessionRosterDialogState extends State<_SessionRosterDialog> {
       Navigator.pop(context);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Undo failed: $e')));
+    }
+  }
+
+  Future<void> _backdatedCheckin(Map<String, dynamic> r) async {
+    final sessionDate = DateTime.now().subtract(const Duration(days: 1));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: sessionDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 2)),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null) return;
+    final now = DateTime.now();
+    final maxBack = DateTime(now.year, now.month, now.day - 1).subtract(const Duration(days: 1));
+    if (picked.isBefore(maxBack)) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backdated check-in limited to 48 hours')));
+      return;
+    }
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Backdated Check-in'),
+      content: Text('You are recording attendance for ${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}. Continue?'),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm'))],
+    ));
+    if (confirmed != true) return;
+    try {
+      final attRepo = AttendanceRepository(widget.database);
+      final sessionId = widget.session['id'] as String;
+      final studentId = r['id'] as String;
+      final enrollments = await EnrollmentRepository(widget.database).getByStudent(studentId);
+      final enrollment = enrollments.cast<Enrollment?>().firstWhere((e) => e?.subjectGroupId == widget.session['subject_group_id'], orElse: () => null);
+      await attRepo.create(AttendanceCompanion(
+        studentId: Value(studentId), sessionId: Value(sessionId),
+        attendanceDate: Value(picked), personType: const Value('student'),
+        checkInMethod: const Value('manual'), isManualEntry: const Value(true),
+        isBackdated: const Value(true), checkedInByUserId: Value(widget.currentUserId),
+      ));
+      await TransactionService(widget.database).createSessionCharge(
+        studentId: studentId, sessionId: sessionId,
+        enrollmentId: enrollment?.id ?? '', createdByUserId: widget.currentUserId, date: picked,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Backdated check-in recorded for ${r['first_name_ar']}'), backgroundColor: ShellTokens.chromeSurface));
+        widget.onChanged?.call();
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
   }
 
@@ -957,6 +1042,7 @@ class _SessionRosterDialogState extends State<_SessionRosterDialog> {
       return Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(icon: const Icon(PhosphorIcons.checkCircle, size: 14, color: SemanticTokens.success), onPressed: () => _markPresent(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Check in'),
         if (status == null) IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: SemanticTokens.error), onPressed: () => _markAbsent(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Mark absent'),
+        IconButton(icon: const Icon(PhosphorIcons.clock, size: 14, color: const Color(0xFFC2823A)), onPressed: () => _backdatedCheckin(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Backdated check-in'),
       ]);
     }
     return const SizedBox(width: 28);
