@@ -337,11 +337,12 @@ class TransactionService extends BaseRepository {
   Future<String> createCorrection({
     required String referenceTransactionId,
     required double amount,
+    required String note,
     String? studentId,
     String? teacherId,
-    String? note,
     String? createdByUserId,
   }) async {
+    if (note.trim().isEmpty) throw ArgumentError('Correction reason is mandatory');
     if (amount <= 0) throw ArgumentError('Amount must be positive');
 
     final original = await _txRepo.getById(referenceTransactionId);
@@ -373,9 +374,10 @@ class TransactionService extends BaseRepository {
 
   Future<String> createReversal({
     required String referenceTransactionId,
-    String? note,
+    required String note,
     String? createdByUserId,
   }) async {
+    if (note.trim().isEmpty) throw ArgumentError('Reversal reason is mandatory');
     final original = await _txRepo.getById(referenceTransactionId);
     if (original == null) throw ArgumentError('Original transaction not found');
 
@@ -387,7 +389,7 @@ class TransactionService extends BaseRepository {
       type: const Value('reversal'),
       amount: Value(original.amount),
       transactionDate: Value(DateTime.now()),
-      note: Value(note ?? 'Reversal of $referenceTransactionId'),
+      note: Value(note),
       referenceTransactionId: Value(referenceTransactionId),
       createdByUserId: Value(createdByUserId),
     ));

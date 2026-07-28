@@ -22,6 +22,7 @@ import '../../repositories/school_level_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/transaction_service.dart';
+import '../../constants/app_constants.dart';
 
 class StudentListScreen extends StatefulWidget {
   final AppDatabase database;
@@ -817,6 +818,8 @@ class _StudentListScreenState extends State<StudentListScreen> {
   Future<void> _confirmArchive(Student s) async {
     final l10n = AppLocalizations.of(context);
     final hasTxns = s.status != 'active' || _enrolledIds.contains(s.id);
+    final balance = await widget.database.getStudentBalance(s.id);
+    final hasBalance = balance > 0;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -837,6 +840,21 @@ class _StudentListScreenState extends State<StudentListScreen> {
                     child: Text(
                       l10n.archiveWarning,
                       style: const TextStyle(color: SemanticTokens.warning, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (hasBalance) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.error),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${l10n.outstandingDebts}: ${balance.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+                      style: const TextStyle(color: SemanticTokens.error, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
