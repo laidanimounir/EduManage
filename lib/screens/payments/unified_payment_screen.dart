@@ -978,20 +978,20 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
                   final rem = c['remaining'] as double;
                   final id = tx.id;
                   final sel = _selectedCharges.contains(id);
-                  return CheckboxListTile(
-                    value: sel,
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) { _selectedCharges.add(id); } else { _selectedCharges.remove(id); }
-                      });
-                    },
-                    dense: true, contentPadding: EdgeInsets.zero,
-                    title: Text('${tx.amount.toStringAsFixed(0)} DA — ${_fmtDate(tx.transactionDate)}',
-                      style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
-                    subtitle: Text('${l10n.remaining}: ${rem.toStringAsFixed(0)} DA',
-                      style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
-                    activeColor: ShellTokens.accent, checkColor: ShellTokens.chromeBase,
-                  );
+              return CheckboxListTile(
+                value: sel,
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true) { _selectedCharges.add(id); } else { _selectedCharges.remove(id); }
+                  });
+                },
+                dense: true, contentPadding: EdgeInsets.zero,
+                title: Text('Cycle ${c['cycle'] ?? '?'}: ${tx.amount.toStringAsFixed(0)} DA — ${_fmtDate(tx.transactionDate)}',
+                  style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+                subtitle: Text('${l10n.remaining}: ${rem.toStringAsFixed(0)} DA',
+                  style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+                activeColor: ShellTokens.accent, checkColor: ShellTokens.chromeBase,
+              );
                 },
               ),
             ),

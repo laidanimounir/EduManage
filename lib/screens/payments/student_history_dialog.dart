@@ -87,6 +87,7 @@ class _StudentHistoryDialogState extends State<StudentHistoryDialog> {
                       child: Row(children: [
                         SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
                         SizedBox(width: 90, child: _txBadge(t.type, l10n)),
+                        if (t.cycleNumber != null) SizedBox(width: 60, child: Text('Cycle ${t.cycleNumber}', style: TextStyle(fontSize: 9, color: ShellTokens.accent, fontWeight: FontWeight.w600))),
                         Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
                         Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,

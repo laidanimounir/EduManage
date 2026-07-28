@@ -179,6 +179,7 @@ class Transactions extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get paymentMethod => text().nullable()();
   TextColumn get priceSnapshot => text().nullable()();
+  IntColumn get cycleNumber => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -345,7 +346,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -418,6 +419,13 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9) {
         await m.createTable(closedPeriods);
+      }
+      if (from < 10) {
+        await m.alterTable(TableMigration(transactions,
+          newColumns: [
+            transactions.cycleNumber,
+          ],
+        ));
       }
     },
   );

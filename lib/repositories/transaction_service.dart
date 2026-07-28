@@ -24,6 +24,15 @@ class TransactionService extends BaseRepository {
         _auditRepo = AuditLogRepository(db),
         _attendanceRepo = AttendanceRepository(db);
 
+  Future<int> _countSessionCharges(String enrollmentId) async {
+    final result = await (db.select(db.transactions)
+      ..where((t) =>
+          t.enrollmentId.equals(enrollmentId) &
+          t.type.equals('session_charge')))
+        .get();
+    return result.length;
+  }
+
   Future<String> createSessionCharge({
     required String studentId,
     required String sessionId,
@@ -64,6 +73,16 @@ class TransactionService extends BaseRepository {
 
     final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';
 
+    final priorCount = await _countSessionCharges(enrollmentId);
+    final sessionsPerMonth = session?.sessionsPerMonth ?? 1;
+    final cycleNumber = (priorCount / sessionsPerMonth).floor() + 1;
+
+    // TODO: School closures vs single-session cancellations need clearer distinction
+    // for cycle counting. Currently, a cancelled session still consumes a cycle slot.
+    // A school closure day should probably NOT count against the student's cycle
+    // (or a make-up session should be auto-scheduled). This is intentionally deferred
+    // until a decision is made on the correct business rule.
+
     final id = await _txRepo.insert(TransactionsCompanion(
       studentId: Value(studentId),
       enrollmentId: Value(enrollmentId),
@@ -73,6 +92,7 @@ class TransactionService extends BaseRepository {
       transactionDate: Value(txDate),
       note: Value(note),
       priceSnapshot: Value(priceSnapshotStr),
+      cycleNumber: Value(cycleNumber),
       createdByUserId: Value(createdByUserId),
     ));
 
@@ -188,6 +208,7 @@ class TransactionService extends BaseRepository {
           'remaining': remaining,
           'total': charge.amount,
           'paid': allocated,
+          'cycle': charge.cycleNumber,
         });
       }
     }

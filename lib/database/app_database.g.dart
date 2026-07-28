@@ -6366,6 +6366,17 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _cycleNumberMeta = const VerificationMeta(
+    'cycleNumber',
+  );
+  @override
+  late final GeneratedColumn<int> cycleNumber = GeneratedColumn<int>(
+    'cycle_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6384,6 +6395,7 @@ class $TransactionsTable extends Transactions
     createdAt,
     paymentMethod,
     priceSnapshot,
+    cycleNumber,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6521,6 +6533,15 @@ class $TransactionsTable extends Transactions
         ),
       );
     }
+    if (data.containsKey('cycle_number')) {
+      context.handle(
+        _cycleNumberMeta,
+        cycleNumber.isAcceptableOrUnknown(
+          data['cycle_number']!,
+          _cycleNumberMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6594,6 +6615,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}price_snapshot'],
       ),
+      cycleNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cycle_number'],
+      ),
     );
   }
 
@@ -6620,6 +6645,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final DateTime createdAt;
   final String? paymentMethod;
   final String? priceSnapshot;
+  final int? cycleNumber;
   const Transaction({
     required this.id,
     this.studentId,
@@ -6637,6 +6663,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     required this.createdAt,
     this.paymentMethod,
     this.priceSnapshot,
+    this.cycleNumber,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6679,6 +6706,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     if (!nullToAbsent || priceSnapshot != null) {
       map['price_snapshot'] = Variable<String>(priceSnapshot);
     }
+    if (!nullToAbsent || cycleNumber != null) {
+      map['cycle_number'] = Variable<int>(cycleNumber);
+    }
     return map;
   }
 
@@ -6718,6 +6748,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       priceSnapshot: priceSnapshot == null && nullToAbsent
           ? const Value.absent()
           : Value(priceSnapshot),
+      cycleNumber: cycleNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cycleNumber),
     );
   }
 
@@ -6745,6 +6778,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       paymentMethod: serializer.fromJson<String?>(json['paymentMethod']),
       priceSnapshot: serializer.fromJson<String?>(json['priceSnapshot']),
+      cycleNumber: serializer.fromJson<int?>(json['cycleNumber']),
     );
   }
   @override
@@ -6769,6 +6803,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'paymentMethod': serializer.toJson<String?>(paymentMethod),
       'priceSnapshot': serializer.toJson<String?>(priceSnapshot),
+      'cycleNumber': serializer.toJson<int?>(cycleNumber),
     };
   }
 
@@ -6789,6 +6824,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     DateTime? createdAt,
     Value<String?> paymentMethod = const Value.absent(),
     Value<String?> priceSnapshot = const Value.absent(),
+    Value<int?> cycleNumber = const Value.absent(),
   }) => Transaction(
     id: id ?? this.id,
     studentId: studentId.present ? studentId.value : this.studentId,
@@ -6814,6 +6850,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     priceSnapshot: priceSnapshot.present
         ? priceSnapshot.value
         : this.priceSnapshot,
+    cycleNumber: cycleNumber.present ? cycleNumber.value : this.cycleNumber,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -6847,6 +6884,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       priceSnapshot: data.priceSnapshot.present
           ? data.priceSnapshot.value
           : this.priceSnapshot,
+      cycleNumber: data.cycleNumber.present
+          ? data.cycleNumber.value
+          : this.cycleNumber,
     );
   }
 
@@ -6868,7 +6908,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('rateSnapshot: $rateSnapshot, ')
           ..write('createdAt: $createdAt, ')
           ..write('paymentMethod: $paymentMethod, ')
-          ..write('priceSnapshot: $priceSnapshot')
+          ..write('priceSnapshot: $priceSnapshot, ')
+          ..write('cycleNumber: $cycleNumber')
           ..write(')'))
         .toString();
   }
@@ -6891,6 +6932,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     createdAt,
     paymentMethod,
     priceSnapshot,
+    cycleNumber,
   );
   @override
   bool operator ==(Object other) =>
@@ -6911,7 +6953,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.rateSnapshot == this.rateSnapshot &&
           other.createdAt == this.createdAt &&
           other.paymentMethod == this.paymentMethod &&
-          other.priceSnapshot == this.priceSnapshot);
+          other.priceSnapshot == this.priceSnapshot &&
+          other.cycleNumber == this.cycleNumber);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -6931,6 +6974,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<DateTime> createdAt;
   final Value<String?> paymentMethod;
   final Value<String?> priceSnapshot;
+  final Value<int?> cycleNumber;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -6949,6 +6993,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.createdAt = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.priceSnapshot = const Value.absent(),
+    this.cycleNumber = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -6968,6 +7013,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.createdAt = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.priceSnapshot = const Value.absent(),
+    this.cycleNumber = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -6991,6 +7037,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<DateTime>? createdAt,
     Expression<String>? paymentMethod,
     Expression<String>? priceSnapshot,
+    Expression<int>? cycleNumber,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7011,6 +7058,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (createdAt != null) 'created_at': createdAt,
       if (paymentMethod != null) 'payment_method': paymentMethod,
       if (priceSnapshot != null) 'price_snapshot': priceSnapshot,
+      if (cycleNumber != null) 'cycle_number': cycleNumber,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7032,6 +7080,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<DateTime>? createdAt,
     Value<String?>? paymentMethod,
     Value<String?>? priceSnapshot,
+    Value<int?>? cycleNumber,
     Value<int>? rowid,
   }) {
     return TransactionsCompanion(
@@ -7052,6 +7101,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       createdAt: createdAt ?? this.createdAt,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       priceSnapshot: priceSnapshot ?? this.priceSnapshot,
+      cycleNumber: cycleNumber ?? this.cycleNumber,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7109,6 +7159,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (priceSnapshot.present) {
       map['price_snapshot'] = Variable<String>(priceSnapshot.value);
     }
+    if (cycleNumber.present) {
+      map['cycle_number'] = Variable<int>(cycleNumber.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7134,6 +7187,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('createdAt: $createdAt, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('priceSnapshot: $priceSnapshot, ')
+          ..write('cycleNumber: $cycleNumber, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -17372,6 +17426,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<String?> paymentMethod,
       Value<String?> priceSnapshot,
+      Value<int?> cycleNumber,
       Value<int> rowid,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -17392,6 +17447,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<String?> paymentMethod,
       Value<String?> priceSnapshot,
+      Value<int?> cycleNumber,
       Value<int> rowid,
     });
 
@@ -17535,6 +17591,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get priceSnapshot => $composableBuilder(
     column: $table.priceSnapshot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cycleNumber => $composableBuilder(
+    column: $table.cycleNumber,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17700,6 +17761,11 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get cycleNumber => $composableBuilder(
+    column: $table.cycleNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$StudentsTableOrderingComposer get studentId {
     final $$StudentsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -17850,6 +17916,11 @@ class $$TransactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get cycleNumber => $composableBuilder(
+    column: $table.cycleNumber,
+    builder: (column) => column,
+  );
+
   $$StudentsTableAnnotationComposer get studentId {
     final $$StudentsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -17992,6 +18063,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String?> paymentMethod = const Value.absent(),
                 Value<String?> priceSnapshot = const Value.absent(),
+                Value<int?> cycleNumber = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
@@ -18010,6 +18082,7 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 paymentMethod: paymentMethod,
                 priceSnapshot: priceSnapshot,
+                cycleNumber: cycleNumber,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -18030,6 +18103,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String?> paymentMethod = const Value.absent(),
                 Value<String?> priceSnapshot = const Value.absent(),
+                Value<int?> cycleNumber = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
@@ -18048,6 +18122,7 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 paymentMethod: paymentMethod,
                 priceSnapshot: priceSnapshot,
+                cycleNumber: cycleNumber,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
