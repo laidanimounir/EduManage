@@ -43,6 +43,8 @@ class TransactionService extends BaseRepository {
   }) async {
     final txDate = date ?? DateTime.now();
 
+    await _checkPeriodOpen(txDate);
+
     final cancelled = await _isSessionCancelled(sessionId, txDate);
     if (cancelled) {
       throw StateError('Session is cancelled on this date');
