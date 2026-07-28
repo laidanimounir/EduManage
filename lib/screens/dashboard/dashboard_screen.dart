@@ -10,6 +10,7 @@ import '../../constants/theme_tokens.dart';
 import '../../constants/app_constants.dart';
 import '../../widgets/app_loading.dart';
 import '../../screens/payments/unified_payment_screen.dart' show UnifiedPaymentScreen;
+import '../../widgets/dashboard_charts.dart';
 
 class DashboardScreen extends StatefulWidget {
   final AppDatabase database;
@@ -230,6 +231,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _buildEnrollmentTrend(),
                       const SizedBox(height: 10),
                       _buildClassroomUtilization(),
+                      const SizedBox(height: 12),
+                      _chartCard('Monthly Revenue vs Expenses', DashboardBarChart(database: widget.database)),
+                      const SizedBox(height: 10),
+                      _chartCard('Revenue Trend', DashboardLineChart(database: widget.database)),
+                      const SizedBox(height: 10),
+                      _chartCard('Payment Methods', DashboardDonutChart(database: widget.database, type: 'payment_method')),
+                      const SizedBox(height: 10),
+                      _chartCard('Students by Level', DashboardDonutChart(database: widget.database, type: 'student_level')),
+                      const SizedBox(height: 10),
+                      _chartCard('Debt Aging', DashboardDonutChart(database: widget.database, type: 'debt_aging')),
+                      const SizedBox(height: 10),
+                      Card(color: ShellTokens.chromeSurface, child: Padding(padding: const EdgeInsets.all(12), child: DashboardHeatmap(database: widget.database))),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -580,6 +593,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ]),
             );
           }),
+        ]),
+      ),
+    );
+  }
+
+  Widget _chartCard(String title, Widget chart) {
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 8),
+          chart,
         ]),
       ),
     );
