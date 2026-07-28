@@ -1783,7 +1783,7 @@ abstract class AppLocalizations {
   /// No description provided for @showingResults.
   ///
   /// In en, this message translates to:
-  /// **'Showing {first}–{last} of {total}'**
+  /// **'Showing {first}�{last} of {total}'**
   String showingResults(Object first, Object last, Object total);
 
   /// No description provided for @pageOf.
@@ -2191,7 +2191,7 @@ abstract class AppLocalizations {
   /// No description provided for @liveNow.
   ///
   /// In en, this message translates to:
-  /// **'● Live Now'**
+  /// **'? Live Now'**
   String get liveNow;
 
   /// No description provided for @cancelled.
@@ -2209,7 +2209,7 @@ abstract class AppLocalizations {
   /// No description provided for @sessionCancelledNotice.
   ///
   /// In en, this message translates to:
-  /// **'Session \"{session}\" on {date} was cancelled — a replacement session should be scheduled.'**
+  /// **'Session \"{session}\" on {date} was cancelled � a replacement session should be scheduled.'**
   String sessionCancelledNotice(Object session, Object date);
 
   /// No description provided for @sessionCancellationReversal.
@@ -2221,13 +2221,13 @@ abstract class AppLocalizations {
   /// No description provided for @refundedSessionCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Refunded — session cancelled on {date}'**
+  /// **'Refunded � session cancelled on {date}'**
   String refundedSessionCancelled(Object date);
 
   /// No description provided for @deductedSessionCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Deducted — session cancelled on {date}'**
+  /// **'Deducted � session cancelled on {date}'**
   String deductedSessionCancelled(Object date);
 
   /// No description provided for @conflictTeacher.
@@ -2433,6 +2433,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Group'**
   String get group;
+
+  /// No description provided for @family.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get family;
 
   /// No description provided for @allocatePayment.
   ///

@@ -405,6 +405,7 @@
   "operationFailed": "Échec de l'opération",
   "selectStudent": "Sélectionner élève",
   "group": "Groupe",
+  "family": "Famille",
   "allocatePayment": "Allocation manuelle",
   "unpaidCharges": "frais impayés",
   "ifUnchecked": "si décoché",

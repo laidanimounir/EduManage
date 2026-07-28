@@ -1199,6 +1199,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get group => 'مجموعة';
 
   @override
+  String get family => 'العائلة';
+
+  @override
   String get allocatePayment => 'تخصيص يدوي';
 
   @override

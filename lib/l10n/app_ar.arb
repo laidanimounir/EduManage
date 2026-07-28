@@ -405,6 +405,7 @@
   "operationFailed": "فشلت العملية",
   "selectStudent": "اختيار طالب",
   "group": "مجموعة",
+  "family": "العائلة",
   "allocatePayment": "تخصيص يدوي",
   "unpaidCharges": "رسوم غير مدفوعة",
   "ifUnchecked": "عند الإلغاء",

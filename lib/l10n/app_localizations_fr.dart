@@ -1206,6 +1206,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get group => 'Groupe';
 
   @override
+  String get family => 'Famille';
+
+  @override
   String get allocatePayment => 'Allocation manuelle';
 
   @override

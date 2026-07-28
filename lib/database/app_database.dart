@@ -314,8 +314,31 @@ class ClosedPeriods extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Families extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  RealColumn get discountPercent => real().nullable()();
+  RealColumn get discountFixed => real().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class FamilyMembers extends Table {
+  TextColumn get id => text()();
+  TextColumn get familyId => text().references(Families, #id)();
+  TextColumn get studentId => text().references(Students, #id)();
+  DateTimeColumn get joinedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -346,7 +369,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -426,6 +449,10 @@ class AppDatabase extends _$AppDatabase {
             transactions.cycleNumber,
           ],
         ));
+      }
+      if (from < 11) {
+        await m.createTable(families);
+        await m.createTable(familyMembers);
       }
     },
   );
@@ -886,5 +913,20 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(t) => OrderingTerm.desc(t.year), (t) => OrderingTerm.desc(t.month)]))
         .map((r) => {'year': r.year, 'month': r.month, 'closedAt': r.closedAt})
         .get();
+  }
+
+  Future<FamilyMember?> getStudentFamily(String studentId) async {
+    final member = await (select(familyMembers)
+      ..where((t) => t.studentId.equals(studentId))
+      ..limit(1))
+        .getSingleOrNull();
+    if (member == null) return null;
+    return member;
+  }
+
+  Future<Family?> getFamilyByMember(String studentId) async {
+    final member = await getStudentFamily(studentId);
+    if (member == null) return null;
+    return (select(families)..where((t) => t.id.equals(member.familyId))..limit(1)).getSingleOrNull();
   }
 }

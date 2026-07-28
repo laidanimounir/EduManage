@@ -1000,6 +1000,7 @@ class _StudentDetailDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _FamilyInfo(database: database, studentId: student.id, l10n: l10n),
                     _sectionHeader(l10n.personalInfo),
                     const SizedBox(height: 8),
                     _infoRow(l10n.firstName, '${student.firstNameAr} / ${student.firstNameFr ?? '—'}'),
@@ -1664,4 +1665,58 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   }
 
   String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+}
+
+class _FamilyInfo extends StatefulWidget {
+  final AppDatabase database;
+  final String studentId;
+  final AppLocalizations l10n;
+  const _FamilyInfo({required this.database, required this.studentId, required this.l10n});
+  @override
+  State<_FamilyInfo> createState() => _FamilyInfoState();
+}
+
+class _FamilyInfoState extends State<_FamilyInfo> {
+  Family? _family;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final family = await widget.database.getFamilyByMember(widget.studentId);
+    if (mounted) setState(() { _family = family; _loaded = true; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) return const SizedBox.shrink();
+    if (_family == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: ShellTokens.accentMuted.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: ShellTokens.accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(children: [
+        const Icon(PhosphorIcons.usersThree, size: 16, color: ShellTokens.accent),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${widget.l10n.family}: ${_family!.name}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          if (_family!.discountPercent != null)
+            Text('${_family!.discountPercent!.toStringAsFixed(0)}% ${widget.l10n.discount}',
+              style: const TextStyle(fontSize: 10, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
+          if (_family!.discountFixed != null)
+            Text('${_family!.discountFixed!.toStringAsFixed(0)} DA ${widget.l10n.discount}',
+              style: const TextStyle(fontSize: 10, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
+        ])),
+      ]),
+    );
+  }
 }

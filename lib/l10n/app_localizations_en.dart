@@ -852,7 +852,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String showingResults(Object first, Object last, Object total) {
-    return 'Showing $first–$last of $total';
+    return 'Showing $first�$last of $total';
   }
 
   @override
@@ -1070,7 +1070,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyTimetable => 'Weekly Timetable';
 
   @override
-  String get liveNow => '● Live Now';
+  String get liveNow => '? Live Now';
 
   @override
   String get cancelled => 'Cancelled';
@@ -1080,7 +1080,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sessionCancelledNotice(Object session, Object date) {
-    return 'Session \"$session\" on $date was cancelled — a replacement session should be scheduled.';
+    return 'Session \"$session\" on $date was cancelled � a replacement session should be scheduled.';
   }
 
   @override
@@ -1088,12 +1088,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String refundedSessionCancelled(Object date) {
-    return 'Refunded — session cancelled on $date';
+    return 'Refunded � session cancelled on $date';
   }
 
   @override
   String deductedSessionCancelled(Object date) {
-    return 'Deducted — session cancelled on $date';
+    return 'Deducted � session cancelled on $date';
   }
 
   @override
@@ -1203,6 +1203,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get group => 'Group';
+
+  @override
+  String get family => 'Family';
 
   @override
   String get allocatePayment => 'Manual Allocation';

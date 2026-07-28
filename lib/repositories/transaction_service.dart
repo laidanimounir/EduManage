@@ -69,6 +69,16 @@ class TransactionService extends BaseRepository {
       amount -= enrollment.customDiscount!;
     }
 
+    final family = await db.getFamilyByMember(studentId);
+    if (family != null) {
+      if (family.discountPercent != null) {
+        amount -= amount * family.discountPercent! / 100;
+      } else if (family.discountFixed != null) {
+        amount -= family.discountFixed!;
+        if (amount < 0) amount = 0;
+      }
+    }
+
     if (amount < 0) amount = 0;
 
     final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';

@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "en",
   "appName": "EduManage",
   "save": "Save",
@@ -280,7 +280,7 @@
   "columnRegistrationDate": "Registration",
   "columnLevel": "Level",
   "columnStatus": "Status",
-  "showingResults": "Showing {first}–{last} of {total}",
+  "showingResults": "Showing {first}�{last} of {total}",
   "@showingResults": {
     "placeholders": {
       "first": {}, "last": {}, "total": {}
@@ -360,15 +360,15 @@
   "teacherCode": "Teacher Code",
   "timetable": "Timetable",
   "weeklyTimetable": "Weekly Timetable",
-  "liveNow": "● Live Now",
+  "liveNow": "? Live Now",
   "cancelled": "Cancelled",
   "schoolClosed": "School Closed",
-  "sessionCancelledNotice": "Session \"{session}\" on {date} was cancelled — a replacement session should be scheduled.",
+  "sessionCancelledNotice": "Session \"{session}\" on {date} was cancelled � a replacement session should be scheduled.",
   "@sessionCancelledNotice": { "placeholders": { "session": {}, "date": {} } },
   "sessionCancellationReversal": "Session Cancellation Reversal",
-  "refundedSessionCancelled": "Refunded — session cancelled on {date}",
+  "refundedSessionCancelled": "Refunded � session cancelled on {date}",
   "@refundedSessionCancelled": { "placeholders": { "date": {} } },
-  "deductedSessionCancelled": "Deducted — session cancelled on {date}",
+  "deductedSessionCancelled": "Deducted � session cancelled on {date}",
   "@deductedSessionCancelled": { "placeholders": { "date": {} } },
   "conflictTeacher": "This teacher already has a session at this time on this day.",
   "conflictClassroom": "This classroom is already booked at this time on this day.",
@@ -405,6 +405,7 @@
   "operationFailed": "Operation failed",
   "selectStudent": "Select Student",
   "group": "Group",
+  "family": "Family",
   "allocatePayment": "Manual Allocation",
   "unpaidCharges": "unpaid charges",
   "ifUnchecked": "if unchecked",
