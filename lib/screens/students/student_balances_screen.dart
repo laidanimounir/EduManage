@@ -46,6 +46,7 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
   String _searchQuery = '';
   String? _sortColumn;
   bool _sortAsc = false;
+  int _unbilledCount = 0;
 
   final _searchCtrl = TextEditingController();
   Timer? _searchDebounce;
@@ -89,6 +90,7 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
     final results = await Future.wait([
       schoolRepo.getAll(),
       groupRepo.getAll(),
+      widget.database.countUnbilledActiveStudents(),
     ]);
     if (mounted) {
       setState(() {
@@ -98,6 +100,7 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
         _groups = (results[1] as List<SubjectGroup>)
             .map((g) => _SelectOption(g.nameAr, g.id))
             .toList();
+        _unbilledCount = results[2] as int;
       });
     }
   }
@@ -232,8 +235,9 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
             child: Row(children: [
               _buildFilterChip(l10n.all, 'all'),
               _buildFilterChip(l10n.debt, 'owing'),
-              _buildFilterChip(l10n.balance, 'settled'),
               _buildFilterChip('Credit', 'credit'),
+              _buildFilterChip('Settled', 'settled'),
+              _buildFilterChip('Unbilled ($_unbilledCount)', 'unbilled'),
               const SizedBox(width: 8),
               _buildExportBtn(l10n.exportExcel, PhosphorIcons.table),
             ]),

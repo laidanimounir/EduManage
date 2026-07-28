@@ -81,6 +81,13 @@ class TransactionService extends BaseRepository {
 
     if (amount < 0) amount = 0;
 
+    final currentBalance = await db.getStudentBalance(studentId);
+    if (currentBalance < 0 && amount > 0) {
+      final creditToApply = (-currentBalance).clamp(0, amount);
+      amount -= creditToApply;
+      if (amount < 0) amount = 0;
+    }
+
     final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';
 
     final priorCount = await _countSessionCharges(enrollmentId);
@@ -561,6 +568,35 @@ class TransactionService extends BaseRepository {
     }
 
     return reversedIds;
+  }
+
+  Future<String> createRefund({
+    required String studentId,
+    required double amount,
+    required String note,
+    String? createdByUserId,
+  }) async {
+    if (amount <= 0) throw ArgumentError('Amount must be positive');
+    await _checkPeriodOpen(DateTime.now());
+
+    final id = await _txRepo.insert(TransactionsCompanion(
+      studentId: Value(studentId),
+      type: const Value('correction'),
+      amount: Value(amount),
+      transactionDate: Value(DateTime.now()),
+      note: Value('Cash Refund: $note'),
+      createdByUserId: Value(createdByUserId),
+    ));
+
+    await _auditRepo.create(AuditLogCompanion(
+      userId: Value(createdByUserId ?? 'system'),
+      action: const Value('refund_issued'),
+      entityType: const Value('transaction'),
+      entityId: Value(id),
+      details: Value('Student: $studentId, Amount: $amount, Note: $note'),
+    ));
+
+    return id;
   }
 
   Future<String> createRegistrationFee({

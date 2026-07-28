@@ -830,6 +830,10 @@ class AppDatabase extends _$AppDatabase {
       dataQueryFinal = '$dataQuery HAVING balance = 0 ';
     } else if (statusFilter == 'credit') {
       dataQueryFinal = '$dataQuery HAVING balance < 0 ';
+    } else if (statusFilter == 'unbilled') {
+      dataQueryFinal = '$dataQuery '
+          'AND s.id IN (SELECT DISTINCT e.student_id FROM enrollments e WHERE e.status = \'active\' AND e.is_transferred = 0) '
+          'AND s.id NOT IN (SELECT DISTINCT t.student_id FROM transactions t WHERE t.type = \'session_charge\') ';
     } else {
       dataQueryFinal = dataQuery;
     }
@@ -928,5 +932,15 @@ class AppDatabase extends _$AppDatabase {
     final member = await getStudentFamily(studentId);
     if (member == null) return null;
     return (select(families)..where((t) => t.id.equals(member.familyId))..limit(1)).getSingleOrNull();
+  }
+
+  Future<int> countUnbilledActiveStudents() async {
+    final result = await customSelect(
+      'SELECT COUNT(DISTINCT s.id) AS cnt FROM students s '
+      'JOIN enrollments e ON s.id = e.student_id AND e.status = \'active\' AND e.is_transferred = 0 '
+      'LEFT JOIN transactions t ON s.id = t.student_id AND t.type = \'session_charge\' '
+      'WHERE s.is_archived = 0 AND t.id IS NULL',
+    ).getSingle();
+    return result.read<int>('cnt');
   }
 }

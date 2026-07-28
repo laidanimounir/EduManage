@@ -211,6 +211,13 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     ).then((_) => _fetchPage());
   }
 
+  void _openRefundCredit() {
+    showDialog(
+      context: context,
+      builder: (_) => _RefundCreditDialog(database: widget.database),
+    ).then((_) => _fetchPage());
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -317,6 +324,9 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
               IconButton(icon: const Icon(PhosphorIcons.archive, size: 16, color: ShellTokens.textSecondary),
                 onPressed: _openClosePeriod, tooltip: 'Close Period', padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+              IconButton(icon: const Icon(PhosphorIcons.arrowCounterClockwise, size: 16, color: ShellTokens.textSecondary),
+                onPressed: _openRefundCredit, tooltip: 'Refund/Credit', padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
               IconButton(icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
                 onPressed: _openRecordPayment, tooltip: l10n.recordPayment, padding: EdgeInsets.zero,
@@ -1401,6 +1411,131 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
             onPressed: () async { final p = await _pick(); if (p != null) onPick(p); },
             icon: const Icon(PhosphorIcons.magnifyingGlass, size: 14),
             label: Text('Select $hint', style: const TextStyle(fontSize: 11)),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder)),
+          );
+  }
+}
+
+class _RefundCreditDialog extends StatefulWidget {
+  final AppDatabase database;
+  const _RefundCreditDialog({required this.database});
+  @override
+  State<_RefundCreditDialog> createState() => _RefundCreditDialogState();
+}
+
+class _RefundCreditDialogState extends State<_RefundCreditDialog> {
+  final _amountCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
+  Student? _student;
+  String _mode = 'credit';
+  bool _saving = false;
+
+  @override
+  void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
+
+  Future<Student?> _pick() async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<Student>(
+      context: context,
+      builder: (ctx) => ShellDialog(
+        maxWidth: 400, title: 'Select Student',
+        body: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: ctrl, autofocus: true,
+            decoration: ShellInputDecoration.textField(hintText: 'Code or Name'),
+            onSubmitted: (q) async {
+              try {
+                final r = await StudentRepository(widget.database).search(q);
+                if (r.isNotEmpty && ctx.mounted) Navigator.pop(ctx, r.first);
+              } catch (_) {}
+            },
+          ),
+        ]),
+      ),
+    );
+    ctrl.dispose();
+    return result;
+  }
+
+  Future<void> _save() async {
+    final amount = double.tryParse(_amountCtrl.text);
+    if (amount == null || amount <= 0 || _student == null || _reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All fields required')));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final txService = TransactionService(widget.database);
+      if (_mode == 'credit') {
+        await txService.createDiscount(
+          studentId: _student!.id, amount: amount, note: 'Credit Note: ${_reasonCtrl.text.trim()}',
+        );
+      } else {
+        await txService.createRefund(
+          studentId: _student!.id, amount: amount, note: _reasonCtrl.text.trim(),
+        );
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) { setState(() => _saving = false); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'))); }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ShellDialog(
+      maxWidth: 460, title: 'Refund / Credit Note',
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ShellSectionHeader(text: 'Student', withBorder: false),
+        const SizedBox(height: 6),
+        _studentBtn(_student, (s) => setState(() => _student = s)),
+        const SizedBox(height: 12),
+        ShellSectionHeader(text: 'Mode', withBorder: false),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(child: RadioListTile<String>(
+            title: const Text('Credit Note', style: TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+            subtitle: const Text('No cash, creates credit', style: TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            value: 'credit', groupValue: _mode, onChanged: (v) => setState(() => _mode = v!), dense: true, contentPadding: EdgeInsets.zero,
+            activeColor: ShellTokens.accent,
+          )),
+          Expanded(child: RadioListTile<String>(
+            title: const Text('Cash Refund', style: TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+            subtitle: const Text('Money leaves the center', style: TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            value: 'cash', groupValue: _mode, onChanged: (v) => setState(() => _mode = v!), dense: true, contentPadding: EdgeInsets.zero,
+            activeColor: SemanticTokens.error,
+          )),
+        ]),
+        const SizedBox(height: 12),
+        TextField(controller: _amountCtrl, keyboardType: TextInputType.number,
+          decoration: ShellInputDecoration.textField(hintText: 'Amount (DA)'),
+          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 8),
+        TextField(controller: _reasonCtrl,
+          decoration: ShellInputDecoration.textField(hintText: 'Reason (required)'),
+          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 16),
+        SizedBox(width: double.infinity, child: FilledButton(
+          onPressed: _saving ? null : _save,
+          style: FilledButton.styleFrom(backgroundColor: _mode == 'cash' ? SemanticTokens.error : ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
+          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : Text(_mode == 'cash' ? 'Record Refund' : 'Issue Credit Note'),
+        )),
+      ]),
+    );
+  }
+
+  Widget _studentBtn(Student? s, ValueChanged<Student> onPick) {
+    return s != null
+        ? Row(children: [
+            Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+            const Spacer(),
+            IconButton(icon: const Icon(PhosphorIcons.x, size: 14), onPressed: () => onPick(s), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 20, minHeight: 20)),
+          ])
+        : OutlinedButton.icon(
+            onPressed: () async { final p = await _pick(); if (p != null) onPick(p); },
+            icon: const Icon(PhosphorIcons.magnifyingGlass, size: 14),
+            label: const Text('Select Student', style: TextStyle(fontSize: 11)),
             style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder)),
           );
   }
