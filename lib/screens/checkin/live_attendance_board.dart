@@ -90,8 +90,34 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
     if (!mounted) return;
     try {
       final counts = await widget.database.getLiveAttendanceCounts();
-      if (mounted) setState(() => _liveCounts = counts);
+      if (!mounted) return;
+      _liveCounts = counts;
+      _reclassifySessions();
+      if (mounted) setState(() {});
     } catch (_) {}
+  }
+
+  void _reclassifySessions() {
+    final now = DateTime.now();
+    final nowTime = TimeOfDay(hour: now.hour, minute: now.minute);
+    final allSessions = [..._liveSessions, ..._upcomingSessions, ..._completedSessions];
+    final live = <Map<String, dynamic>>[];
+    final upcoming = <Map<String, dynamic>>[];
+    final completed = <Map<String, dynamic>>[];
+    for (final s in allSessions) {
+      final start = s['start_time'] as DateTime;
+      final end = s['end_time'] as DateTime;
+      if (nowTime.hour > end.hour || (nowTime.hour == end.hour && nowTime.minute >= end.minute)) {
+        completed.add(s);
+      } else if (nowTime.hour > start.hour || (nowTime.hour == start.hour && nowTime.minute >= start.minute)) {
+        live.add(s);
+      } else {
+        upcoming.add(s);
+      }
+    }
+    _liveSessions = live;
+    _upcomingSessions = upcoming;
+    _completedSessions = completed;
   }
 
   Future<void> _loadFullData() async {
@@ -493,26 +519,29 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
           const SizedBox(height: 8),
         ],
 
-        if (filteredLive.isNotEmpty) ...[
-          _sectionHeader('LIVE NOW', SemanticTokens.success),
-          const SizedBox(height: 6),
-          ...filteredLive.map((s) => _sessionCard(s, true)),
-          const SizedBox(height: 10),
-        ],
+        _sectionHeader('LIVE NOW', SemanticTokens.success),
+        const SizedBox(height: 6),
+        if (filteredLive.isNotEmpty)
+          ...filteredLive.map((s) => _sessionCard(s, true))
+        else
+          _emptySectionCard('No sessions in progress right now', SemanticTokens.success),
+        const SizedBox(height: 10),
 
-        if (filteredUpcoming.isNotEmpty) ...[
-          _sectionHeader('UPCOMING TODAY', ShellTokens.accent),
-          const SizedBox(height: 6),
-          ...filteredUpcoming.map((s) => _sessionCard(s, false)),
-          const SizedBox(height: 10),
-        ],
+        _sectionHeader('UPCOMING TODAY', ShellTokens.accent),
+        const SizedBox(height: 6),
+        if (filteredUpcoming.isNotEmpty)
+          ...filteredUpcoming.map((s) => _sessionCard(s, false))
+        else
+          _emptySectionCard('No upcoming sessions remaining today', ShellTokens.accent),
+        const SizedBox(height: 10),
 
-        if (filteredCompleted.isNotEmpty) ...[
-          _sectionHeader('COMPLETED TODAY', ShellTokens.textDisabled),
-          const SizedBox(height: 6),
-          ...filteredCompleted.map((s) => _sessionCardCompleted(s)),
-          const SizedBox(height: 10),
-        ],
+        _sectionHeader('COMPLETED TODAY', ShellTokens.textDisabled),
+        const SizedBox(height: 6),
+        if (filteredCompleted.isNotEmpty)
+          ...filteredCompleted.map((s) => _sessionCardCompleted(s))
+        else
+          _emptySectionCard('No sessions completed yet today', ShellTokens.textDisabled),
+        const SizedBox(height: 10),
 
         if (_liveSessions.isEmpty && _upcomingSessions.isEmpty && _completedSessions.isEmpty)
           const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No sessions scheduled today', style: TextStyle(fontSize: 13, color: ShellTokens.textDisabled)))),
@@ -541,6 +570,21 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
       const SizedBox(width: 6),
       Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.5)),
     ]);
+  }
+
+  Widget _emptySectionCard(String message, Color color) {
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(PhosphorIcons.info, size: 12, color: color.withValues(alpha: 0.6)),
+          const SizedBox(width: 6),
+          Text(message, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.6), fontStyle: FontStyle.italic)),
+        ]),
+      ),
+    );
   }
 
   Widget _sessionCard(Map<String, dynamic> s, bool isLive) {
