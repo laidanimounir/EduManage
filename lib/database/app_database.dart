@@ -112,6 +112,7 @@ class Sessions extends Table {
   RealColumn get teacherFixedAmount => real().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  TextColumn get makeupForSessionId => text().nullable().references(Sessions, #id)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
@@ -198,6 +199,12 @@ class Attendance extends Table {
   TextColumn get checkedInByUserId => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get deviceId => text()();
+  TextColumn get status => text().withDefault(const Constant('present'))();
+  IntColumn get minutesLate => integer().nullable()();
+  TextColumn get absenceReason => text().nullable()();
+  BoolColumn get isBackdated => boolean().withDefault(const Constant(false))();
+  TextColumn get modifiedByUserId => text().nullable()();
+  TextColumn get modifiedAt => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -369,7 +376,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -453,6 +460,23 @@ class AppDatabase extends _$AppDatabase {
       if (from < 11) {
         await m.createTable(families);
         await m.createTable(familyMembers);
+      }
+      if (from < 12) {
+        await m.alterTable(TableMigration(attendance,
+          newColumns: [
+            attendance.status,
+            attendance.minutesLate,
+            attendance.absenceReason,
+            attendance.isBackdated,
+            attendance.modifiedByUserId,
+            attendance.modifiedAt,
+          ],
+        ));
+        await m.alterTable(TableMigration(sessions,
+          newColumns: [
+            sessions.makeupForSessionId,
+          ],
+        ));
       }
     },
   );

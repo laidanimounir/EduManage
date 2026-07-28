@@ -3805,6 +3805,20 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _makeupForSessionIdMeta =
+      const VerificationMeta('makeupForSessionId');
+  @override
+  late final GeneratedColumn<String> makeupForSessionId =
+      GeneratedColumn<String>(
+        'makeup_for_session_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES sessions (id)',
+        ),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3855,6 +3869,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     teacherFixedAmount,
     isActive,
     isArchived,
+    makeupForSessionId,
     createdAt,
     updatedAt,
     deviceId,
@@ -3982,6 +3997,15 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('makeup_for_session_id')) {
+      context.handle(
+        _makeupForSessionIdMeta,
+        makeupForSessionId.isAcceptableOrUnknown(
+          data['makeup_for_session_id']!,
+          _makeupForSessionIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -4063,6 +4087,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      makeupForSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}makeup_for_session_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -4098,6 +4126,7 @@ class Session extends DataClass implements Insertable<Session> {
   final double? teacherFixedAmount;
   final bool isActive;
   final bool isArchived;
+  final String? makeupForSessionId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String deviceId;
@@ -4115,6 +4144,7 @@ class Session extends DataClass implements Insertable<Session> {
     this.teacherFixedAmount,
     required this.isActive,
     required this.isArchived,
+    this.makeupForSessionId,
     required this.createdAt,
     required this.updatedAt,
     required this.deviceId,
@@ -4139,6 +4169,9 @@ class Session extends DataClass implements Insertable<Session> {
     }
     map['is_active'] = Variable<bool>(isActive);
     map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || makeupForSessionId != null) {
+      map['makeup_for_session_id'] = Variable<String>(makeupForSessionId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
@@ -4164,6 +4197,9 @@ class Session extends DataClass implements Insertable<Session> {
           : Value(teacherFixedAmount),
       isActive: Value(isActive),
       isArchived: Value(isArchived),
+      makeupForSessionId: makeupForSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(makeupForSessionId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
@@ -4191,6 +4227,9 @@ class Session extends DataClass implements Insertable<Session> {
       ),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      makeupForSessionId: serializer.fromJson<String?>(
+        json['makeupForSessionId'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
@@ -4213,6 +4252,7 @@ class Session extends DataClass implements Insertable<Session> {
       'teacherFixedAmount': serializer.toJson<double?>(teacherFixedAmount),
       'isActive': serializer.toJson<bool>(isActive),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'makeupForSessionId': serializer.toJson<String?>(makeupForSessionId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
@@ -4233,6 +4273,7 @@ class Session extends DataClass implements Insertable<Session> {
     Value<double?> teacherFixedAmount = const Value.absent(),
     bool? isActive,
     bool? isArchived,
+    Value<String?> makeupForSessionId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     String? deviceId,
@@ -4254,6 +4295,9 @@ class Session extends DataClass implements Insertable<Session> {
         : this.teacherFixedAmount,
     isActive: isActive ?? this.isActive,
     isArchived: isArchived ?? this.isArchived,
+    makeupForSessionId: makeupForSessionId.present
+        ? makeupForSessionId.value
+        : this.makeupForSessionId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
@@ -4287,6 +4331,9 @@ class Session extends DataClass implements Insertable<Session> {
       isArchived: data.isArchived.present
           ? data.isArchived.value
           : this.isArchived,
+      makeupForSessionId: data.makeupForSessionId.present
+          ? data.makeupForSessionId.value
+          : this.makeupForSessionId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
@@ -4309,6 +4356,7 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('teacherFixedAmount: $teacherFixedAmount, ')
           ..write('isActive: $isActive, ')
           ..write('isArchived: $isArchived, ')
+          ..write('makeupForSessionId: $makeupForSessionId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId')
@@ -4331,6 +4379,7 @@ class Session extends DataClass implements Insertable<Session> {
     teacherFixedAmount,
     isActive,
     isArchived,
+    makeupForSessionId,
     createdAt,
     updatedAt,
     deviceId,
@@ -4352,6 +4401,7 @@ class Session extends DataClass implements Insertable<Session> {
           other.teacherFixedAmount == this.teacherFixedAmount &&
           other.isActive == this.isActive &&
           other.isArchived == this.isArchived &&
+          other.makeupForSessionId == this.makeupForSessionId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId);
@@ -4371,6 +4421,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<double?> teacherFixedAmount;
   final Value<bool> isActive;
   final Value<bool> isArchived;
+  final Value<String?> makeupForSessionId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> deviceId;
@@ -4389,6 +4440,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.teacherFixedAmount = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.makeupForSessionId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
@@ -4408,6 +4460,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.teacherFixedAmount = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.makeupForSessionId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     required String deviceId,
@@ -4436,6 +4489,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<double>? teacherFixedAmount,
     Expression<bool>? isActive,
     Expression<bool>? isArchived,
+    Expression<String>? makeupForSessionId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? deviceId,
@@ -4456,6 +4510,8 @@ class SessionsCompanion extends UpdateCompanion<Session> {
         'teacher_fixed_amount': teacherFixedAmount,
       if (isActive != null) 'is_active': isActive,
       if (isArchived != null) 'is_archived': isArchived,
+      if (makeupForSessionId != null)
+        'makeup_for_session_id': makeupForSessionId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
@@ -4477,6 +4533,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<double?>? teacherFixedAmount,
     Value<bool>? isActive,
     Value<bool>? isArchived,
+    Value<String?>? makeupForSessionId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? deviceId,
@@ -4496,6 +4553,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       teacherFixedAmount: teacherFixedAmount ?? this.teacherFixedAmount,
       isActive: isActive ?? this.isActive,
       isArchived: isArchived ?? this.isArchived,
+      makeupForSessionId: makeupForSessionId ?? this.makeupForSessionId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
@@ -4545,6 +4603,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (makeupForSessionId.present) {
+      map['makeup_for_session_id'] = Variable<String>(makeupForSessionId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4576,6 +4637,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('teacherFixedAmount: $teacherFixedAmount, ')
           ..write('isActive: $isActive, ')
           ..write('isArchived: $isArchived, ')
+          ..write('makeupForSessionId: $makeupForSessionId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
@@ -7348,6 +7410,75 @@ class $AttendanceTable extends Attendance
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('present'),
+  );
+  static const VerificationMeta _minutesLateMeta = const VerificationMeta(
+    'minutesLate',
+  );
+  @override
+  late final GeneratedColumn<int> minutesLate = GeneratedColumn<int>(
+    'minutes_late',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _absenceReasonMeta = const VerificationMeta(
+    'absenceReason',
+  );
+  @override
+  late final GeneratedColumn<String> absenceReason = GeneratedColumn<String>(
+    'absence_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isBackdatedMeta = const VerificationMeta(
+    'isBackdated',
+  );
+  @override
+  late final GeneratedColumn<bool> isBackdated = GeneratedColumn<bool>(
+    'is_backdated',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_backdated" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _modifiedByUserIdMeta = const VerificationMeta(
+    'modifiedByUserId',
+  );
+  @override
+  late final GeneratedColumn<String> modifiedByUserId = GeneratedColumn<String>(
+    'modified_by_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modifiedAtMeta = const VerificationMeta(
+    'modifiedAt',
+  );
+  @override
+  late final GeneratedColumn<String> modifiedAt = GeneratedColumn<String>(
+    'modified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -7362,6 +7493,12 @@ class $AttendanceTable extends Attendance
     checkedInByUserId,
     createdAt,
     deviceId,
+    status,
+    minutesLate,
+    absenceReason,
+    isBackdated,
+    modifiedByUserId,
+    modifiedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7469,6 +7606,54 @@ class $AttendanceTable extends Attendance
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
     }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('minutes_late')) {
+      context.handle(
+        _minutesLateMeta,
+        minutesLate.isAcceptableOrUnknown(
+          data['minutes_late']!,
+          _minutesLateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('absence_reason')) {
+      context.handle(
+        _absenceReasonMeta,
+        absenceReason.isAcceptableOrUnknown(
+          data['absence_reason']!,
+          _absenceReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_backdated')) {
+      context.handle(
+        _isBackdatedMeta,
+        isBackdated.isAcceptableOrUnknown(
+          data['is_backdated']!,
+          _isBackdatedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('modified_by_user_id')) {
+      context.handle(
+        _modifiedByUserIdMeta,
+        modifiedByUserId.isAcceptableOrUnknown(
+          data['modified_by_user_id']!,
+          _modifiedByUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('modified_at')) {
+      context.handle(
+        _modifiedAtMeta,
+        modifiedAt.isAcceptableOrUnknown(data['modified_at']!, _modifiedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -7526,6 +7711,30 @@ class $AttendanceTable extends Attendance
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      minutesLate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minutes_late'],
+      ),
+      absenceReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}absence_reason'],
+      ),
+      isBackdated: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_backdated'],
+      )!,
+      modifiedByUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}modified_by_user_id'],
+      ),
+      modifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}modified_at'],
+      ),
     );
   }
 
@@ -7548,6 +7757,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
   final String? checkedInByUserId;
   final DateTime createdAt;
   final String deviceId;
+  final String status;
+  final int? minutesLate;
+  final String? absenceReason;
+  final bool isBackdated;
+  final String? modifiedByUserId;
+  final String? modifiedAt;
   const AttendanceData({
     required this.id,
     this.studentId,
@@ -7561,6 +7776,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
     this.checkedInByUserId,
     required this.createdAt,
     required this.deviceId,
+    required this.status,
+    this.minutesLate,
+    this.absenceReason,
+    required this.isBackdated,
+    this.modifiedByUserId,
+    this.modifiedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7583,6 +7804,20 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['device_id'] = Variable<String>(deviceId);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || minutesLate != null) {
+      map['minutes_late'] = Variable<int>(minutesLate);
+    }
+    if (!nullToAbsent || absenceReason != null) {
+      map['absence_reason'] = Variable<String>(absenceReason);
+    }
+    map['is_backdated'] = Variable<bool>(isBackdated);
+    if (!nullToAbsent || modifiedByUserId != null) {
+      map['modified_by_user_id'] = Variable<String>(modifiedByUserId);
+    }
+    if (!nullToAbsent || modifiedAt != null) {
+      map['modified_at'] = Variable<String>(modifiedAt);
+    }
     return map;
   }
 
@@ -7606,6 +7841,20 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
           : Value(checkedInByUserId),
       createdAt: Value(createdAt),
       deviceId: Value(deviceId),
+      status: Value(status),
+      minutesLate: minutesLate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minutesLate),
+      absenceReason: absenceReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(absenceReason),
+      isBackdated: Value(isBackdated),
+      modifiedByUserId: modifiedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modifiedByUserId),
+      modifiedAt: modifiedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modifiedAt),
     );
   }
 
@@ -7629,6 +7878,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
       ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      status: serializer.fromJson<String>(json['status']),
+      minutesLate: serializer.fromJson<int?>(json['minutesLate']),
+      absenceReason: serializer.fromJson<String?>(json['absenceReason']),
+      isBackdated: serializer.fromJson<bool>(json['isBackdated']),
+      modifiedByUserId: serializer.fromJson<String?>(json['modifiedByUserId']),
+      modifiedAt: serializer.fromJson<String?>(json['modifiedAt']),
     );
   }
   @override
@@ -7647,6 +7902,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
       'checkedInByUserId': serializer.toJson<String?>(checkedInByUserId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'status': serializer.toJson<String>(status),
+      'minutesLate': serializer.toJson<int?>(minutesLate),
+      'absenceReason': serializer.toJson<String?>(absenceReason),
+      'isBackdated': serializer.toJson<bool>(isBackdated),
+      'modifiedByUserId': serializer.toJson<String?>(modifiedByUserId),
+      'modifiedAt': serializer.toJson<String?>(modifiedAt),
     };
   }
 
@@ -7663,6 +7924,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
     Value<String?> checkedInByUserId = const Value.absent(),
     DateTime? createdAt,
     String? deviceId,
+    String? status,
+    Value<int?> minutesLate = const Value.absent(),
+    Value<String?> absenceReason = const Value.absent(),
+    bool? isBackdated,
+    Value<String?> modifiedByUserId = const Value.absent(),
+    Value<String?> modifiedAt = const Value.absent(),
   }) => AttendanceData(
     id: id ?? this.id,
     studentId: studentId.present ? studentId.value : this.studentId,
@@ -7678,6 +7945,16 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
         : this.checkedInByUserId,
     createdAt: createdAt ?? this.createdAt,
     deviceId: deviceId ?? this.deviceId,
+    status: status ?? this.status,
+    minutesLate: minutesLate.present ? minutesLate.value : this.minutesLate,
+    absenceReason: absenceReason.present
+        ? absenceReason.value
+        : this.absenceReason,
+    isBackdated: isBackdated ?? this.isBackdated,
+    modifiedByUserId: modifiedByUserId.present
+        ? modifiedByUserId.value
+        : this.modifiedByUserId,
+    modifiedAt: modifiedAt.present ? modifiedAt.value : this.modifiedAt,
   );
   AttendanceData copyWithCompanion(AttendanceCompanion data) {
     return AttendanceData(
@@ -7705,6 +7982,22 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
           : this.checkedInByUserId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      status: data.status.present ? data.status.value : this.status,
+      minutesLate: data.minutesLate.present
+          ? data.minutesLate.value
+          : this.minutesLate,
+      absenceReason: data.absenceReason.present
+          ? data.absenceReason.value
+          : this.absenceReason,
+      isBackdated: data.isBackdated.present
+          ? data.isBackdated.value
+          : this.isBackdated,
+      modifiedByUserId: data.modifiedByUserId.present
+          ? data.modifiedByUserId.value
+          : this.modifiedByUserId,
+      modifiedAt: data.modifiedAt.present
+          ? data.modifiedAt.value
+          : this.modifiedAt,
     );
   }
 
@@ -7722,7 +8015,13 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
           ..write('isManualEntry: $isManualEntry, ')
           ..write('checkedInByUserId: $checkedInByUserId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('deviceId: $deviceId')
+          ..write('deviceId: $deviceId, ')
+          ..write('status: $status, ')
+          ..write('minutesLate: $minutesLate, ')
+          ..write('absenceReason: $absenceReason, ')
+          ..write('isBackdated: $isBackdated, ')
+          ..write('modifiedByUserId: $modifiedByUserId, ')
+          ..write('modifiedAt: $modifiedAt')
           ..write(')'))
         .toString();
   }
@@ -7741,6 +8040,12 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
     checkedInByUserId,
     createdAt,
     deviceId,
+    status,
+    minutesLate,
+    absenceReason,
+    isBackdated,
+    modifiedByUserId,
+    modifiedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -7757,7 +8062,13 @@ class AttendanceData extends DataClass implements Insertable<AttendanceData> {
           other.isManualEntry == this.isManualEntry &&
           other.checkedInByUserId == this.checkedInByUserId &&
           other.createdAt == this.createdAt &&
-          other.deviceId == this.deviceId);
+          other.deviceId == this.deviceId &&
+          other.status == this.status &&
+          other.minutesLate == this.minutesLate &&
+          other.absenceReason == this.absenceReason &&
+          other.isBackdated == this.isBackdated &&
+          other.modifiedByUserId == this.modifiedByUserId &&
+          other.modifiedAt == this.modifiedAt);
 }
 
 class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
@@ -7773,6 +8084,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
   final Value<String?> checkedInByUserId;
   final Value<DateTime> createdAt;
   final Value<String> deviceId;
+  final Value<String> status;
+  final Value<int?> minutesLate;
+  final Value<String?> absenceReason;
+  final Value<bool> isBackdated;
+  final Value<String?> modifiedByUserId;
+  final Value<String?> modifiedAt;
   final Value<int> rowid;
   const AttendanceCompanion({
     this.id = const Value.absent(),
@@ -7787,6 +8104,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
     this.checkedInByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.minutesLate = const Value.absent(),
+    this.absenceReason = const Value.absent(),
+    this.isBackdated = const Value.absent(),
+    this.modifiedByUserId = const Value.absent(),
+    this.modifiedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AttendanceCompanion.insert({
@@ -7802,6 +8125,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
     this.checkedInByUserId = const Value.absent(),
     this.createdAt = const Value.absent(),
     required String deviceId,
+    this.status = const Value.absent(),
+    this.minutesLate = const Value.absent(),
+    this.absenceReason = const Value.absent(),
+    this.isBackdated = const Value.absent(),
+    this.modifiedByUserId = const Value.absent(),
+    this.modifiedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        sessionId = Value(sessionId),
@@ -7821,6 +8150,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
     Expression<String>? checkedInByUserId,
     Expression<DateTime>? createdAt,
     Expression<String>? deviceId,
+    Expression<String>? status,
+    Expression<int>? minutesLate,
+    Expression<String>? absenceReason,
+    Expression<bool>? isBackdated,
+    Expression<String>? modifiedByUserId,
+    Expression<String>? modifiedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7836,6 +8171,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
       if (checkedInByUserId != null) 'checked_in_by_user_id': checkedInByUserId,
       if (createdAt != null) 'created_at': createdAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (status != null) 'status': status,
+      if (minutesLate != null) 'minutes_late': minutesLate,
+      if (absenceReason != null) 'absence_reason': absenceReason,
+      if (isBackdated != null) 'is_backdated': isBackdated,
+      if (modifiedByUserId != null) 'modified_by_user_id': modifiedByUserId,
+      if (modifiedAt != null) 'modified_at': modifiedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7853,6 +8194,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
     Value<String?>? checkedInByUserId,
     Value<DateTime>? createdAt,
     Value<String>? deviceId,
+    Value<String>? status,
+    Value<int?>? minutesLate,
+    Value<String?>? absenceReason,
+    Value<bool>? isBackdated,
+    Value<String?>? modifiedByUserId,
+    Value<String?>? modifiedAt,
     Value<int>? rowid,
   }) {
     return AttendanceCompanion(
@@ -7868,6 +8215,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
       checkedInByUserId: checkedInByUserId ?? this.checkedInByUserId,
       createdAt: createdAt ?? this.createdAt,
       deviceId: deviceId ?? this.deviceId,
+      status: status ?? this.status,
+      minutesLate: minutesLate ?? this.minutesLate,
+      absenceReason: absenceReason ?? this.absenceReason,
+      isBackdated: isBackdated ?? this.isBackdated,
+      modifiedByUserId: modifiedByUserId ?? this.modifiedByUserId,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7911,6 +8264,24 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
     }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (minutesLate.present) {
+      map['minutes_late'] = Variable<int>(minutesLate.value);
+    }
+    if (absenceReason.present) {
+      map['absence_reason'] = Variable<String>(absenceReason.value);
+    }
+    if (isBackdated.present) {
+      map['is_backdated'] = Variable<bool>(isBackdated.value);
+    }
+    if (modifiedByUserId.present) {
+      map['modified_by_user_id'] = Variable<String>(modifiedByUserId.value);
+    }
+    if (modifiedAt.present) {
+      map['modified_at'] = Variable<String>(modifiedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7932,6 +8303,12 @@ class AttendanceCompanion extends UpdateCompanion<AttendanceData> {
           ..write('checkedInByUserId: $checkedInByUserId, ')
           ..write('createdAt: $createdAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('status: $status, ')
+          ..write('minutesLate: $minutesLate, ')
+          ..write('absenceReason: $absenceReason, ')
+          ..write('isBackdated: $isBackdated, ')
+          ..write('modifiedByUserId: $modifiedByUserId, ')
+          ..write('modifiedAt: $modifiedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15869,6 +16246,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<double?> teacherFixedAmount,
       Value<bool> isActive,
       Value<bool> isArchived,
+      Value<String?> makeupForSessionId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       required String deviceId,
@@ -15889,6 +16267,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<double?> teacherFixedAmount,
       Value<bool> isActive,
       Value<bool> isArchived,
+      Value<String?> makeupForSessionId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> deviceId,
@@ -15945,6 +16324,23 @@ final class $$SessionsTableReferences
       $_db.classrooms,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_classroomIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SessionsTable _makeupForSessionIdTable(_$AppDatabase db) =>
+      db.sessions.createAlias('sessions__makeup_for_session_id__sessions__id');
+
+  $$SessionsTableProcessedTableManager? get makeupForSessionId {
+    final $_column = $_itemColumn<String>('makeup_for_session_id');
+    if ($_column == null) return null;
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_makeupForSessionIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -16140,6 +16536,29 @@ class $$SessionsTableFilterComposer
           }) => $$ClassroomsTableFilterComposer(
             $db: $db,
             $table: $db.classrooms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SessionsTableFilterComposer get makeupForSessionId {
+    final $$SessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.makeupForSessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -16367,6 +16786,29 @@ class $$SessionsTableOrderingComposer
     );
     return composer;
   }
+
+  $$SessionsTableOrderingComposer get makeupForSessionId {
+    final $$SessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.makeupForSessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$SessionsTableAnnotationComposer
@@ -16496,6 +16938,29 @@ class $$SessionsTableAnnotationComposer
     return composer;
   }
 
+  $$SessionsTableAnnotationComposer get makeupForSessionId {
+    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.makeupForSessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> cancellationsRefs<T extends Object>(
     Expression<T> Function($$CancellationsTableAnnotationComposer a) f,
   ) {
@@ -16589,6 +17054,7 @@ class $$SessionsTableTableManager
             bool subjectGroupId,
             bool teacherId,
             bool classroomId,
+            bool makeupForSessionId,
             bool cancellationsRefs,
             bool transactionsRefs,
             bool attendanceRefs,
@@ -16620,6 +17086,7 @@ class $$SessionsTableTableManager
                 Value<double?> teacherFixedAmount = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<String?> makeupForSessionId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
@@ -16638,6 +17105,7 @@ class $$SessionsTableTableManager
                 teacherFixedAmount: teacherFixedAmount,
                 isActive: isActive,
                 isArchived: isArchived,
+                makeupForSessionId: makeupForSessionId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -16658,6 +17126,7 @@ class $$SessionsTableTableManager
                 Value<double?> teacherFixedAmount = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<String?> makeupForSessionId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 required String deviceId,
@@ -16676,6 +17145,7 @@ class $$SessionsTableTableManager
                 teacherFixedAmount: teacherFixedAmount,
                 isActive: isActive,
                 isArchived: isArchived,
+                makeupForSessionId: makeupForSessionId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
@@ -16694,6 +17164,7 @@ class $$SessionsTableTableManager
                 subjectGroupId = false,
                 teacherId = false,
                 classroomId = false,
+                makeupForSessionId = false,
                 cancellationsRefs = false,
                 transactionsRefs = false,
                 attendanceRefs = false,
@@ -16756,6 +17227,19 @@ class $$SessionsTableTableManager
                                         ._classroomIdTable(db),
                                     referencedColumn: $$SessionsTableReferences
                                         ._classroomIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (makeupForSessionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.makeupForSessionId,
+                                    referencedTable: $$SessionsTableReferences
+                                        ._makeupForSessionIdTable(db),
+                                    referencedColumn: $$SessionsTableReferences
+                                        ._makeupForSessionIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -16852,6 +17336,7 @@ typedef $$SessionsTableProcessedTableManager =
         bool subjectGroupId,
         bool teacherId,
         bool classroomId,
+        bool makeupForSessionId,
         bool cancellationsRefs,
         bool transactionsRefs,
         bool attendanceRefs,
@@ -19154,6 +19639,12 @@ typedef $$AttendanceTableCreateCompanionBuilder =
       Value<String?> checkedInByUserId,
       Value<DateTime> createdAt,
       required String deviceId,
+      Value<String> status,
+      Value<int?> minutesLate,
+      Value<String?> absenceReason,
+      Value<bool> isBackdated,
+      Value<String?> modifiedByUserId,
+      Value<String?> modifiedAt,
       Value<int> rowid,
     });
 typedef $$AttendanceTableUpdateCompanionBuilder =
@@ -19170,6 +19661,12 @@ typedef $$AttendanceTableUpdateCompanionBuilder =
       Value<String?> checkedInByUserId,
       Value<DateTime> createdAt,
       Value<String> deviceId,
+      Value<String> status,
+      Value<int?> minutesLate,
+      Value<String?> absenceReason,
+      Value<bool> isBackdated,
+      Value<String?> modifiedByUserId,
+      Value<String?> modifiedAt,
       Value<int> rowid,
     });
 
@@ -19280,6 +19777,36 @@ class $$AttendanceTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minutesLate => $composableBuilder(
+    column: $table.minutesLate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get absenceReason => $composableBuilder(
+    column: $table.absenceReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isBackdated => $composableBuilder(
+    column: $table.isBackdated,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modifiedByUserId => $composableBuilder(
+    column: $table.modifiedByUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modifiedAt => $composableBuilder(
+    column: $table.modifiedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19407,6 +19934,36 @@ class $$AttendanceTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minutesLate => $composableBuilder(
+    column: $table.minutesLate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get absenceReason => $composableBuilder(
+    column: $table.absenceReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isBackdated => $composableBuilder(
+    column: $table.isBackdated,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modifiedByUserId => $composableBuilder(
+    column: $table.modifiedByUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modifiedAt => $composableBuilder(
+    column: $table.modifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$StudentsTableOrderingComposer get studentId {
     final $$StudentsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -19525,6 +20082,34 @@ class $$AttendanceTableAnnotationComposer
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
 
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get minutesLate => $composableBuilder(
+    column: $table.minutesLate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get absenceReason => $composableBuilder(
+    column: $table.absenceReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isBackdated => $composableBuilder(
+    column: $table.isBackdated,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modifiedByUserId => $composableBuilder(
+    column: $table.modifiedByUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modifiedAt => $composableBuilder(
+    column: $table.modifiedAt,
+    builder: (column) => column,
+  );
+
   $$StudentsTableAnnotationComposer get studentId {
     final $$StudentsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -19639,6 +20224,12 @@ class $$AttendanceTableTableManager
                 Value<String?> checkedInByUserId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int?> minutesLate = const Value.absent(),
+                Value<String?> absenceReason = const Value.absent(),
+                Value<bool> isBackdated = const Value.absent(),
+                Value<String?> modifiedByUserId = const Value.absent(),
+                Value<String?> modifiedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AttendanceCompanion(
                 id: id,
@@ -19653,6 +20244,12 @@ class $$AttendanceTableTableManager
                 checkedInByUserId: checkedInByUserId,
                 createdAt: createdAt,
                 deviceId: deviceId,
+                status: status,
+                minutesLate: minutesLate,
+                absenceReason: absenceReason,
+                isBackdated: isBackdated,
+                modifiedByUserId: modifiedByUserId,
+                modifiedAt: modifiedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -19669,6 +20266,12 @@ class $$AttendanceTableTableManager
                 Value<String?> checkedInByUserId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 required String deviceId,
+                Value<String> status = const Value.absent(),
+                Value<int?> minutesLate = const Value.absent(),
+                Value<String?> absenceReason = const Value.absent(),
+                Value<bool> isBackdated = const Value.absent(),
+                Value<String?> modifiedByUserId = const Value.absent(),
+                Value<String?> modifiedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AttendanceCompanion.insert(
                 id: id,
@@ -19683,6 +20286,12 @@ class $$AttendanceTableTableManager
                 checkedInByUserId: checkedInByUserId,
                 createdAt: createdAt,
                 deviceId: deviceId,
+                status: status,
+                minutesLate: minutesLate,
+                absenceReason: absenceReason,
+                isBackdated: isBackdated,
+                modifiedByUserId: modifiedByUserId,
+                modifiedAt: modifiedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
