@@ -783,3 +783,91 @@ for (final s in sessions) {
 ### Deferred
 - **Enrollment end dates** — still deferred from Round 3.
 - **School-closure vs cancellation distinction for billing cycles** — still deferred from Round 6.
+
+---
+## DASHBOARD (ROUND 9)
+- [ ] **167. Needs Attention section appears when alerts exist**
+  - Start with no data. Add overdue scenarios (unbilled students, overdue teachers, waitlist). Verify the "Needs Attention" card appears at the top of the dashboard with each alert row showing a warning icon + text.
+- [ ] **168. Needs Attention section hidden when no alerts**
+  - Clear all alert conditions. Verify the section is completely hidden (not shown as "0 alerts").
+- [ ] **169. Quick Actions row**
+  - Verify 5 action buttons: Record Payment, Check-in, Pay Teacher, New Student, Today. Click "Record Payment" ? UnifiedPaymentScreen opens.
+- [ ] **170. Live Now section — shows live sessions**
+  - Schedule a session for current time with teacher and group. Verify a "Live Now" card appears with horizontal-scrolling cards showing group name, time, teacher, attendance count, green "Live" badge.
+- [ ] **171. Live Now section — hidden when nothing live**
+  - Outside of any session time, verify the Live Now section is completely hidden.
+- [ ] **172. KPI cards — animated counters**
+  - Cold-start the dashboard. Verify each KPI number counts up from 0 to its real value with smooth animation (larger numbers take longer).
+- [ ] **173. KPI cards — trend indicators**
+  - Set a date range, note a KPI value. Change to a different range with different values. Verify trend arrow (+X% or -X%) appears under each KPI card comparing to the previous period. Color-coded: green for up, red for down.
+- [ ] **174. KPI cards — sparklines**
+  - After several months of data, verify a small sparkline (mini line chart) appears under Revenue card showing last 6 months' trend.
+- [ ] **175. Date range filter — properly drives all metrics**
+  - Select a specific From/To date range. Verify ALL cards (Revenue, Expenses, Net, Outstanding, Financial Details, Billing Health, Enrollment Trend) reflect only that range. Clear the filter ? full year shown. Verify dateTo is now respected (not ignored as in the previous bug).
+- [ ] **176. Financial Details section**
+  - Verify card shows: Collection Rate, Family Discounts total, Net After Discounts, Avg Revenue per Active Student, Active Students count. Cross-check family discount total matches actual discount transactions in the Payments screen.
+- [ ] **177. Billing Cycle Health section**
+  - Verify 3 stats: Open Cycles, Closed Cycles, Mid-Cycle (students with active charges). Each with color-coded background.
+- [ ] **178. Teacher Payout Summary section**
+  - Verify "Total Payouts" line + "Nearest to Overdue" list showing up to 5 teachers with names/codes.
+- [ ] **179. Enrollment Trend section**
+  - Verify 3 stats: New Enrollments (green), Dropped/Transferred (red), Net (green or red). Cross-check numbers against Enrollments screen for the same date range.
+- [ ] **180. Classroom Utilization section**
+  - Verify each classroom shows: name, utilization progress bar (green if >20%, amber if <20%), session count / capacity, and "low" badge for underused rooms.
+- [ ] **181. Bar chart — monthly revenue vs expenses**
+  - Scroll to chart. Verify 6 months of data, dual bars per month (Revenue = blue, Expenses = orange), animated growth on appearance. Verify grid lines use ChartTokens.gridLine color, labels use ChartTokens.axisLabel.
+- [ ] **182. Line chart — revenue trend**
+  - Verify single-line chart with 6 months of revenue data, animated draw-in on appearance, touch tooltip showing exact values.
+- [ ] **183. Donut chart — payment methods**
+  - Verify segmented donut showing distribution of student_payment by payment_method (Cash/Card/Bank/Mobile). Animated sweep-in, center hole, percentage labels per segment, ChartTokens palette colors.
+- [ ] **184. Donut chart — students by school level**
+  - Verify donut showing student count distribution by schoolLevel (Primary/Middle/Secondary).
+- [ ] **185. Donut chart — debt aging**
+  - Verify donut showing student count in each aging bucket (Settled, <30d, 30-60d, 60-90d, >90d). Cross-check bucket thresholds match Settings ? Debt Aging settings.
+- [ ] **186. Session heatmap**
+  - Verify 7-row ? hour-range grid showing session density. Each cell colored by count (empty=dark, low=blue, high=orange/red). Cell shows exact count. Days: Mon-Sun.
+- [ ] **187. Charts load lazily — do not block initial paint**
+  - Cold-start the dashboard. Verify KPI cards render immediately, charts appear shortly after with loading indicators replaced by data.
+- [ ] **188. Pull-to-refresh updates all sections**
+  - Swipe down to refresh. Verify both KPI cards AND all charts reload with updated data (not just the old 9 cards).
+- [ ] **189. Error state per section**
+  - Force a query failure (e.g., offline). Verify each card/chart shows its own error text rather than crashing or showing stale data.
+
+---
+## Round 9 ? Professional Animated Dashboard (2026-07-28)
+
+### Phase 0 — Dependency & ChartTokens
+- Added `fl_chart: ^0.70.2` to pubspec.yaml.
+- Created `lib/constants/chart_tokens.dart` with unified palette: 8 series colors, gridLine, axisLabel, tooltipBg/Text, heatmap 5-step gradient (empty?low?medium?high?max), trendUp/Down/Neutral.
+
+### Phase 1 — Data Queries (Backend)
+- Fixed `getPeriodSummary`: now accepts `DateTime? from, DateTime? to` (named params) instead of `int year, int month`. DateTo is now properly honored — previously ignored.
+- 11 new database methods added: `getMonthlyRevenueAndExpenses(int months)`, `getMonthlyTrend(int months)`, `getRevenueByPaymentMethod(DateTime from, DateTime to)`, `getStudentCountByLevel()`, `getDebtByAgingBucket({int bucket1, bucket2, bucket3})`, `getSessionHeatmap()`, `getFamilyDiscountTotal(DateTime from, DateTime to)`, `getPreviousPeriodComparison()`, `getBillingCycleHealth()`, `getTeacherPayoutSummary()`, `getEnrollmentTrend(DateTime from, DateTime to)`, `getClassroomUtilization()`.
+
+### Phase 2-6 — Dashboard Body
+- **Needs Attention:** Aggregates unbilled students, overdue teachers, waitlist count into a compact card at top. Hidden when zero alerts.
+- **Quick Actions:** 5 icon-labeled buttons: Record Payment (opens UnifiedPaymentScreen), Check-in, Pay Teacher, New Student, Today.
+- **Live Now:** Detects currently-live sessions (time overlap with now), shows horizontal card list with group name, teacher, attendance count, green "Live" badge. Hidden when nothing live.
+- **KPI Cards:** 9 existing cards enhanced with animated counters (`TweenAnimationBuilder`, counting from 0 with duration proportional to value), trend indicators (+X% vs previous period with colored arrows), and sparkline mini-charts (CustomPainter line from last 6 data points).
+- **Financial Details:** Collection Rate, Family Discounts total, Net After Discounts, Avg Revenue per Active Student.
+- **Billing Cycle Health:** Open/Closed Cycles + Mid-Cycle Students stats.
+- **Teacher Payout Summary:** Total payouts + top 5 nearest-to-overdue teachers.
+- **Enrollment Trend:** New/Dropped/Net per period.
+- **Classroom Utilization:** Progress bars with low-usage badges.
+
+### Phase 7-10 — Charts
+- **Bar Chart** (`DashboardBarChart`): fl_chart BarChart with 6 months of revenue vs expenses, dual bars per month, animated growth via AnimationController.
+- **Line Chart** (`DashboardLineChart`): fl_chart LineChart with 6-month revenue trend, animated draw-in, touch tooltip.
+- **Donut Charts** (`DashboardDonutChart`): 3 instances (payment_method, student_level, debt_aging), fl_chart PieChart with animated sweep-in, center hole, ChartTokens palette.
+- **Heatmap** (`DashboardHeatmap`): 7-day ? hour Table with color-coded cell density using ChartTokens heatmap gradient.
+
+### Phase 11 — Staggered Entrance & Performance
+- Charts load independently with their own loading indicators, do not block initial KPI card paint.
+- Animation controllers reset and replay when data changes.
+- Pull-to-refresh (RefreshIndicator) reloads all dashboard sections including charts.
+- Error states per chart/section — one failing query does not crash the dashboard.
+
+### Notes
+- Radial gauge (Phase 10 from analysis) was not implemented in this round — Collection Rate is shown as a text value in Financial Details and a donut chart.
+- Some quick action buttons open real flows (Record Payment), others are stubs due to sidebar navigation complexity.
+- Sparklines use CustomPainter (no chart library needed), keeping them lightweight.
