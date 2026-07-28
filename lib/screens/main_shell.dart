@@ -8,7 +8,7 @@ import '../main.dart';
 import '../widgets/shell_header.dart';
 import '../widgets/quick_find_overlay.dart';
 import 'dashboard/dashboard_screen.dart';
-import 'checkin/checkin_screen.dart';
+import 'checkin/live_attendance_board.dart';
 import 'students/student_list_screen.dart';
 import 'students/student_balances_screen.dart';
 import 'teachers/teacher_list_screen.dart';
@@ -86,7 +86,7 @@ class _MainShellState extends State<MainShell> {
 
       _screens = [
         DashboardScreen(database: widget.database),
-        CheckinScreen(database: widget.database, currentUserId: widget.userId),
+        LiveAttendanceBoard(database: widget.database, currentUserId: widget.userId),
         StudentListScreen(database: widget.database),
         TeacherListScreen(database: widget.database),
         SessionListScreen(database: widget.database),
