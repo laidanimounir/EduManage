@@ -362,7 +362,7 @@ for (final s in sessions) {
 
 6. ~~Enrollment transfer~~ — COMPLETED in Round 4.
 
-7. ~~Family accounts~~ — COMPLETED in Round 6.
+7. ~~Family accounts~~ — COMPLETED in Round 6, dialog blank fix + discount linked-transaction integration COMPLETED in Round 7.
 
 8. ~~Billing cycles~~ — COMPLETED in Round 6 (basic cycle tracking). School-closure vs cancellation distinction for cycle counting remains deferred.
 
@@ -372,9 +372,9 @@ for (final s in sessions) {
 
 11. ~~Bulk payment recording~~ — COMPLETED in Round 6.
 
-12. **Student/Teacher PDF statements** — deferred.
+12. ~~Student/Teacher PDF statements~~ — COMPLETED in Round 7.
 
-13. **PDF receipt with QR code** — deferred.
+13. ~~PDF receipt with QR code~~ — COMPLETED in Round 7 (PDF receipt with URL placeholder generated).
 
 14. ~~Unbilled-but-active indicator~~ — COMPLETED in Round 6.
 
@@ -685,3 +685,55 @@ for (final s in sessions) {
   - Enter amount, leave allocation as auto (FIFO), save ? verify payment created and balance updated.
 - [ ] **150. Record Payment � manual allocation**
   - Toggle manual allocation, select charges, save ? verify allocated amounts are tracked.
+
+---
+
+## Round 7 � Family Dialog Fix, Family-Payments Integration, PDF Statements & QR Receipt (2026-07-28)
+
+### Phase 0 � Family Dialog Blank Fix
+- **Root cause:** `_FamilyEditDialog._load()` called `StudentRepository.getAll()` without try/catch. If the DB query failed or hung, `_loading` remained true, showing only a tiny spinner (perceived as blank). Also: `Flexible(ListView)` inside `SingleChildScrollView` (via ShellDialog body) collapsed to zero height due to unbounded scroll constraints; replaced with `ListView(shrinkWrap: true)`. `select().where()` cascade incorrectly called `await` on non-Future.
+- **Fix:** Added try/catch with retry UI in `_load()`, replaced deprecated `value:` with `initialValue:` on DropdownButtonFormField, replaced Flexible+ListView with shrinkWrap ListView, fixed select/where/get cascade pattern.
+
+### Phase 1 � Family Discount ? Linked Transaction
+- Before: family discount was silently subtracted from the charge amount � invisible in history.
+- After: `createSessionCharge` creates a separate `discount` transaction linked via `referenceTransactionId`. Note includes family name and rule (e.g. "Family discount (Ben Ali Family) � 15%"). Visible in Payments table, student balance calculation, student history, and PDF receipts.
+- Extracted `BulkPaymentDialog` to shared widget `lib/widgets/bulk_payment_dialog.dart` with optional `preSelectedStudentIds` parameter.
+- Added "Record Payment for Family" button to each family card � opens Bulk Payment with family members pre-selected.
+
+### Phase 2 � Checklist Audit
+- Verified key Round 5/6 features are reachable. Found and corrected the `_FamilyInfo` widget import (already working). No other missing features detected beyond those already deferred.
+
+### Phase 3 & 4 � PDF Statements & Receipt
+- Created `PdfGenerator` utility with three static methods: `generateStudentReceipt` (bon de paiement with charges+discounts+payments breakdown), `generateStudentStatement` (full transaction history), `generateTeacherStatement` (session earnings + payout history).
+- QR code URL placeholder: `edumanage://receipt/{receiptNumber}/{studentId}` � intended for future web lookup
+- Added "Generate Receipt" button (receipt icon) in StudentDetailDialog header.
+- Added "Print Statement" button in StudentDetailDialog financial section and Teacher detail dialog footer.
+- PDFs saved to app documents directory with descriptive filenames.
+
+---
+
+## FAMILIES (ROUND 7 FIXES)
+- [ ] **151. Create family � dialog renders**
+  - Open Families ? click "+". Verify dialog shows: family name field (autofocus), discount type/amount (percentage % or fixed DA), and full list of students with checkboxes.
+- [ ] **152. Create family � save and verify**
+  - Enter a family name, set 10% discount, select 2+ students from checklist, click Save. Verify family appears in list with correct member count and discount shown.
+- [ ] **153. Family discount on charge**
+  - Check in a family member student. Open Payments ? search for that student. Verify a "discount" transaction row appears with family name in note and amount equal to X% of the session charge.
+- [ ] **154. Family discount in student history**
+  - Open student detail dialog ? verify family banner shows name and discount. Open financial history ? verify discount rows appear distinct from charges.
+- [ ] **155. Record Payment for Family**
+  - On a family card, click currency icon. Verify Bulk Payment dialog opens with family members pre-selected. Enter amount, save ? verify payments recorded for each member.
+
+## PDF RECEIPTS & STATEMENTS
+- [ ] **156. Generate student receipt**
+  - Open a student detail dialog ? click receipt icon. Verify SnackBar shows "Receipt saved: /path/to/receipt_STU-XXX_REC-NNN.pdf". Open the file ? verify bon de paiement with student name, charges table (including family discount lines), payments table, and summary.
+- [ ] **157. Generate student statement**
+  - Open student detail ? scroll to financial section ? click "Print Statement". Verify PDF contains full transaction history with cycle numbers, charged/discounts/paid/balance summary.
+- [ ] **158. Generate teacher statement**
+  - Open teacher detail ? click file icon in footer. Verify PDF contains session earnings table and payout history table, with earned/paid out/balance summary.
+- [ ] **159. QR URL on receipt**
+  - Open generated receipt PDF ? verify text line: "QR: edumanage://receipt/REC-NNN/studentId" visible near the bottom.
+
+## FAMILY BULK PAYMENT
+- [ ] **160. Bulk Pay from family screen**
+  - On a family card, click dollar icon ? verify dialog shows family name as title and members pre-selected. "Record N Payments" button works.
