@@ -123,6 +123,16 @@ class TransactionService extends BaseRepository {
     final session = await _sessionRepo.getById(sessionId);
     if (session == null) throw ArgumentError('Session not found');
 
+    final cancelled = await _isSessionCancelled(sessionId, txDate);
+    if (cancelled) {
+      throw StateError('Cannot pay out for a cancelled session');
+    }
+
+    final duplicate = await _isDuplicatePayout(teacherId, sessionId, txDate);
+    if (duplicate) {
+      throw StateError('Payout already recorded for this session on this date');
+    }
+
     final attendanceCount = await _getSessionAttendanceCount(sessionId, txDate);
 
     final teacher = await TeacherRepository(db).getById(teacherId);
@@ -344,6 +354,21 @@ class TransactionService extends BaseRepository {
           t.studentId.equals(studentId) &
           t.sessionId.equals(sessionId) &
           t.type.equals('session_charge') &
+          t.transactionDate.isBiggerOrEqualValue(dateStart) &
+          t.transactionDate.isSmallerThanValue(dateEnd)))
+        .get();
+    return result.isNotEmpty;
+  }
+
+  Future<bool> _isDuplicatePayout(
+      String teacherId, String sessionId, DateTime date) async {
+    final dateStart = DateTime(date.year, date.month, date.day);
+    final dateEnd = dateStart.add(const Duration(days: 1));
+    final result = await (db.select(db.transactions)
+      ..where((t) =>
+          t.teacherId.equals(teacherId) &
+          t.sessionId.equals(sessionId) &
+          t.type.equals('teacher_payout') &
           t.transactionDate.isBiggerOrEqualValue(dateStart) &
           t.transactionDate.isSmallerThanValue(dateEnd)))
         .get();
