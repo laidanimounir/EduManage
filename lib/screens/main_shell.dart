@@ -9,6 +9,7 @@ import '../widgets/shell_header.dart';
 import '../widgets/quick_find_overlay.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'checkin/live_attendance_board.dart';
+import 'checkin/attendance_reports_screen.dart';
 import 'students/student_list_screen.dart';
 import 'students/student_balances_screen.dart';
 import 'teachers/teacher_list_screen.dart';
