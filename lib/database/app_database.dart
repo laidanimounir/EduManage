@@ -886,21 +886,23 @@ class AppDatabase extends _$AppDatabase {
     ));
   }
 
-  Future<Map<String, double>> getPeriodSummary(int year, int month) async {
-    final start = DateTime(year, month, 1);
-    final end = DateTime(year, month + 1, 1).subtract(const Duration(days: 1));
-    final endInclusive = DateTime(end.year, end.month, end.day, 23, 59, 59);
+  Future<Map<String, double>> getPeriodSummary({DateTime? from, DateTime? to}) async {
+    final now = DateTime.now();
+    final start = from ?? DateTime(now.year, 1, 1);
+    final end = to != null
+        ? DateTime(to.year, to.month, to.day, 23, 59, 59)
+        : (from != null ? DateTime(from.year, from.month + 1, 0, 23, 59, 59) : DateTime(now.year, now.month + 1, 0, 23, 59, 59));
 
     final revenue = await customSelect(
       'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions '
       'WHERE type IN (\'student_payment\', \'registration_fee_payment\') AND transaction_date >= ? AND transaction_date <= ?',
-      variables: [Variable.withDateTime(start), Variable.withDateTime(endInclusive)],
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
     ).map((r) => r.read<double>('total')).getSingle();
 
     final expenses = await customSelect(
       'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions '
       'WHERE type IN (\'expense\', \'teacher_payout\') AND transaction_date >= ? AND transaction_date <= ?',
-      variables: [Variable.withDateTime(start), Variable.withDateTime(endInclusive)],
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
     ).map((r) => r.read<double>('total')).getSingle();
 
     final outstanding = await customSelect(
@@ -910,6 +912,215 @@ class AppDatabase extends _$AppDatabase {
     ).map((r) => r.read<double>('total')).getSingle();
 
     return {'revenue': revenue, 'expenses': expenses, 'outstanding': outstanding};
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyRevenueAndExpenses(int months) async {
+    final now = DateTime.now();
+    final results = <Map<String, dynamic>>[];
+    for (var i = months - 1; i >= 0; i--) {
+      final y = now.month - i <= 0 ? now.year - 1 : now.year;
+      final m = ((now.month - i - 1) % 12) + 1;
+      final start = DateTime(y, m, 1);
+      final end = DateTime(y, m + 1, 0, 23, 59, 59);
+      final row = await customSelect(
+        'SELECT '
+        'COALESCE(SUM(CASE WHEN type IN (\'student_payment\',\'registration_fee_payment\') THEN amount ELSE 0 END), 0) AS revenue, '
+        'COALESCE(SUM(CASE WHEN type IN (\'expense\',\'teacher_payout\') THEN amount ELSE 0 END), 0) AS expenses '
+        'FROM transactions WHERE transaction_date >= ? AND transaction_date <= ?',
+        variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      ).getSingle();
+      results.add({
+        'year': y,
+        'month': m,
+        'revenue': row.read<double>('revenue'),
+        'expenses': row.read<double>('expenses'),
+      });
+    }
+    return results;
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyTrend(int months) async {
+    final now = DateTime.now();
+    final results = <Map<String, dynamic>>[];
+    for (var i = months - 1; i >= 0; i--) {
+      final y = now.month - i <= 0 ? now.year - 1 : now.year;
+      final m = ((now.month - i - 1) % 12) + 1;
+      final start = DateTime(y, m, 1);
+      final end = DateTime(y, m + 1, 0, 23, 59, 59);
+      final row = await customSelect(
+        'SELECT '
+        'COALESCE(SUM(CASE WHEN type IN (\'student_payment\',\'registration_fee_payment\') THEN amount ELSE 0 END), 0) AS revenue, '
+        'COALESCE(SUM(CASE WHEN type IN (\'session_charge\',\'correction\',\'registration_fee\') THEN amount '
+        'WHEN type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\') THEN -amount ELSE 0 END), 0) AS debt_balance '
+        'FROM transactions WHERE transaction_date <= ?',
+        variables: [Variable.withDateTime(end)],
+      ).getSingle();
+      final revenue = row.read<double>('revenue');
+      final debt = row.read<double>('debt_balance');
+      final collectionRate = revenue > 0 ? ((revenue - debt) / revenue * 100).clamp(0, 100) : 0.0;
+      results.add({
+        'year': y, 'month': m, 'revenue': revenue, 'collectionRate': collectionRate,
+      });
+    }
+    return results;
+  }
+
+  Future<List<Map<String, dynamic>>> getRevenueByPaymentMethod(DateTime from, DateTime to) async {
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    return await customSelect(
+      'SELECT payment_method, COALESCE(SUM(amount), 0) AS total FROM transactions '
+      'WHERE type = \'student_payment\' AND transaction_date >= ? AND transaction_date <= ? '
+      'GROUP BY payment_method',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(end)],
+    ).map((r) => {'method': r.read<String>('payment_method'), 'total': r.read<double>('total')}).get();
+  }
+
+  Future<List<Map<String, dynamic>>> getStudentCountByLevel() async {
+    return await customSelect(
+      'SELECT school_level, COUNT(*) AS cnt FROM students WHERE is_archived = 0 AND school_level IS NOT NULL GROUP BY school_level',
+    ).map((r) => {'level': r.read<String>('school_level'), 'count': r.read<int>('cnt')}).get();
+  }
+
+  Future<List<Map<String, dynamic>>> getDebtByAgingBucket({int bucket1 = 30, int bucket2 = 60, int bucket3 = 90}) async {
+    final now = DateTime.now();
+    final thresholds = [0, bucket1, bucket2, bucket3];
+    final labels = ['<$bucket1 d', '${bucket1}-${bucket2} d', '${bucket2}-${bucket3} d', '>$bucket3 d'];
+    final results = <Map<String, dynamic>>[];
+    final allSettled = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM students s WHERE s.is_archived = 0 AND '
+      '(SELECT COALESCE(SUM(CASE WHEN t.type IN (\'session_charge\',\'correction\',\'registration_fee\') THEN t.amount '
+      'WHEN t.type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\') THEN -t.amount ELSE 0 END), 0) FROM transactions t WHERE t.student_id = s.id) <= 0',
+    ).getSingle();
+    results.add({'label': 'Settled', 'count': allSettled.read<int>('cnt')});
+    for (var i = 0; i < thresholds.length; i++) {
+      final minDays = thresholds[i];
+      final maxDays = i < thresholds.length - 1 ? thresholds[i + 1] : 9999;
+      final isLast = i == thresholds.length - 1;
+      final row = await customSelect(
+        'SELECT COUNT(DISTINCT s.id) AS cnt FROM students s '
+        'JOIN transactions t ON s.id = t.student_id AND t.type = \'session_charge\' '
+        'WHERE s.is_archived = 0 AND t.transaction_date <= ? '
+        'AND (SELECT COALESCE(SUM(CASE WHEN tt.type IN (\'session_charge\',\'correction\',\'registration_fee\') THEN tt.amount '
+        'WHEN tt.type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\') THEN -tt.amount ELSE 0 END), 0) FROM transactions tt WHERE tt.student_id = s.id) > 0'
+        '${isLast ? '' : ' AND t.transaction_date > ?'}',
+        variables: [Variable.withDateTime(now.subtract(Duration(days: minDays))),
+          if (!isLast) Variable.withDateTime(now.subtract(Duration(days: maxDays)))],
+      ).getSingle();
+      results.add({'label': labels[i], 'count': row.read<int>('cnt')});
+    }
+    return results;
+  }
+
+  Future<Map<int, Map<int, int>>> getSessionHeatmap() async {
+    final rows = await customSelect(
+      'SELECT day_of_week, CAST(strftime(\'%H\', start_time) AS INTEGER) AS hour, COUNT(*) AS cnt '
+      'FROM sessions WHERE is_active = 1 AND is_archived = 0 GROUP BY day_of_week, hour',
+    ).get();
+    final map = <int, Map<int, int>>{};
+    for (final r in rows) {
+      final day = r.read<int>('day_of_week');
+      final hour = r.read<int>('hour');
+      final cnt = r.read<int>('cnt');
+      map.putIfAbsent(day, () => {});
+      map[day]![hour] = cnt;
+    }
+    return map;
+  }
+
+  Future<double> getFamilyDiscountTotal(DateTime from, DateTime to) async {
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    final row = await customSelect(
+      'SELECT COALESCE(SUM(t.amount), 0) AS total FROM transactions t '
+      'JOIN family_members fm ON t.student_id = fm.student_id '
+      'WHERE t.type = \'discount\' AND t.transaction_date >= ? AND t.transaction_date <= ?',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(end)],
+    ).getSingle();
+    return row.read<double>('total');
+  }
+
+  Future<Map<String, double>> getPreviousPeriodComparison({
+    required String metric,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final duration = to.difference(from);
+    final prevTo = from.subtract(const Duration(days: 1));
+    final prevFrom = prevTo.subtract(duration);
+    final prev = await getPeriodSummary(from: prevFrom, to: prevTo);
+    return prev;
+  }
+
+  Future<Map<String, dynamic>> getBillingCycleHealth() async {
+    final totalStudents = await (select(students)..where((t) => t.isArchived.equals(false))).map((r) => r.id).get().then((ids) => ids.length);
+    final closedCycles = await (select(closedPeriods)).map((r) => r.year).get().then((rows) => rows.length);
+    final midCycle = await customSelect(
+      'SELECT COUNT(DISTINCT t.student_id) AS cnt FROM transactions t '
+      'WHERE t.type = \'session_charge\' AND t.cycle_number IS NOT NULL',
+    ).getSingle();
+    final openCycles = await customSelect(
+      'SELECT COUNT(DISTINCT t.cycle_number) AS cnt FROM transactions t WHERE t.type = \'session_charge\'',
+    ).getSingle();
+    return {
+      'totalStudents': totalStudents,
+      'closedCycles': closedCycles,
+      'openCycles': openCycles.read<int>('cnt'),
+      'midCycleStudents': midCycle.read<int>('cnt'),
+    };
+  }
+
+  Future<Map<String, dynamic>> getTeacherPayoutSummary() async {
+    final totalEarned = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = \'teacher_payout\'',
+    ).getSingle();
+    final teacherDues = await customSelect(
+      'SELECT t.id, t.first_name_ar, t.last_name_ar, t.code, t.overdue_threshold_days, '
+      '(SELECT COALESCE(SUM(tt.amount), 0) FROM transactions tt WHERE tt.teacher_id = t.id AND tt.type = \'teacher_payout\') AS paid_out, '
+      '(SELECT MAX(tt.transaction_date) FROM transactions tt WHERE tt.teacher_id = t.id AND tt.type = \'teacher_payout\') AS last_payout '
+      'FROM teachers t WHERE t.is_archived = 0 AND t.employment_end_date IS NULL '
+      'ORDER BY last_payout ASC NULLS FIRST LIMIT 5',
+    ).map((r) => {
+      'id': r.read<String>('id'),
+      'name': '${r.read<String>('first_name_ar')} ${r.read<String>('last_name_ar')}',
+      'code': r.read<String>('code'),
+      'paidOut': r.read<double>('paid_out'),
+      'lastPayout': r.read<DateTime?>('last_payout'),
+      'thresholdDays': r.read<int?>('overdue_threshold_days'),
+    }).get();
+    return {
+      'totalPayouts': totalEarned.read<double>('total'),
+      'topOverdueTeachers': teacherDues,
+    };
+  }
+
+  Future<Map<String, int>> getEnrollmentTrend(DateTime from, DateTime to) async {
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    final newEnrollments = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM enrollments WHERE enrollment_date >= ? AND enrollment_date <= ? AND status = \'active\' AND is_transferred = 0',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(end)],
+    ).getSingle();
+    final dropped = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM enrollments WHERE enrollment_date >= ? AND enrollment_date <= ? AND (status != \'active\' OR is_transferred = 1)',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(end)],
+    ).getSingle();
+    return {
+      'newEnrollments': newEnrollments.read<int>('cnt'),
+      'dropped': dropped.read<int>('cnt'),
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> getClassroomUtilization() async {
+    return await customSelect(
+      'SELECT c.id, c.name_ar, c.capacity, COUNT(s.id) AS session_count '
+      'FROM classrooms c '
+      'LEFT JOIN sessions s ON c.id = s.classroom_id AND s.is_active = 1 AND s.is_archived = 0 '
+      'WHERE c.is_archived = 0 '
+      'GROUP BY c.id',
+    ).map((r) => {
+      'id': r.read<String>('id'),
+      'name': r.read<String>('name_ar'),
+      'capacity': r.read<int>('capacity'),
+      'sessionCount': r.read<int>('session_count'),
+    }).get();
   }
 
   Future<List<Map<String, dynamic>>> getClosedPeriods() async {

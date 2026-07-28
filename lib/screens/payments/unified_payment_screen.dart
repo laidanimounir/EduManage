@@ -1347,7 +1347,7 @@ class _ClosePeriodDialogState extends State<_ClosePeriodDialog> {
 
   Future<void> _loadSummary() async {
     setState(() => _loadingWatch = true);
-    final s = await widget.database.getPeriodSummary(_year, _month);
+    final s = await widget.database.getPeriodSummary(from: DateTime(_year, _month, 1), to: DateTime(_year, _month + 1, 0));
     if (mounted) setState(() { _summary = s; _loadingWatch = false; });
   }
 

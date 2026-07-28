@@ -40,10 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final results = await Future.wait([
         sRepo.getAll(),
         tRepo.getAll(),
-        widget.database.getPeriodSummary(
-          _dateFrom != null ? _dateFrom!.year : DateTime.now().year,
-          _dateFrom != null ? _dateFrom!.month : 1,
-        ),
+        widget.database.getPeriodSummary(from: _dateFrom, to: _dateTo),
       ]);
 
       final students = results[0] as List;
