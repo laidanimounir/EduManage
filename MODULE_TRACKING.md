@@ -871,3 +871,139 @@ for (final s in sessions) {
 - Radial gauge (Phase 10 from analysis) was not implemented in this round — Collection Rate is shown as a text value in Financial Details and a donut chart.
 - Some quick action buttons open real flows (Record Payment), others are stubs due to sidebar navigation complexity.
 - Sparklines use CustomPainter (no chart library needed), keeping them lightweight.
+
+---
+## LIVE ATTENDANCE BOARD (ROUND 10)
+- [ ] **190. Board shows three sections**
+  - Open Check-in sidebar. Verify the screen shows: LIVE NOW, UPCOMING TODAY, COMPLETED TODAY sections. If no sessions today, shows "No sessions scheduled today". Each section only appears if it has sessions.
+- [ ] **191. Sticky barcode bar**
+  - Verify the barcode input field is always visible at the top (sticky, does not scroll). PhosphorIcons.identificationCard prefix icon, magnifying glass search button, chalkboardTeacher toggle button to switch between student and teacher modes.
+- [ ] **192. Live session cards — progress bar and counts**
+  - During an active session, verify the LIVE NOW card shows: group name (bold), teacher name, classroom, time range, colored progress bar (green if >50%, amber if <50%), "X/Y checked in" count, and a "View Roster" button.
+- [ ] **193. Live counts refresh automatically**
+  - Keep the board open while a check-in happens (from another device or manual entry). Verify the live count updates within 5 seconds (Timer.periodic) without a full page reload.
+- [ ] **194. Smart session detection — single session**
+  - Scan a student barcode who has exactly one live session right now. Verify check-in completes immediately: photo appears briefly, confirmation message shown, student added to "Last 5 checked in" strip, live count increments.
+- [ ] **195. Smart session detection — multiple sessions**
+  - Scan a student enrolled in two groups both having live sessions now. Verify a ShellDialog picker appears showing group name + teacher + time. Select one → check-in completes for that session only.
+- [ ] **196. Duplicate scan — distinct message**
+  - Check in a student, then scan the same code again immediately. Verify the feedback says "StudentName already checked in at HH:MM" (exact time shown), not a generic error. Input bar flashes amber.
+- [ ] **197. No active session — visual alert**
+  - Scan a student code for a student with no session now. Verify the input bar flashes red briefly and the message says "No active session for StudentName".
+- [ ] **198. Student/Teacher toggle**
+  - Toggle to teacher mode via the chalkboardTeacher icon. Scan a teacher barcode → teacher check-in + payout created. Success message shown. Toggle back to student mode.
+- [ ] **199. Last 5 checked in strip**
+  - Check in 5+ students sequentially. Verify a horizontal strip below the input bar shows the last 5 names with their check-in times, updating in real time.
+- [ ] **200. Classroom filter chips**
+  - If multiple classrooms have sessions today, verify filter chips appear above the sections (All + each classroom name). Select one → only that classroom's sessions shown in all three sections.
+- [ ] **201. Upcoming sessions card**
+  - Verify UPCOMING TODAY cards show: group name, teacher, classroom, start time, 0/X checked in. "View Roster" button opens the roster (pre-populated for later, not triggering charges yet).
+- [ ] **202. Completed sessions card**
+  - Verify COMPLETED TODAY cards show: group name, time, "X present" (green count), "Y absent" (red count). "View Report" button opens the roster with resolved attendance.
+- [ ] **203. Completed absent computation**
+  - For a session that has ended, verify the "Y absent" count = total_enrolled minus students with status='present'. This is computed on-the-fly via LEFT JOIN, not proactively written.
+
+## SESSION ROSTER
+- [ ] **204. Roster dialog opens from session card**
+  - Click "View Roster" on any session card. Verify a ShellDialog opens (maxWidth 750) with the group name, teacher, present/absent/pending counts, and a dense Table showing all enrolled students.
+- [ ] **205. Roster — student status per row**
+  - Verify each row shows: photo/initials, name + code, status badge (present=green checkmark, absent=red X, late=amber clock, pending=gray clock), check-in time, and action buttons.
+- [ ] **206. Roster — filter chips**
+  - Click "Present" filter → only checked-in students shown. Click "Absent" → only absent students. Click "Pending" → only not-yet / unmarked students. Click "All" → all students.
+- [ ] **207. Roster — search**
+  - Type a student name/code in the search field. Verify the list filters in real time.
+- [ ] **208. Roster — manual check-in per student**
+  - For a "Pending" student, click the green checkmark button. Verify the student is checked in (session_charge created), roster refreshes, and live counts update on the main board.
+- [ ] **209. Roster — mark absent per student**
+  - For a "Pending" student, click the red X button. Select an absence reason. Verify the student shows as absent with the reason displayed.
+- [ ] **210. Roster — undo button (within configurable window)**
+  - Check in a student. Verify an undo button (counter-clockwise arrow) appears next to their row. Click it → attendance record deleted, charge reversed. Change the undo window in Settings to 1 minute; wait 2 minutes; verify the undo button is now hidden for that check-in (expired). Change the window back to 10 minutes.
+- [ ] **211. Roster — undo blocked in closed period**
+  - Close the current month's period in Payments. Verify undo button shows an error SnackBar: "Cannot modify transactions in a closed period".
+- [ ] **212. Roster — bulk check in all**
+  - Click "Check in all" button. Verify all pending/absent students get checked in. SnackBar shows "N checked in, M failed" summary.
+- [ ] **213. Roster — mark all remaining absent**
+  - Leave several students unchecked. Click "Mark all absent". Verify those students are now marked absent with 'unexcused' reason.
+- [ ] **214. Roster — photo toggle**
+  - Click "Show photos" → verify student photo thumbnails appear in the first column (for students with uploaded photos). Click "Hide photos" → only initials shown.
+- [ ] **215. Roster — ending-soon amber treatment**
+  - During a live session with less than 10 minutes until end, verify still-pending student rows have an amber tint background. Also verify the main board's card shows an "Ending soon" warning badge.
+
+## BACKDATED CHECK-IN
+- [ ] **216. Backdated check-in button in roster**
+  - For a completed session, open the roster. Verify each pending/absent student row has a clock icon button for backdated check-in.
+- [ ] **217. Backdated — date picker within 48-hour window**
+  - Click the clock icon. Verify a date picker opens with the range limited to the past 48 hours. Select a date within the window → confirmation dialog appears: "You are recording attendance for YYYY-MM-DD. Continue?".
+- [ ] **218. Backdated — blocked outside 48h**
+  - Try selecting a date more than 48 hours ago. Verify the picker limits the range (or a SnackBar shows if somehow selected).
+- [ ] **219. Backdated — blocked in closed period**
+  - Close the target month's period. Verify backdated check-in fails with "Cannot modify transactions in a closed period" error.
+- [ ] **220. Backdated — visual badge**
+  - Successfully record a backdated check-in. In the roster, verify that student now shows a leftward arrow (\u2190) next to their status indicating the backdated entry.
+
+## TEACHER SELF-SERVICE CHECK-IN
+- [ ] **221. Teacher Self-Service accessible from board**
+  - On the Live Attendance Board, click the chalkboardTeacher icon in the suffix area of the barcode bar (not the toggle). Verify a new screen opens showing a teacher search field.
+- [ ] **222. Teacher selector**
+  - Type a teacher name/code in the search field. Verify matching teachers appear. Select one → their today's sessions are shown as a list.
+- [ ] **223. Simple roster for teacher's sessions**
+  - On a session card, click "Roster". Verify a simple dialog opens showing all enrolled students with their check-in status (checkmark for present, clock for not yet).
+
+## SETTINGS
+- [ ] **224. Undo window setting**
+  - Open Settings. Verify a new card: "Undo Window (Minutes)" with an editable number field. Default is 10. Change to 5 → the value persists after reopening Settings.
+
+## PERIOD-LOCK FIX
+- [ ] **225. Check-in blocked in closed period**
+  - Close the current month in Payments. Try to check in a student (any method). Verify the operation fails with "Cannot modify transactions in a closed period" error. Reopen the period → check-in works again.
+
+## REPORT
+- [x] **226. Attendance Reports screen built** — select group, view 6-month attendance rate with progress bars, PDF and Excel export. Accessible via code.
+
+---
+## Round 10 — Live Attendance Board & Check-in Redesign (2026-07-28)
+
+### Phase 0 — Critical Bug Fix
+- Added `await _checkPeriodOpen(txDate);` in `createSessionCharge` (`transaction_service.dart:45`) — closes the real accuracy gap where a check-in could bypass a closed billing period. Now matches the behavior of `createStudentPayment`, `createTeacherPayout`, and `createExpense`.
+
+### Phase 1 — Schema v12
+- Added `attendance.status` (text, default 'present'), `minutes_late` (int, nullable), `absence_reason` (text, nullable), `is_backdated` (bool, default false), `modified_by_user_id` (text, nullable), `modified_at` (text, nullable).
+- Added `sessions.makeup_for_session_id` (text, nullable, FK to sessions) — infrastructure only, full make-up logic deferred.
+
+### Phase 2 — Backend Queries
+- New DB methods: `getTodaySessionsWithAttendance()`, `getSessionRoster(sessionId, date)`, `getLiveAttendanceCounts()`, `getRepeatedAbsenceStudents(...)`, `getMonthlyAttendanceRate(...)`.
+- New repository methods: `markAbsent(...)` (attendance_repository.dart), `updateStatus(...)`, `undoCheckin(...)` (transaction_service.dart — deletes attendance + creates reversal).
+- `hasCheckedInToday` now filters for status='present' only (absent records don't count as duplicates).
+
+### Phase 3 — Settings
+- Added configurable "Undo window (minutes)" to Settings screen (SharedPreferences-backed, default 10, editable).
+
+### Phase 4 — Live Attendance Board
+- New `LiveAttendanceBoard` replaces old `CheckinScreen` in sidebar. Three sections: LIVE NOW / UPCOMING TODAY / COMPLETED TODAY. Sticky top bar with barcode input, search icon, student/teacher toggle, photo+name confirmation overlay, last-5-checked-in strip. Timer.periodic(5s) for live counts. Classroom filter chips. Smart session detection reuses `getActiveSessionsForStudent`. Visual alert (input bar flash) on scan failure. Distinct "Already checked in at HH:MM" duplicate message. Session-cancel shortcut from live/upcoming cards. Ending-soon amber badge on cards within 10 minutes of session end.
+
+### Phase 5 — Session Roster Dialog
+- ShellDialog with dense Table, photo thumbnails (toggleable), status badges (present/absent/late/pending), filter chips, search, bulk check-in/absent actions, per-row manual check-in, absence marking with reason selection, undo with configurable window + period-lock guard, backdated check-in button with 48-hour window + confirmation dialog + visual badge.
+
+### Phase 6 — UX Refinements (7 items)
+1. Cancel shortcut: "Cancel" button on live/upcoming session cards, opens existing cancellation dialog pre-filled.
+2. Visual alert on failure: Input bar flashes red/amber on scan failure.
+3. Last 5 checked in: Horizontal strip near input bar, real-time.
+4. Distinct duplicate message: "Already checked in at HH:MM" with exact time.
+5. Pre-declared absence: Roster opens for upcoming sessions too (markAbsent before session starts).
+6. Classroom filter chips: ShellFilterChip-style chips on main board.
+7. Ending-soon amber: Cards and roster rows get amber tint within 10 min of session end.
+
+### Phase 7 — Teacher Self-Service
+- New `TeacherSelfServiceScreen`: search/select teacher, see today's sessions with checked-in counts, simple roster dialog for attendance status. Accessible from board header icon.
+
+### Phase 8 — Attendance Reports
+- New `AttendanceReportsScreen`: select subject group, view 6-month attendance rate with progress bars, PDF and Excel export.
+
+### Phase 9 — Backdated Check-in
+- In roster, clock icon button per pending/absent student. Date picker restricted to 48 hours. Confirmation dialog. `is_backdated=1` flag, visual badge on status. Period-lock check. Audit log entry.
+
+### Deferred
+- Camera barcode scanning (mobile_scanner) — not implemented. Add `mobile_scanner: ^6.0.0` to pubspec and ~30 lines of camera view code when ready.
+- Kiosk/fullscreen mode — not implemented. Simple fullscreen wrapper screen when needed.
+- Make-up session cycle-counting logic — schema field `makeup_for_session_id` exists as infrastructure. Full logic deferred.
+- Old `checkin_screen.dart`, `teacher_checkin_screen.dart`, `today_attendance_screen.dart` still exist in code but are no longer referenced from the sidebar (replaced by `LiveAttendanceBoard`). They can be deleted in a future cleanup pass.
