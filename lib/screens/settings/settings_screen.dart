@@ -20,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _sessionTimeout = AppConstants.defaultSessionTimeoutMinutes;
   double _registrationFeeAmount = 2000;
   List<int> _agingBuckets = [30, 60, 90];
+  int _undoWindowMinutes = 10;
   bool _loading = true;
 
   @override
@@ -41,6 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ag2 = prefs.getInt('aging_bucket_2') ?? 60;
     final ag3 = prefs.getInt('aging_bucket_3') ?? 90;
     _agingBuckets = [ag1, ag2, ag3];
+    _undoWindowMinutes = prefs.getInt('undo_window_minutes') ?? 10;
     setState(() => _loading = false);
   }
 
@@ -203,6 +205,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _agingField(1, 'Amber', SemanticTokens.warning),
                     const SizedBox(width: 8),
                     _agingField(2, 'Red', SemanticTokens.error),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Undo Window (Minutes)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  const Text('How long after check-in the undo button remains visible',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    SizedBox(
+                      width: 80,
+                      child: TextFormField(
+                        initialValue: _undoWindowMinutes.toString(),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(isDense: true),
+                        onChanged: (v) async {
+                          final mins = int.tryParse(v) ?? 10;
+                          if (mins >= 0) {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setInt('undo_window_minutes', mins);
+                            setState(() => _undoWindowMinutes = mins);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('minutes', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   ]),
                 ],
               ),
