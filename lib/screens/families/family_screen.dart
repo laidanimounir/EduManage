@@ -22,6 +22,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
   List<Family> _families = [];
   Map<String, List<String>> _memberNames = {};
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -30,22 +31,26 @@ class _FamilyScreenState extends State<FamilyScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final families = await widget.database.select(widget.database.families).get();
-    final names = <String, List<String>>{};
-    for (final f in families) {
-      final members = await widget.database.select(widget.database.familyMembers)
-        ..where((t) => t.familyId.equals(f.id));
-      final memberList = await members.get();
-      final studentNames = <String>[];
-      for (final m in memberList) {
-        final student = await (widget.database.select(widget.database.students)
-          ..where((t) => t.id.equals(m.studentId))).getSingleOrNull();
-        if (student != null) studentNames.add('${student.firstNameAr} ${student.lastNameAr}');
+    setState(() { _loading = true; _error = null; });
+    try {
+      final families = await (widget.database.select(widget.database.families)
+        ..orderBy([(t) => OrderingTerm.desc(t.name)])).get();
+      final names = <String, List<String>>{};
+      for (final f in families) {
+        final memberRows = await (widget.database.select(widget.database.familyMembers)
+          ..where((t) => t.familyId.equals(f.id))).get();
+        final studentNames = <String>[];
+        for (final m in memberRows) {
+          final student = await (widget.database.select(widget.database.students)
+            ..where((t) => t.id.equals(m.studentId))).getSingleOrNull();
+          if (student != null) studentNames.add('${student.firstNameAr} ${student.lastNameAr}');
+        }
+        names[f.id] = studentNames;
       }
-      names[f.id] = studentNames;
+      if (mounted) setState(() { _families = families; _memberNames = names; _loading = false; _error = null; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Failed to load families: $e'; });
     }
-    if (mounted) setState(() { _families = families; _memberNames = names; _loading = false; });
   }
 
   void _openCreate() {
@@ -68,10 +73,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: ShellTokens.chromeSurface,
         title: const Text('Delete Family', style: TextStyle(color: ShellTokens.textPrimary)),
-        content: const Text('Remove this family? Students will no longer receive the family discount.'),
+        content: const Text('Remove this family? Students will no longer receive the family discount.',
+            style: TextStyle(color: ShellTokens.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: SemanticTokens.error))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: SemanticTokens.error))),
         ],
       ),
     );
@@ -80,13 +87,24 @@ class _FamilyScreenState extends State<FamilyScreen> {
         ..where((t) => t.familyId.equals(f.id))).go();
       await (widget.database.delete(widget.database.families)
         ..where((t) => t.id.equals(f.id))).go();
-      _load();
+      await _load();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: ContentTokens.background,
+        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(PhosphorIcons.warning, size: 32, color: SemanticTokens.warning),
+          const SizedBox(height: 8),
+          Text(_error!, style: const TextStyle(color: ShellTokens.textSecondary)),
+          const SizedBox(height: 12),
+          TextButton(onPressed: _load, child: const Text('Retry')),
+        ])),
+      );
+    }
     if (_loading) return const AppLoading();
     return Scaffold(
       backgroundColor: ContentTokens.background,
@@ -94,10 +112,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
           child: Row(children: [
-            Text('Families', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            const Text('Families', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
             const Spacer(),
             IconButton(icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
-              onPressed: _openCreate, tooltip: l10n.add, padding: EdgeInsets.zero,
+              onPressed: _openCreate, padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
           ]),
         ),
@@ -153,6 +171,7 @@ class _FamilyEditDialogState extends State<_FamilyEditDialog> {
   List<Student> _students = [];
   bool _loading = true;
   bool _saving = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -168,58 +187,73 @@ class _FamilyEditDialogState extends State<_FamilyEditDialog> {
   }
 
   Future<void> _load() async {
-    final students = await StudentRepository(widget.database).getAll();
-    if (widget.family != null) {
-      _nameCtrl.text = widget.family!.name;
-      if (widget.family!.discountPercent != null) {
-        _discountCtrl.text = widget.family!.discountPercent!.toStringAsFixed(0);
-        _discountType = 'percentage';
-      } else if (widget.family!.discountFixed != null) {
-        _discountCtrl.text = widget.family!.discountFixed!.toStringAsFixed(0);
-        _discountType = 'fixed';
+    try {
+      final repo = StudentRepository(widget.database);
+      final students = await repo.getAll();
+      if (widget.family != null) {
+        _nameCtrl.text = widget.family!.name;
+        if (widget.family!.discountPercent != null) {
+          _discountCtrl.text = widget.family!.discountPercent!.toStringAsFixed(0);
+          _discountType = 'percentage';
+        } else if (widget.family!.discountFixed != null) {
+          _discountCtrl.text = widget.family!.discountFixed!.toStringAsFixed(0);
+          _discountType = 'fixed';
+        }
+        final memberRows = await (widget.database.select(widget.database.familyMembers)
+          ..where((t) => t.familyId.equals(widget.family!.id))).get();
+        _selectedStudentIds = memberRows.map((m) => m.studentId).toSet();
       }
-      final members = await (widget.database.select(widget.database.familyMembers)
-        ..where((t) => t.familyId.equals(widget.family!.id))).get();
-      _selectedStudentIds = members.map((m) => m.studentId).toSet();
+      if (mounted) setState(() { _students = students; _loading = false; _loadError = null; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _loadError = 'Failed to load students: $e'; });
     }
-    if (mounted) setState(() { _students = students; _loading = false; });
   }
 
   Future<void> _save() async {
-    if (_nameCtrl.text.trim().isEmpty) return;
+    if (_nameCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Family name is required')));
+      return;
+    }
     setState(() => _saving = true);
-    final discountVal = double.tryParse(_discountCtrl.text);
+    try {
+      final discountVal = double.tryParse(_discountCtrl.text);
 
-    if (widget.family != null) {
-      await widget.database.update(widget.database.families).replace(Family(
-        id: widget.family!.id, name: _nameCtrl.text.trim(),
-        discountPercent: _discountType == 'percentage' ? discountVal : null,
-        discountFixed: _discountType == 'fixed' ? discountVal : null,
-        createdAt: widget.family!.createdAt, deviceId: widget.family!.deviceId,
-      ));
-      await (widget.database.delete(widget.database.familyMembers)
-        ..where((t) => t.familyId.equals(widget.family!.id))).go();
-      for (final sid in _selectedStudentIds) {
-        await widget.database.into(widget.database.familyMembers).insert(FamilyMembersCompanion(
-          familyId: Value(widget.family!.id),
-          studentId: Value(sid),
+      if (widget.family != null) {
+        await widget.database.update(widget.database.families).replace(Family(
+          id: widget.family!.id, name: _nameCtrl.text.trim(),
+          discountPercent: _discountType == 'percentage' ? discountVal : null,
+          discountFixed: _discountType == 'fixed' ? discountVal : null,
+          createdAt: widget.family!.createdAt, deviceId: widget.family!.deviceId,
         ));
+        await (widget.database.delete(widget.database.familyMembers)
+          ..where((t) => t.familyId.equals(widget.family!.id))).go();
+        for (final sid in _selectedStudentIds) {
+          await widget.database.into(widget.database.familyMembers).insert(FamilyMembersCompanion(
+            familyId: Value(widget.family!.id),
+            studentId: Value(sid),
+          ));
+        }
+      } else {
+        final fid = 'fam_${DateTime.now().millisecondsSinceEpoch}';
+        await widget.database.into(widget.database.families).insert(FamiliesCompanion(
+          id: Value(fid), name: Value(_nameCtrl.text.trim()),
+          discountPercent: Value(_discountType == 'percentage' ? discountVal : null),
+          discountFixed: Value(_discountType == 'fixed' ? discountVal : null),
+        ));
+        for (final sid in _selectedStudentIds) {
+          await widget.database.into(widget.database.familyMembers).insert(FamilyMembersCompanion(
+            familyId: Value(fid),
+            studentId: Value(sid),
+          ));
+        }
       }
-    } else {
-      final fid = 'fam_${DateTime.now().millisecondsSinceEpoch}';
-      await widget.database.into(widget.database.families).insert(FamiliesCompanion(
-        id: Value(fid), name: Value(_nameCtrl.text.trim()),
-        discountPercent: Value(_discountType == 'percentage' ? discountVal : null),
-        discountFixed: Value(_discountType == 'fixed' ? discountVal : null),
-      ));
-      for (final sid in _selectedStudentIds) {
-        await widget.database.into(widget.database.familyMembers).insert(FamilyMembersCompanion(
-          familyId: Value(fid),
-          studentId: Value(sid),
-        ));
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
       }
     }
-    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -227,61 +261,78 @@ class _FamilyEditDialogState extends State<_FamilyEditDialog> {
     final isEdit = widget.family != null;
     return ShellDialog(
       maxWidth: 500, maxHeight: 650, title: isEdit ? 'Edit Family' : 'Create Family',
-      body: _loading
-          ? const Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextField(
-          controller: _nameCtrl, autofocus: !isEdit,
-          decoration: ShellInputDecoration.textField(hintText: 'Family Name'),
-          style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: TextField(
-            controller: _discountCtrl, keyboardType: TextInputType.number,
-            decoration: ShellInputDecoration.textField(hintText: _discountType == 'percentage' ? 'Discount %' : 'Fixed DA'),
-            style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
-          )),
-          const SizedBox(width: 8),
-          DropdownButtonFormField<String>(
-            value: _discountType,
-            decoration: ShellInputDecoration.dropdown(),
-            items: const [
-              DropdownMenuItem(value: 'percentage', child: Text('%', style: TextStyle(fontSize: 12))),
-              DropdownMenuItem(value: 'fixed', child: Text('DA', style: TextStyle(fontSize: 12))),
-            ],
-            onChanged: (v) => setState(() => _discountType = v!),
-          ),
-        ]),
-        const SizedBox(height: 14),
-        ShellSectionHeader(text: 'Family Members', withBorder: true),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true, itemCount: _students.length,
-            itemBuilder: (_, i) {
-              final s = _students[i];
-              return CheckboxListTile(
-                value: _selectedStudentIds.contains(s.id),
-                onChanged: (v) {
-                  setState(() {
-                    if (v == true) { _selectedStudentIds.add(s.id); } else { _selectedStudentIds.remove(s.id); }
-                  });
-                },
-                dense: true, contentPadding: EdgeInsets.zero,
-                title: Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-                subtitle: Text(s.code, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
-                activeColor: ShellTokens.accent, checkColor: ShellTokens.chromeBase,
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
-          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : Text(isEdit ? 'Update' : 'Create'),
-        )),
-      ]),
+      body: _loadError != null
+          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(PhosphorIcons.warning, size: 28, color: SemanticTokens.warning),
+              const SizedBox(height: 8),
+              Text(_loadError!, style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 12)),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _load, child: const Text('Retry')),
+            ]))
+          : _loading
+              ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    TextField(
+                      controller: _nameCtrl, autofocus: !isEdit,
+                      decoration: ShellInputDecoration.textField(hintText: 'Family Name (required)'),
+                      style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextField(
+                        controller: _discountCtrl, keyboardType: TextInputType.number,
+                        decoration: ShellInputDecoration.textField(hintText: _discountType == 'percentage' ? 'Discount %' : 'Fixed DA'),
+                        style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                      )),
+                      const SizedBox(width: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: _discountType,
+                        decoration: ShellInputDecoration.dropdown(),
+                        style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                        items: const [
+                          DropdownMenuItem(value: 'percentage', child: Text('%', style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(value: 'fixed', child: Text('DA', style: TextStyle(fontSize: 12))),
+                        ],
+                        onChanged: (v) => setState(() => _discountType = v!),
+                      ),
+                    ]),
+                    const SizedBox(height: 14),
+                    const ShellSectionHeader(text: 'Family Members', withBorder: false),
+                    if (_students.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: Text('No students found', style: TextStyle(fontSize: 11, color: ShellTokens.textDisabled))),
+                      )
+                    else
+                      ...List.generate(_students.length, (i) {
+                        final s = _students[i];
+                        return CheckboxListTile(
+                          value: _selectedStudentIds.contains(s.id),
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) { _selectedStudentIds.add(s.id); } else { _selectedStudentIds.remove(s.id); }
+                            });
+                          },
+                          dense: true, contentPadding: EdgeInsets.zero,
+                          title: Text('${s.firstNameAr} ${s.lastNameAr}',
+                            style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+                          subtitle: Text(s.code, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+                          activeColor: ShellTokens.accent,
+                          checkColor: ShellTokens.chromeBase,
+                        );
+                      }),
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: FilledButton(
+                      onPressed: _saving ? null : _save,
+                      style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
+                      child: _saving
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase))
+                          : Text('Save Family', style: TextStyle(fontSize: 13, color: ShellTokens.chromeBase, fontWeight: FontWeight.w600)),
+                    )),
+                  ],
+                ),
     );
   }
 }
