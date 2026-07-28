@@ -175,6 +175,8 @@ class Transactions extends Table {
   TextColumn get referenceTransactionId => text().nullable()();
   TextColumn get rateSnapshot => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get paymentMethod => text().nullable()();
+  TextColumn get priceSnapshot => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -317,7 +319,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -376,6 +378,14 @@ class AppDatabase extends _$AppDatabase {
           ],
         ));
         await m.createTable(enrollmentWaitlist);
+      }
+      if (from < 7) {
+        await m.alterTable(TableMigration(transactions,
+          newColumns: [
+            transactions.paymentMethod,
+            transactions.priceSnapshot,
+          ],
+        ));
       }
     },
   );

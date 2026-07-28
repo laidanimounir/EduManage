@@ -6344,6 +6344,28 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _paymentMethodMeta = const VerificationMeta(
+    'paymentMethod',
+  );
+  @override
+  late final GeneratedColumn<String> paymentMethod = GeneratedColumn<String>(
+    'payment_method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priceSnapshotMeta = const VerificationMeta(
+    'priceSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> priceSnapshot = GeneratedColumn<String>(
+    'price_snapshot',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6360,6 +6382,8 @@ class $TransactionsTable extends Transactions
     referenceTransactionId,
     rateSnapshot,
     createdAt,
+    paymentMethod,
+    priceSnapshot,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6479,6 +6503,24 @@ class $TransactionsTable extends Transactions
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('payment_method')) {
+      context.handle(
+        _paymentMethodMeta,
+        paymentMethod.isAcceptableOrUnknown(
+          data['payment_method']!,
+          _paymentMethodMeta,
+        ),
+      );
+    }
+    if (data.containsKey('price_snapshot')) {
+      context.handle(
+        _priceSnapshotMeta,
+        priceSnapshot.isAcceptableOrUnknown(
+          data['price_snapshot']!,
+          _priceSnapshotMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6544,6 +6586,14 @@ class $TransactionsTable extends Transactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      paymentMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_method'],
+      ),
+      priceSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}price_snapshot'],
+      ),
     );
   }
 
@@ -6568,6 +6618,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final String? referenceTransactionId;
   final String? rateSnapshot;
   final DateTime createdAt;
+  final String? paymentMethod;
+  final String? priceSnapshot;
   const Transaction({
     required this.id,
     this.studentId,
@@ -6583,6 +6635,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     this.referenceTransactionId,
     this.rateSnapshot,
     required this.createdAt,
+    this.paymentMethod,
+    this.priceSnapshot,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6619,6 +6673,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       map['rate_snapshot'] = Variable<String>(rateSnapshot);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || paymentMethod != null) {
+      map['payment_method'] = Variable<String>(paymentMethod);
+    }
+    if (!nullToAbsent || priceSnapshot != null) {
+      map['price_snapshot'] = Variable<String>(priceSnapshot);
+    }
     return map;
   }
 
@@ -6652,6 +6712,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ? const Value.absent()
           : Value(rateSnapshot),
       createdAt: Value(createdAt),
+      paymentMethod: paymentMethod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentMethod),
+      priceSnapshot: priceSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceSnapshot),
     );
   }
 
@@ -6677,6 +6743,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       ),
       rateSnapshot: serializer.fromJson<String?>(json['rateSnapshot']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      paymentMethod: serializer.fromJson<String?>(json['paymentMethod']),
+      priceSnapshot: serializer.fromJson<String?>(json['priceSnapshot']),
     );
   }
   @override
@@ -6699,6 +6767,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       ),
       'rateSnapshot': serializer.toJson<String?>(rateSnapshot),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'paymentMethod': serializer.toJson<String?>(paymentMethod),
+      'priceSnapshot': serializer.toJson<String?>(priceSnapshot),
     };
   }
 
@@ -6717,6 +6787,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     Value<String?> referenceTransactionId = const Value.absent(),
     Value<String?> rateSnapshot = const Value.absent(),
     DateTime? createdAt,
+    Value<String?> paymentMethod = const Value.absent(),
+    Value<String?> priceSnapshot = const Value.absent(),
   }) => Transaction(
     id: id ?? this.id,
     studentId: studentId.present ? studentId.value : this.studentId,
@@ -6736,6 +6808,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
         : this.referenceTransactionId,
     rateSnapshot: rateSnapshot.present ? rateSnapshot.value : this.rateSnapshot,
     createdAt: createdAt ?? this.createdAt,
+    paymentMethod: paymentMethod.present
+        ? paymentMethod.value
+        : this.paymentMethod,
+    priceSnapshot: priceSnapshot.present
+        ? priceSnapshot.value
+        : this.priceSnapshot,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -6763,6 +6841,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ? data.rateSnapshot.value
           : this.rateSnapshot,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      paymentMethod: data.paymentMethod.present
+          ? data.paymentMethod.value
+          : this.paymentMethod,
+      priceSnapshot: data.priceSnapshot.present
+          ? data.priceSnapshot.value
+          : this.priceSnapshot,
     );
   }
 
@@ -6782,7 +6866,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('deviceId: $deviceId, ')
           ..write('referenceTransactionId: $referenceTransactionId, ')
           ..write('rateSnapshot: $rateSnapshot, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('priceSnapshot: $priceSnapshot')
           ..write(')'))
         .toString();
   }
@@ -6803,6 +6889,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     referenceTransactionId,
     rateSnapshot,
     createdAt,
+    paymentMethod,
+    priceSnapshot,
   );
   @override
   bool operator ==(Object other) =>
@@ -6821,7 +6909,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.deviceId == this.deviceId &&
           other.referenceTransactionId == this.referenceTransactionId &&
           other.rateSnapshot == this.rateSnapshot &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.paymentMethod == this.paymentMethod &&
+          other.priceSnapshot == this.priceSnapshot);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -6839,6 +6929,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<String?> referenceTransactionId;
   final Value<String?> rateSnapshot;
   final Value<DateTime> createdAt;
+  final Value<String?> paymentMethod;
+  final Value<String?> priceSnapshot;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -6855,6 +6947,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.referenceTransactionId = const Value.absent(),
     this.rateSnapshot = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.priceSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -6872,6 +6966,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.referenceTransactionId = const Value.absent(),
     this.rateSnapshot = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.priceSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -6893,6 +6989,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<String>? referenceTransactionId,
     Expression<String>? rateSnapshot,
     Expression<DateTime>? createdAt,
+    Expression<String>? paymentMethod,
+    Expression<String>? priceSnapshot,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6911,6 +7009,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
         'reference_transaction_id': referenceTransactionId,
       if (rateSnapshot != null) 'rate_snapshot': rateSnapshot,
       if (createdAt != null) 'created_at': createdAt,
+      if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (priceSnapshot != null) 'price_snapshot': priceSnapshot,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6930,6 +7030,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<String?>? referenceTransactionId,
     Value<String?>? rateSnapshot,
     Value<DateTime>? createdAt,
+    Value<String?>? paymentMethod,
+    Value<String?>? priceSnapshot,
     Value<int>? rowid,
   }) {
     return TransactionsCompanion(
@@ -6948,6 +7050,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           referenceTransactionId ?? this.referenceTransactionId,
       rateSnapshot: rateSnapshot ?? this.rateSnapshot,
       createdAt: createdAt ?? this.createdAt,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      priceSnapshot: priceSnapshot ?? this.priceSnapshot,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6999,6 +7103,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (paymentMethod.present) {
+      map['payment_method'] = Variable<String>(paymentMethod.value);
+    }
+    if (priceSnapshot.present) {
+      map['price_snapshot'] = Variable<String>(priceSnapshot.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7022,6 +7132,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('referenceTransactionId: $referenceTransactionId, ')
           ..write('rateSnapshot: $rateSnapshot, ')
           ..write('createdAt: $createdAt, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('priceSnapshot: $priceSnapshot, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16402,6 +16514,8 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<String?> referenceTransactionId,
       Value<String?> rateSnapshot,
       Value<DateTime> createdAt,
+      Value<String?> paymentMethod,
+      Value<String?> priceSnapshot,
       Value<int> rowid,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -16420,6 +16534,8 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String?> referenceTransactionId,
       Value<String?> rateSnapshot,
       Value<DateTime> createdAt,
+      Value<String?> paymentMethod,
+      Value<String?> priceSnapshot,
       Value<int> rowid,
     });
 
@@ -16553,6 +16669,16 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get priceSnapshot => $composableBuilder(
+    column: $table.priceSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16708,6 +16834,16 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get priceSnapshot => $composableBuilder(
+    column: $table.priceSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$StudentsTableOrderingComposer get studentId {
     final $$StudentsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -16847,6 +16983,16 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get priceSnapshot => $composableBuilder(
+    column: $table.priceSnapshot,
+    builder: (column) => column,
+  );
 
   $$StudentsTableAnnotationComposer get studentId {
     final $$StudentsTableAnnotationComposer composer = $composerBuilder(
@@ -16988,6 +17134,8 @@ class $$TransactionsTableTableManager
                 Value<String?> referenceTransactionId = const Value.absent(),
                 Value<String?> rateSnapshot = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> paymentMethod = const Value.absent(),
+                Value<String?> priceSnapshot = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
@@ -17004,6 +17152,8 @@ class $$TransactionsTableTableManager
                 referenceTransactionId: referenceTransactionId,
                 rateSnapshot: rateSnapshot,
                 createdAt: createdAt,
+                paymentMethod: paymentMethod,
+                priceSnapshot: priceSnapshot,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -17022,6 +17172,8 @@ class $$TransactionsTableTableManager
                 Value<String?> referenceTransactionId = const Value.absent(),
                 Value<String?> rateSnapshot = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> paymentMethod = const Value.absent(),
+                Value<String?> priceSnapshot = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
@@ -17038,6 +17190,8 @@ class $$TransactionsTableTableManager
                 referenceTransactionId: referenceTransactionId,
                 rateSnapshot: rateSnapshot,
                 createdAt: createdAt,
+                paymentMethod: paymentMethod,
+                priceSnapshot: priceSnapshot,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
