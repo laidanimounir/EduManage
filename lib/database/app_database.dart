@@ -1178,4 +1178,121 @@ class AppDatabase extends _$AppDatabase {
     ).getSingle();
     return result.read<int>('cnt');
   }
+
+  Future<List<Map<String, dynamic>>> getTodaySessionsWithAttendance() async {
+    final now = DateTime.now();
+    final today = now.weekday;
+    return await customSelect(
+      'SELECT s.id, s.subject_group_id, s.teacher_id, s.classroom_id, s.start_time, s.end_time, '
+      'sg.name_ar AS group_name, t.first_name_ar, t.last_name_ar, c.name_ar AS classroom_name, '
+      '(SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id AND a.attendance_date >= ? AND a.attendance_date < ? AND a.student_id IS NOT NULL AND a.status = \'present\') AS checked_in, '
+      '(SELECT COUNT(*) FROM enrollments e WHERE e.subject_group_id = s.subject_group_id AND e.status = \'active\' AND e.is_transferred = 0) AS total_enrolled '
+      'FROM sessions s '
+      'JOIN subject_groups sg ON s.subject_group_id = sg.id '
+      'LEFT JOIN teachers t ON s.teacher_id = t.id '
+      'LEFT JOIN classrooms c ON s.classroom_id = c.id '
+      'WHERE s.day_of_week = ? AND s.is_active = 1 AND s.is_archived = 0 '
+      'ORDER BY s.start_time',
+      variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1)), Variable.withInt(today)],
+    ).map((r) => {
+      'id': r.read<String>('id'),
+      'subject_group_id': r.read<String>('subject_group_id'),
+      'teacher_id': r.read<String>('teacher_id'),
+      'classroom_id': r.read<String>('classroom_id'),
+      'start_time': r.read<DateTime>('start_time'),
+      'end_time': r.read<DateTime>('end_time'),
+      'group_name': r.read<String>('group_name'),
+      'first_name_ar': r.read<String>('first_name_ar'),
+      'last_name_ar': r.read<String>('last_name_ar'),
+      'classroom_name': r.read<String>('classroom_name'),
+      'checked_in': r.read<int>('checked_in'),
+      'total_enrolled': r.read<int>('total_enrolled'),
+    }).get();
+  }
+
+  Future<List<Map<String, dynamic>>> getSessionRoster(String sessionId, DateTime date) async {
+    final dateStart = DateTime(date.year, date.month, date.day);
+    final dateEnd = dateStart.add(const Duration(days: 1));
+    final session = await (select(sessions)..where((t) => t.id.equals(sessionId))).getSingleOrNull();
+    if (session == null) return [];
+    return await customSelect(
+      'SELECT s.id, s.first_name_ar, s.last_name_ar, s.code, s.photo_path, '
+      'a.id AS attendance_id, a.status, a.check_in_time, a.minutes_late, a.absence_reason, a.is_backdated '
+      'FROM students s '
+      'JOIN enrollments e ON s.id = e.student_id '
+      'LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id = ? AND a.attendance_date >= ? AND a.attendance_date < ? '
+      'WHERE e.subject_group_id = ? AND e.status = \'active\' AND e.is_transferred = 0 AND s.is_archived = 0 '
+      'ORDER BY s.first_name_ar',
+      variables: [Variable.withString(sessionId), Variable.withDateTime(dateStart), Variable.withDateTime(dateEnd), Variable.withString(session.subjectGroupId)],
+    ).map((r) => {
+      'id': r.read<String>('id'),
+      'first_name_ar': r.read<String>('first_name_ar'),
+      'last_name_ar': r.read<String>('last_name_ar'),
+      'code': r.read<String>('code'),
+      'photo_path': r.read<String?>('photo_path'),
+      'attendance_id': r.read<String?>('attendance_id'),
+      'status': r.read<String?>('status'),
+      'check_in_time': r.read<DateTime?>('check_in_time'),
+      'minutes_late': r.read<int?>('minutes_late'),
+      'absence_reason': r.read<String?>('absence_reason'),
+      'is_backdated': (r.read<bool?>('is_backdated') ?? false),
+    }).get();
+  }
+
+  Future<Map<String, int>> getLiveAttendanceCounts() async {
+    final now = DateTime.now();
+    final today = now.weekday;
+    final rows = await customSelect(
+      'SELECT s.id, '
+      '(SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id AND a.attendance_date >= ? AND a.attendance_date < ? AND a.student_id IS NOT NULL AND a.status = \'present\') AS cnt '
+      'FROM sessions s '
+      'WHERE s.day_of_week = ? AND s.is_active = 1 AND s.is_archived = 0',
+      variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1)), Variable.withInt(today)],
+    ).get();
+    final counts = <String, int>{};
+    for (final r in rows) {
+      counts[r.read<String>('id')] = r.read<int>('cnt');
+    }
+    return counts;
+  }
+
+  Future<List<Map<String, dynamic>>> getRepeatedAbsenceStudents(int daysBack, int minAbsences) async {
+    final now = DateTime.now();
+    final from = now.subtract(Duration(days: daysBack));
+    return await customSelect(
+      'SELECT s.id, s.first_name_ar, s.last_name_ar, s.code, COUNT(*) AS absence_count '
+      'FROM students s '
+      'JOIN enrollments e ON s.id = e.student_id AND e.status = \'active\' AND e.is_transferred = 0 '
+      'JOIN sessions sess ON sess.subject_group_id = e.subject_group_id AND sess.day_of_week = ? '
+      'LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id = sess.id AND a.attendance_date >= ? AND a.status = \'present\' '
+      'WHERE s.is_archived = 0 AND a.id IS NULL AND sess.is_active = 1 AND sess.is_archived = 0 '
+      'GROUP BY s.id HAVING COUNT(*) >= ? '
+      'ORDER BY absence_count DESC',
+      variables: [Variable.withInt(now.weekday), Variable.withDateTime(from), Variable.withInt(minAbsences)],
+    ).map((r) => {
+      'id': r.read<String>('id'),
+      'first_name_ar': r.read<String>('first_name_ar'),
+      'last_name_ar': r.read<String>('last_name_ar'),
+      'code': r.read<String>('code'),
+      'absence_count': r.read<int>('absence_count'),
+    }).get();
+  }
+
+  Future<double> getMonthlyAttendanceRate(String groupId, int year, int month) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 0, 23, 59, 59);
+    final row = await customSelect(
+      'SELECT '
+      '(SELECT COUNT(*) FROM attendance a JOIN sessions s2 ON a.session_id = s2.id WHERE s2.subject_group_id = ? AND a.attendance_date >= ? AND a.attendance_date <= ? AND a.status = \'present\') AS present, '
+      '(SELECT COUNT(*) FROM sessions s3 WHERE s3.subject_group_id = ? AND s3.is_active = 1 AND s3.is_archived = 0) AS total_sessions, '
+      '(SELECT COUNT(*) FROM enrollments e2 WHERE e2.subject_group_id = ? AND e2.status = \'active\' AND e2.is_transferred = 0) AS enrolled '
+      'FROM (SELECT 1)',
+      variables: [Variable.withString(groupId), Variable.withDateTime(start), Variable.withDateTime(end), Variable.withString(groupId), Variable.withString(groupId)],
+    ).getSingle();
+    final present = row.read<int>('present');
+    final totalSessions = row.read<int>('total_sessions');
+    final enrolled = row.read<int>('enrolled');
+    final expected = totalSessions * enrolled;
+    return expected > 0 ? (present / expected * 100) : 0;
+  }
 }

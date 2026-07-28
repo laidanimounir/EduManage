@@ -687,4 +687,46 @@ class TransactionService extends BaseRepository {
       throw StateError('Cannot modify transactions in a closed period (${date.year}-${date.month.toString().padLeft(2, '0')})');
     }
   }
+
+  Future<void> undoCheckin({
+    required String attendanceId,
+    required String studentId,
+    required String sessionId,
+    required DateTime attendanceDate,
+    String? createdByUserId,
+  }) async {
+    await _checkPeriodOpen(attendanceDate);
+
+    final attendance = await (db.select(db.attendance)
+      ..where((t) => t.id.equals(attendanceId))).getSingleOrNull();
+    if (attendance == null) throw StateError('Attendance record not found');
+
+    final charges = await (db.select(db.transactions)
+      ..where((t) =>
+          t.studentId.equals(studentId) &
+          t.sessionId.equals(sessionId) &
+          t.type.equals('session_charge') &
+          t.transactionDate.isBiggerOrEqualValue(DateTime(attendanceDate.year, attendanceDate.month, attendanceDate.day)) &
+          t.transactionDate.isSmallerThanValue(DateTime(attendanceDate.year, attendanceDate.month, attendanceDate.day + 1))))
+        .get();
+
+    for (final charge in charges) {
+      await createReversal(
+        referenceTransactionId: charge.id,
+        note: 'Undo check-in correction',
+        createdByUserId: createdByUserId,
+      );
+    }
+
+    await (db.delete(db.attendance)
+      ..where((t) => t.id.equals(attendanceId))).go();
+
+    await _auditRepo.create(AuditLogCompanion(
+      userId: Value(createdByUserId ?? 'system'),
+      action: const Value('checkin_undone'),
+      entityType: const Value('attendance'),
+      entityId: Value(attendanceId),
+      details: Value('Student: $studentId, Session: $sessionId, Date: $attendanceDate'),
+    ));
+  }
 }

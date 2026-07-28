@@ -72,8 +72,65 @@ class AttendanceRepository extends BaseRepository {
           t.sessionId.equals(sessionId) &
           t.studentId.equals(studentId) &
           t.attendanceDate.isBiggerOrEqualValue(dateStart) &
-          t.attendanceDate.isSmallerThanValue(dateEnd)))
+          t.attendanceDate.isSmallerThanValue(dateEnd) &
+          t.status.equals('present')))
         .get();
     return result.isNotEmpty;
+  }
+
+  Future<String> markAbsent({
+    required String sessionId,
+    required String studentId,
+    required DateTime date,
+    String? reason,
+    String? userId,
+  }) async {
+    final existing = await (db.select(db.attendance)
+      ..where((t) =>
+          t.sessionId.equals(sessionId) &
+          t.studentId.equals(studentId) &
+          t.attendanceDate.equals(date)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (db.update(db.attendance)
+        ..where((t) => t.id.equals(existing.id)))
+        .write(AttendanceCompanion(
+          status: const Value('absent'),
+          absenceReason: Value(reason),
+          modifiedByUserId: Value(userId),
+          modifiedAt: Value(DateTime.now().toIso8601String()),
+        ));
+      return existing.id;
+    }
+    final id = UuidHelper.generate();
+    final deviceId = await DeviceId.get();
+    await db.into(db.attendance).insert(AttendanceCompanion(
+      id: Value(id),
+      studentId: Value(studentId),
+      sessionId: Value(sessionId),
+      attendanceDate: Value(date),
+      personType: const Value('student'),
+      status: const Value('absent'),
+      absenceReason: Value(reason),
+      checkedInByUserId: Value(userId),
+      deviceId: Value(deviceId),
+    ));
+    return id;
+  }
+
+  Future<void> updateStatus({
+    required String attendanceId,
+    required String status,
+    int? minutesLate,
+    String? userId,
+  }) async {
+    await (db.update(db.attendance)
+      ..where((t) => t.id.equals(attendanceId)))
+      .write(AttendanceCompanion(
+        status: Value(status),
+        minutesLate: minutesLate != null ? Value(minutesLate) : const Value.absent(),
+        modifiedByUserId: Value(userId),
+        modifiedAt: Value(DateTime.now().toIso8601String()),
+      ));
   }
 }
