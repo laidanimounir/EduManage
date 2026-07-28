@@ -1164,4 +1164,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get groupName => 'المجموعة';
+
+  @override
+  String get registrationFeePayment => 'دفع رسوم التسجيل';
+
+  @override
+  String get paymentMethodBankTransfer => 'تحويل بنكي';
+
+  @override
+  String get paymentMethodMobile => 'دفع عبر الهاتف';
+
+  @override
+  String get studentOrTeacher => 'طالب / أستاذ';
+
+  @override
+  String get reverseTransaction => 'عكس المعاملة';
+
+  @override
+  String get transactionId => 'رقم المعاملة';
+
+  @override
+  String get referenceTransaction => 'المرجع';
+
+  @override
+  String get createdAt => 'تاريخ الإنشاء';
+
+  @override
+  String get operationFailed => 'فشلت العملية';
+
+  @override
+  String get selectStudent => 'اختيار طالب';
+
+  @override
+  String get group => 'مجموعة';
 }

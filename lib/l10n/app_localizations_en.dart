@@ -1170,4 +1170,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupName => 'Group';
+
+  @override
+  String get registrationFeePayment => 'Registration Fee Payment';
+
+  @override
+  String get paymentMethodBankTransfer => 'Bank Transfer';
+
+  @override
+  String get paymentMethodMobile => 'Mobile Payment';
+
+  @override
+  String get studentOrTeacher => 'Student / Teacher';
+
+  @override
+  String get reverseTransaction => 'Reverse transaction';
+
+  @override
+  String get transactionId => 'Transaction ID';
+
+  @override
+  String get referenceTransaction => 'Reference';
+
+  @override
+  String get createdAt => 'Created At';
+
+  @override
+  String get operationFailed => 'Operation failed';
+
+  @override
+  String get selectStudent => 'Select Student';
+
+  @override
+  String get group => 'Group';
 }

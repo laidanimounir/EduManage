@@ -2367,6 +2367,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Group'**
   String get groupName;
+
+  /// No description provided for @registrationFeePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Fee Payment'**
+  String get registrationFeePayment;
+
+  /// No description provided for @paymentMethodBankTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank Transfer'**
+  String get paymentMethodBankTransfer;
+
+  /// No description provided for @paymentMethodMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile Payment'**
+  String get paymentMethodMobile;
+
+  /// No description provided for @studentOrTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Student / Teacher'**
+  String get studentOrTeacher;
+
+  /// No description provided for @reverseTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse transaction'**
+  String get reverseTransaction;
+
+  /// No description provided for @transactionId.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction ID'**
+  String get transactionId;
+
+  /// No description provided for @referenceTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference'**
+  String get referenceTransaction;
+
+  /// No description provided for @createdAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created At'**
+  String get createdAt;
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed'**
+  String get operationFailed;
+
+  /// No description provided for @selectStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Student'**
+  String get selectStudent;
+
+  /// No description provided for @group.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get group;
 }
 
 class _AppLocalizationsDelegate

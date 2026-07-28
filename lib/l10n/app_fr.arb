@@ -393,5 +393,16 @@
   "restoreSession": "Restaurer la séance",
   "archiveSession": "Archiver la séance",
   "archiveSessionConfirm": "Archiver cette séance ? Elle sera masquée. L'historique financier est préservé.",
-  "groupName": "Groupe"
+  "groupName": "Groupe",
+  "registrationFeePayment": "Paiement frais inscription",
+  "paymentMethodBankTransfer": "Virement bancaire",
+  "paymentMethodMobile": "Paiement mobile",
+  "studentOrTeacher": "Élève / Enseignant",
+  "reverseTransaction": "Annuler transaction",
+  "transactionId": "ID transaction",
+  "referenceTransaction": "Référence",
+  "createdAt": "Créé le",
+  "operationFailed": "Échec de l'opération",
+  "selectStudent": "Sélectionner élève",
+  "group": "Groupe"
 }

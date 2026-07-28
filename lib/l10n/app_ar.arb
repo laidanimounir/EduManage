@@ -393,5 +393,16 @@
   "restoreSession": "استعادة الحصة",
   "archiveSession": "أرشفة الحصة",
   "archiveSessionConfirm": "أرشفة هذه الحصة؟ ستختفي من جميع المشاهدات. السجل المالي محفوظ.",
-  "groupName": "المجموعة"
+  "groupName": "المجموعة",
+  "registrationFeePayment": "دفع رسوم التسجيل",
+  "paymentMethodBankTransfer": "تحويل بنكي",
+  "paymentMethodMobile": "دفع عبر الهاتف",
+  "studentOrTeacher": "طالب / أستاذ",
+  "reverseTransaction": "عكس المعاملة",
+  "transactionId": "رقم المعاملة",
+  "referenceTransaction": "المرجع",
+  "createdAt": "تاريخ الإنشاء",
+  "operationFailed": "فشلت العملية",
+  "selectStudent": "اختيار طالب",
+  "group": "مجموعة"
 }

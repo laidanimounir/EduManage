@@ -393,5 +393,16 @@
   "restoreSession": "Restore Session",
   "archiveSession": "Archive Session",
   "archiveSessionConfirm": "Archive this session? It will be hidden from all views. Financial history is preserved.",
-  "groupName": "Group"
+  "groupName": "Group",
+  "registrationFeePayment": "Registration Fee Payment",
+  "paymentMethodBankTransfer": "Bank Transfer",
+  "paymentMethodMobile": "Mobile Payment",
+  "studentOrTeacher": "Student / Teacher",
+  "reverseTransaction": "Reverse transaction",
+  "transactionId": "Transaction ID",
+  "referenceTransaction": "Reference",
+  "createdAt": "Created At",
+  "operationFailed": "Operation failed",
+  "selectStudent": "Select Student",
+  "group": "Group"
 }

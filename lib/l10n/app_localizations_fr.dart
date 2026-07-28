@@ -1171,4 +1171,37 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get groupName => 'Groupe';
+
+  @override
+  String get registrationFeePayment => 'Paiement frais inscription';
+
+  @override
+  String get paymentMethodBankTransfer => 'Virement bancaire';
+
+  @override
+  String get paymentMethodMobile => 'Paiement mobile';
+
+  @override
+  String get studentOrTeacher => 'Élève / Enseignant';
+
+  @override
+  String get reverseTransaction => 'Annuler transaction';
+
+  @override
+  String get transactionId => 'ID transaction';
+
+  @override
+  String get referenceTransaction => 'Référence';
+
+  @override
+  String get createdAt => 'Créé le';
+
+  @override
+  String get operationFailed => 'Échec de l\'opération';
+
+  @override
+  String get selectStudent => 'Sélectionner élève';
+
+  @override
+  String get group => 'Groupe';
 }

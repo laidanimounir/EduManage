@@ -37,6 +37,9 @@ class PhosphorIcons {
   static const caretLeft = IconData(0xe138, fontFamily: _family);
   static const caretRight = IconData(0xe13a, fontFamily: _family);
   static const x = IconData(0xe4f6, fontFamily: _family);
+  static const info = IconData(0xe2d0, fontFamily: _family);
+  static const receipt = IconData(0xe3f4, fontFamily: _family);
+  static const arrowCounterClockwise = IconData(0xe046, fontFamily: _family);
   static const file = IconData(0xe230, fontFamily: _family);
   static const table = IconData(0xe476, fontFamily: _family);
   static const envelope = IconData(0xe214, fontFamily: _family);
