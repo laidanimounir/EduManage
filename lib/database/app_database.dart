@@ -1202,9 +1202,9 @@ class AppDatabase extends _$AppDatabase {
       'start_time': r.read<DateTime>('start_time'),
       'end_time': r.read<DateTime>('end_time'),
       'group_name': r.read<String>('group_name'),
-      'first_name_ar': r.read<String>('first_name_ar'),
-      'last_name_ar': r.read<String>('last_name_ar'),
-      'classroom_name': r.read<String>('classroom_name'),
+      'first_name_ar': r.read<String?>('first_name_ar') ?? '',
+      'last_name_ar': r.read<String?>('last_name_ar') ?? '',
+      'classroom_name': r.read<String?>('classroom_name') ?? '',
       'checked_in': r.read<int>('checked_in'),
       'total_enrolled': r.read<int>('total_enrolled'),
     }).get();

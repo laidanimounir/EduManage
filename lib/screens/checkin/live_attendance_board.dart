@@ -108,17 +108,10 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
       for (final s in sessions) {
         final start = s['start_time'] as DateTime;
         final end = s['end_time'] as DateTime;
-        final startH = start.hour;
-        final startM = start.minute;
-        final endH = end.hour;
-        final endM = end.minute;
 
-        final startTod = TimeOfDay(hour: startH, minute: startM);
-        final endTod = TimeOfDay(hour: endH, minute: endM);
-
-        if (nowTime.hour > endH || (nowTime.hour == endH && nowTime.minute >= endM)) {
+        if (nowTime.hour > end.hour || (nowTime.hour == end.hour && nowTime.minute >= end.minute)) {
           completed.add(s);
-        } else if (nowTime.hour > startH || (nowTime.hour == startH && nowTime.minute >= startM)) {
+        } else if (nowTime.hour > start.hour || (nowTime.hour == start.hour && nowTime.minute >= start.minute)) {
           live.add(s);
         } else {
           upcoming.add(s);
@@ -131,7 +124,11 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
       }
       _liveCounts = counts;
 
-      _classrooms = await widget.database.getClassroomUtilization();
+      try {
+        _classrooms = await widget.database.getClassroomUtilization();
+      } catch (_) {
+        _classrooms = [];
+      }
 
       if (mounted) setState(() {
         _liveSessions = live;
@@ -139,8 +136,12 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
         _completedSessions = completed;
         _loading = false;
       });
-    } catch (e) {
-      if (mounted) setState(() { _loading = false; _error = 'Failed to load board'; });
+    } catch (e, st) {
+      if (mounted) setState(() {
+        _loading = false;
+        _error = 'Failed to load board: $e';
+        debugPrint('Dashboard load error: $e\n$st');
+      });
     }
   }
 
