@@ -307,7 +307,7 @@ class _FamilyEditDialogState extends State<_FamilyEditDialog> {
                       )),
                       const SizedBox(width: 8),
                       DropdownButtonFormField<String>(
-                        initialValue: _discountType,
+                        value: _discountType,
                         decoration: ShellInputDecoration.dropdown(),
                         style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
                         items: const [

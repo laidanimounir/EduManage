@@ -223,6 +223,92 @@ class PdfGenerator {
     return file.path;
   }
 
+  static Future<String> generatePaymentReceipt({
+    required AppDatabase database,
+    required String transactionId,
+    String? receiptNumber,
+  }) async {
+    final pdf = pw.Document();
+    final txRepo = TransactionRepository(database);
+    final tx = await txRepo.getById(transactionId);
+    if (tx == null) throw ArgumentError('Transaction not found');
+    if (tx.type != 'student_payment' && tx.type != 'registration_fee_payment') {
+      throw ArgumentError('Not a payment transaction');
+    }
+
+    if (tx.studentId == null) throw ArgumentError('Transaction has no student');
+
+    final student = await (database.select(database.students)
+      ..where((t) => t.id.equals(tx.studentId!))).getSingleOrNull();
+    if (student == null) throw ArgumentError('Student not found');
+
+    final receiptNo = receiptNumber ?? 'REC-${tx.id.hashCode.abs().toString().substring(0, 6)}';
+
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (pw.Context context) => [
+        pw.Header(text: 'Bon de Paiement', level: 1),
+        pw.SizedBox(height: 8),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('Student: ${student.firstNameAr} ${student.lastNameAr}',
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Code: ${student.code}', style: const pw.TextStyle(fontSize: 10)),
+            pw.SizedBox(height: 4),
+            pw.Text('Receipt #: $receiptNo', style: const pw.TextStyle(fontSize: 10)),
+            pw.Text('Date: ${_formatDate(DateTime.now())}', style: const pw.TextStyle(fontSize: 10)),
+          ]),
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+            pw.Text('EduManage', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 12),
+            pw.Text('${tx.amount.toStringAsFixed(0)} $_currency',
+                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          ]),
+        ]),
+        pw.SizedBox(height: 16),
+        pw.Divider(),
+        pw.Header(text: 'Payment Details', level: 2),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 8),
+          headers: ['Date', 'Type', 'Amount', 'Method', 'Note'],
+          data: [[
+            _formatDate(tx.transactionDate),
+            tx.type == 'student_payment' ? 'Payment' : 'Reg Fee Pay',
+            '${tx.amount.toStringAsFixed(0)} $_currency',
+            tx.paymentMethod ?? '—',
+            tx.note ?? '',
+          ]],
+        ),
+        pw.SizedBox(height: 16),
+        pw.Divider(),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Text('Amount Received:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+          pw.Text('${tx.amount.toStringAsFixed(0)} $_currency',
+              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+        ]),
+        pw.SizedBox(height: 20),
+        pw.Divider(),
+        pw.SizedBox(height: 8),
+        pw.Text(
+          'QR: edumanage://receipt/$receiptNo/${student.id}',
+          style: const pw.TextStyle(fontSize: 7),
+        ),
+        pw.Text(
+          'This is an electronically generated document.',
+          style: const pw.TextStyle(fontSize: 7),
+        ),
+      ],
+    ));
+
+    final dir = await getApplicationDocumentsDirectory();
+    final fileName = 'receipt_${student.code}_$receiptNo.pdf';
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(await pdf.save());
+    return file.path;
+  }
+
   static Future<String> generateTeacherStatement({
     required AppDatabase database,
     required String teacherId,

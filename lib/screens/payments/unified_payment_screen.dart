@@ -25,6 +25,7 @@ import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
 import '../../constants/app_constants.dart';
 import 'student_history_dialog.dart';
+import '../../utils/pdf_generator.dart';
 
 class UnifiedPaymentScreen extends StatefulWidget {
   final AppDatabase database;
@@ -535,9 +536,31 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 
   Widget _buildActionsCell(Transaction tx) {
+    final isPayment = tx.type == 'student_payment' || tx.type == 'registration_fee_payment';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (isPayment)
+          IconButton(icon: const Icon(PhosphorIcons.receipt, size: 14, color: ShellTokens.accent),
+            onPressed: () async {
+              try {
+                final receiptNo = 'REC-${tx.id.hashCode.abs().toString().substring(0, 6)}';
+                final path = await PdfGenerator.generatePaymentReceipt(
+                  database: widget.database,
+                  transactionId: tx.id,
+                  receiptNumber: receiptNo,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Receipt saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              }
+            }, padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            tooltip: AppLocalizations.of(context).receipt),
         IconButton(icon: const Icon(PhosphorIcons.info, size: 14, color: ShellTokens.textSecondary),
           onPressed: () => _openDetail(tx), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
           tooltip: AppLocalizations.of(context).details),
@@ -694,6 +717,7 @@ class _TransactionDetailDialogState extends State<_TransactionDetailDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final tx = widget.transaction;
+    final isPayment = tx.type == 'student_payment' || tx.type == 'registration_fee_payment';
     return ShellDialog(
       maxWidth: 480,
       title: l10n.details,
@@ -744,6 +768,30 @@ class _TransactionDetailDialogState extends State<_TransactionDetailDialog> {
         Text('${l10n.createdAt}: ${tx.createdAt.year}-${tx.createdAt.month.toString().padLeft(2, '0')}-${tx.createdAt.day.toString().padLeft(2, '0')} ${tx.createdAt.hour.toString().padLeft(2, '0')}:${tx.createdAt.minute.toString().padLeft(2, '0')}',
           style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
       ]),
+      actions: isPayment ? Row(children: [
+        IconButton(
+          icon: const Icon(PhosphorIcons.receipt, size: 18, color: ShellTokens.accent),
+          onPressed: () async {
+            try {
+              final receiptNo = 'REC-${tx.id.hashCode.abs().toString().substring(0, 6)}';
+              final path = await PdfGenerator.generatePaymentReceipt(
+                database: widget.database,
+                transactionId: tx.id,
+                receiptNumber: receiptNo,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Receipt saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            }
+          },
+          tooltip: 'Print Receipt',
+        ),
+      ]) : null,
     );
   }
 
@@ -799,6 +847,7 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
   List<Map<String, dynamic>> _charges = [];
   Set<String> _selectedCharges = {};
   bool _showAllocation = false;
+  String? _savedTxId;
 
   @override
   void dispose() {
@@ -902,14 +951,14 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           if (matching.isNotEmpty) allocations![id] = ((matching.first['remaining'] as num?) ?? 0).toDouble();
         }
       }
-      await txService.createStudentPayment(
+      final txId = await txService.createStudentPayment(
         studentId: _student!.id,
         amount: amount,
         note: _noteCtrl.text,
         paymentMethod: _method,
         allocations: allocations,
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) setState(() { _saving = false; _savedTxId = txId; });
     } catch (_) {
       if (mounted) { setState(() => _saving = false); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.operationFailed))); }
     }
@@ -924,6 +973,53 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             return sum + (charge['remaining'] as double);
           })
         : 0.0;
+    if (_savedTxId != null) {
+      return ShellDialog(
+        maxWidth: 440, title: l10n.recordPayment,
+        body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(PhosphorIcons.checkCircle, size: 40, color: SemanticTokens.success),
+          const SizedBox(height: 12),
+          Text('Payment recorded successfully',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 4),
+          Text('${_amountCtrl.text} ${AppConstants.currencySymbol} — ${_student!.firstNameAr} ${_student!.lastNameAr}',
+            style: const TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(PhosphorIcons.x, size: 14),
+              label: const Text('Done', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder), foregroundColor: ShellTokens.textSecondary),
+            )),
+            const SizedBox(width: 10),
+            Expanded(child: FilledButton.icon(
+              onPressed: () async {
+                try {
+                  final receiptNo = 'REC-${_savedTxId!.hashCode.abs().toString().substring(0, 6)}';
+                  final path = await PdfGenerator.generatePaymentReceipt(
+                    database: widget.database,
+                    transactionId: _savedTxId!,
+                    receiptNumber: receiptNo,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Receipt saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                }
+              },
+              icon: const Icon(PhosphorIcons.receipt, size: 14),
+              label: const Text('Print Receipt', style: TextStyle(fontSize: 12)),
+              style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase),
+            )),
+          ]),
+        ]),
+      );
+    }
     return ShellDialog(
       maxWidth: 520, maxHeight: 650, title: l10n.recordPayment,
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

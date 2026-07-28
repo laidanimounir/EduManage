@@ -362,9 +362,9 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
     final groupRepo = SubjectGroupRepository(widget.database);
     final teacherRepo = TeacherRepository(widget.database);
     final classroomRepo = ClassroomRepository(widget.database);
-    _groups = await groupRepo.getAll();
+    _groups = (await groupRepo.getAll()).where((g) => !g.isArchived).toList();
     _teachers = await teacherRepo.getAll();
-    _classrooms = await classroomRepo.getAll();
+    _classrooms = (await classroomRepo.getAll()).where((c) => !c.isArchived).toList();
     if (mounted) setState(() {});
   }
 

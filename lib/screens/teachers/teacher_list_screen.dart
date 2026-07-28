@@ -1373,7 +1373,7 @@ class _SubjectGroupMultiSelectState extends State<_SubjectGroupMultiSelect> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    _groups = await SubjectGroupRepository(widget.database).getAll();
+    _groups = (await SubjectGroupRepository(widget.database).getAll()).where((g) => !g.isArchived).toList();
     if (mounted) setState(() => _loading = false);
   }
 
