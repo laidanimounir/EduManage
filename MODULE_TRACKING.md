@@ -1007,3 +1007,9 @@ for (final s in sessions) {
 - Kiosk/fullscreen mode — not implemented. Simple fullscreen wrapper screen when needed.
 - Make-up session cycle-counting logic — schema field `makeup_for_session_id` exists as infrastructure. Full logic deferred.
 - Old `checkin_screen.dart`, `teacher_checkin_screen.dart`, `today_attendance_screen.dart` still exist in code but are no longer referenced from the sidebar (replaced by `LiveAttendanceBoard`). They can be deleted in a future cleanup pass.
+
+### Round 10 Hotfix — "Failed to load board" error
+- **Root cause:** The `_loadFullData()` catch block was swallowing the real exception and showing a generic "Failed to load board" message, making debugging impossible. Also, `getTodaySessionsWithAttendance()` used non-nullable `.read<String>` on LEFT JOIN columns (`classroom_name`, `first_name_ar`, `last_name_ar`) which would throw if any joined row returned null.
+- **Fix:** Error message now includes the actual exception text (`'Failed to load board: $e'`). Query `.map()` now uses `r.read<String?>(...) ?? ''` for LEFT JOIN nullable columns. `getClassroomUtilization()` now wrapped in its own try/catch to prevent one failing query from blocking the entire board. Added `debugPrint` of the full stack trace for console diagnostics.
+- **If the error recurs:** The visible exception text will reveal the exact cause (e.g., missing column, type mismatch, null reference). If the migration from v11 to v12 didn't run (column `attendance.status` not found in existing DB), the error will say so explicitly. The fix for that case is a clean rebuild or verifying the schema version in the generated `.g.dart` file.
+- **Impact scope:** Same class of null-safety bug also checked in `getSessionRoster()`, `getLiveAttendanceCounts()`, and `getRepeatedAbsenceStudents()` — those already used nullable reads correctly.
