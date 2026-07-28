@@ -809,26 +809,30 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             controller: ctrl, autofocus: true,
             decoration: ShellInputDecoration.textField(hintText: '${l10n.code} أو ${l10n.name}'),
             onSubmitted: (q) async {
-              final repo = StudentRepository(widget.database);
-              final results = await repo.search(q);
-              if (results.length == 1) {
-                Navigator.pop(ctx, results.first);
-              } else if (results.isNotEmpty) {
-                final picked = await showDialog<Student>(
-                  context: ctx,
-                  builder: (c2) => ShellDialog(
-                    maxWidth: 350, title: l10n.selectStudent,
-                    body: Column(mainAxisSize: MainAxisSize.min, children: results.map((s) => ListTile(
-                      title: Text('${s.firstNameAr} ${s.lastNameAr}',
-                        style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-                      subtitle: Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                      onTap: () => Navigator.pop(c2, s),
-                    )).toList()),
-                  ),
-                );
-                if (picked != null) Navigator.pop(ctx, picked);
-              } else {
-                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(l10n.studentNotFound)));
+              try {
+                final repo = StudentRepository(widget.database);
+                final results = await repo.search(q);
+                if (results.length == 1) {
+                  if (ctx.mounted) Navigator.pop(ctx, results.first);
+                } else if (results.isNotEmpty) {
+                  final picked = await showDialog<Student>(
+                    context: ctx,
+                    builder: (c2) => ShellDialog(
+                      maxWidth: 350, title: l10n.selectStudent,
+                      body: Column(mainAxisSize: MainAxisSize.min, children: results.map((s) => ListTile(
+                        title: Text('${s.firstNameAr} ${s.lastNameAr}',
+                          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+                        subtitle: Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+                        onTap: () => Navigator.pop(c2, s),
+                      )).toList()),
+                    ),
+                  );
+                  if (picked != null && ctx.mounted) Navigator.pop(ctx, picked);
+                } else {
+                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(l10n.studentNotFound)));
+                }
+              } catch (e) {
+                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('${l10n.errorOccurred}: $e')));
               }
             },
           ),
@@ -838,15 +842,26 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
     ctrl.dispose();
     if (student != null && mounted) {
       setState(() => _student = student);
-      _loadCharges();
+      try {
+        await _loadCharges();
+      } catch (_) {
+        if (mounted) {
+          setState(() => _student = null);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.errorOccurred)));
+        }
+      }
     }
   }
 
   Future<void> _loadCharges() async {
     if (_student == null) return;
-    final service = TransactionService(widget.database);
-    final charges = await service.getUnpaidCharges(_student!.id);
-    if (mounted) setState(() => _charges = charges);
+    try {
+      final service = TransactionService(widget.database);
+      final charges = await service.getUnpaidCharges(_student!.id);
+      if (mounted) setState(() => _charges = charges);
+    } catch (_) {
+      if (mounted) setState(() => _charges = []);
+    }
   }
 
   Future<void> _save() async {
@@ -860,10 +875,11 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
     try {
       final txService = TransactionService(widget.database);
       Map<String, double>? allocations;
-      if (_showAllocation && _selectedCharges.isNotEmpty) {
+        if (_showAllocation && _selectedCharges.isNotEmpty) {
         final allocTotal = _selectedCharges.fold<double>(0, (sum, id) {
-          final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
-          return sum + (charge['remaining'] as double);
+          final matching = _charges.where((c) => (c['transaction'] as Transaction).id == id);
+          if (matching.isEmpty) return sum;
+          return sum + ((matching.first['remaining'] as num?) ?? 0).toDouble();
         });
         if (allocTotal > amount) {
           if (mounted) setState(() => _saving = false);
@@ -872,8 +888,8 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
         }
         allocations = {};
         for (final id in _selectedCharges) {
-          final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
-          allocations![id] = (charge['remaining'] as double);
+          final matching = _charges.where((c) => (c['transaction'] as Transaction).id == id);
+          if (matching.isNotEmpty) allocations![id] = ((matching.first['remaining'] as num?) ?? 0).toDouble();
         }
       }
       await txService.createStudentPayment(
@@ -1180,9 +1196,13 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
           onChanged: (q) async {
             if (q.trim().isEmpty) { setState(() => _results = []); return; }
-            final repo = StudentRepository(widget.database);
-            final r = await repo.search(q);
-            if (mounted) setState(() => _results = r);
+            try {
+              final repo = StudentRepository(widget.database);
+              final r = await repo.search(q);
+              if (mounted) setState(() => _results = r);
+            } catch (_) {
+              if (mounted) setState(() => _results = []);
+            }
           },
         ),
         const SizedBox(height: 8),
@@ -1311,8 +1331,11 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
         fromStudentId: _from!.id, toStudentId: _to!.id, amount: amount, note: _reasonCtrl.text.trim(),
       );
       if (mounted) Navigator.pop(context, true);
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transfer failed: $e')));
+      }
     }
   }
 
@@ -1327,8 +1350,10 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
             controller: ctrl, autofocus: true,
             decoration: ShellInputDecoration.textField(hintText: 'Code or Name'),
             onSubmitted: (q) async {
-              final r = await StudentRepository(widget.database).search(q);
-              if (r.isNotEmpty) Navigator.pop(ctx, r.first);
+              try {
+                final r = await StudentRepository(widget.database).search(q);
+                if (r.isNotEmpty && ctx.mounted) Navigator.pop(ctx, r.first);
+              } catch (_) {}
             },
           ),
         ]),
