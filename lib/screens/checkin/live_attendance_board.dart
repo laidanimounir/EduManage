@@ -655,12 +655,312 @@ class _SessionRosterDialog extends StatefulWidget {
 }
 
 class _SessionRosterDialogState extends State<_SessionRosterDialog> {
+  String _filter = 'all';
+  final _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _filtered = [];
+  bool _showPhotos = false;
+  bool _working = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyFilter();
+  }
+
+  @override
+  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+
+  void _applyFilter() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    _filtered = widget.roster.where((r) {
+      if (_filter == 'present' && (r['status'] != 'present')) return false;
+      if (_filter == 'absent' && (r['status'] != null && r['status'] != 'absent')) return false;
+      if (_filter == 'late' && (r['status'] != 'late')) return false;
+      if (_filter == 'pending' && (r['status'] != null)) return false;
+      if (q.isNotEmpty) {
+        final name = '${r['first_name_ar'] ?? ''} ${r['last_name_ar'] ?? ''} ${r['code'] ?? ''}'.toLowerCase();
+        if (!name.contains(q)) return false;
+      }
+      return true;
+    }).toList();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _markPresent(Map<String, dynamic> r) async {
+    final sessionId = widget.session['id'] as String;
+    final studentId = r['id'] as String;
+    final date = DateTime.now();
+    try {
+      final attRepo = AttendanceRepository(widget.database);
+      final enrollments = await EnrollmentRepository(widget.database).getByStudent(studentId);
+      final enrollment = enrollments.cast<Enrollment?>().firstWhere((e) => e?.subjectGroupId == widget.session['subject_group_id'], orElse: () => null);
+      await attRepo.create(AttendanceCompanion(
+        studentId: Value(studentId), sessionId: Value(sessionId),
+        attendanceDate: Value(date), personType: const Value('student'),
+        checkInMethod: const Value('manual'), isManualEntry: const Value(true),
+        checkedInByUserId: Value(widget.currentUserId),
+      ));
+      await TransactionService(widget.database).createSessionCharge(
+        studentId: studentId, sessionId: sessionId,
+        enrollmentId: enrollment?.id ?? '', createdByUserId: widget.currentUserId, date: date,
+      );
+      widget.onChanged?.call();
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
+  Future<void> _markAbsent(Map<String, dynamic> r) async {
+    final sessionId = widget.session['id'] as String;
+    final studentId = r['id'] as String;
+    try {
+      final reason = await showDialog<String>(context: context, builder: (ctx) => ShellDialog(maxWidth: 360, title: 'Mark Absent', body: Column(mainAxisSize: MainAxisSize.min, children: ['unexcused', 'sick', 'family', 'other'].map((v) => ListTile(title: Text(v), onTap: () => Navigator.pop(ctx, v))).toList())));
+      if (reason != null && mounted) {
+        await AttendanceRepository(widget.database).markAbsent(sessionId: sessionId, studentId: studentId, date: DateTime.now(), reason: reason, userId: widget.currentUserId);
+        widget.onChanged?.call();
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
+  Future<void> _undoCheckin(Map<String, dynamic> r) async {
+    if (r['attendance_id'] == null) return;
+    final studentId = r['id'] as String;
+    final sessionId = widget.session['id'] as String;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final undoWindow = prefs.getInt('undo_window_minutes') ?? 10;
+      final checkInTime = r['check_in_time'] as DateTime?;
+      if (checkInTime != null) {
+        final elapsed = DateTime.now().difference(checkInTime).inMinutes;
+        if (elapsed > undoWindow) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Undo window has expired. Use Payments screen for reversals.')));
+          return;
+        }
+      }
+      await TransactionService(widget.database).undoCheckin(
+        attendanceId: r['attendance_id'] as String,
+        studentId: studentId, sessionId: sessionId,
+        attendanceDate: DateTime.now(),
+        createdByUserId: widget.currentUserId,
+      );
+      widget.onChanged?.call();
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Undo failed: $e')));
+    }
+  }
+
+  Future<void> _bulkCheckIn() async {
+    final pending = widget.roster.where((r) => r['status'] == null || r['status'] == 'absent').toList();
+    if (pending.isEmpty) return;
+    setState(() => _working = true);
+    int ok = 0, fail = 0;
+    for (final r in pending) {
+      try {
+        await _markPresent(r);
+        ok++;
+      } catch (_) { fail++; }
+    }
+    if (mounted) {
+      setState(() => _working = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$ok checked in, $fail failed'), backgroundColor: ShellTokens.chromeSurface));
+      widget.onChanged?.call();
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _bulkMarkAbsent() async {
+    final pending = widget.roster.where((r) => r['status'] == null).toList();
+    if (pending.isEmpty) return;
+    setState(() => _working = true);
+    int ok = 0, fail = 0;
+    for (final r in pending) {
+      try {
+        await AttendanceRepository(widget.database).markAbsent(sessionId: widget.session['id'] as String, studentId: r['id'] as String, date: DateTime.now(), reason: 'unexcused', userId: widget.currentUserId);
+        ok++;
+      } catch (_) { fail++; }
+    }
+    if (mounted) {
+      setState(() => _working = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$ok marked absent, $fail failed'), backgroundColor: ShellTokens.chromeSurface));
+      widget.onChanged?.call();
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final presCount = widget.roster.where((r) => r['status'] == 'present').length;
+    final absCount = widget.roster.where((r) => r['status'] != null && r['status'] != 'present' && r['status'] != 'late').length;
+    final lateCount = widget.roster.where((r) => r['status'] == 'late').length;
+    final pendCount = widget.roster.where((r) => r['status'] == null).length;
+
     return ShellDialog(
-      maxWidth: 700, maxHeight: 700,
-      title: widget.session['group_name'] ?? 'Session Roster',
-      body: const Center(child: Text('Roster placeholder — full implementation pending')),
+      maxWidth: 750, maxHeight: 750,
+      title: '${widget.session['group_name']} \u00b7 ${widget.session['classroom_name'] ?? ''}',
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(PhosphorIcons.chalkboardTeacher, size: 12, color: ShellTokens.textSecondary),
+          const SizedBox(width: 4),
+          Text('${widget.session['first_name_ar'] ?? ''} ${widget.session['last_name_ar'] ?? ''}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+          const Spacer(),
+          Text('$presCount present \u00b7 $absCount absent \u00b7 $pendCount pending', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: SizedBox(height: 30, child: TextField(
+            controller: _searchCtrl,
+            style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+            decoration: InputDecoration(hintText: 'Search', isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.chromeBorder)), prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 12, color: ShellTokens.textSecondary)),
+            onChanged: (_) => _applyFilter(),
+          ))),
+        ]),
+        const SizedBox(height: 6),
+        SizedBox(height: 26, child: ListView(scrollDirection: Axis.horizontal, children: [
+          _rosterChip('All ($_filtered.length)', _filter == 'all', () => setState(() { _filter = 'all'; _applyFilter(); })),
+          _rosterChip('Present ($presCount)', _filter == 'present', () => setState(() { _filter = 'present'; _applyFilter(); })),
+          _rosterChip('Absent ($absCount)', _filter == 'absent', () => setState(() { _filter = 'absent'; _applyFilter(); })),
+          _rosterChip('Late ($lateCount)', _filter == 'late', () => setState(() { _filter = 'late'; _applyFilter(); })),
+          _rosterChip('Pending ($pendCount)', _filter == 'pending', () => setState(() { _filter = 'pending'; _applyFilter(); })),
+        ])),
+        const SizedBox(height: 6),
+        Row(children: [
+          TextButton.icon(onPressed: _working ? null : _bulkCheckIn, icon: const Icon(PhosphorIcons.checkCircle, size: 12), label: const Text('Check in all', style: TextStyle(fontSize: 10)), style: TextButton.styleFrom(foregroundColor: SemanticTokens.success, padding: const EdgeInsets.symmetric(horizontal: 6), minimumSize: Size.zero)),
+          TextButton.icon(onPressed: _working ? null : _bulkMarkAbsent, icon: const Icon(PhosphorIcons.x, size: 12), label: const Text('Mark all absent', style: TextStyle(fontSize: 10)), style: TextButton.styleFrom(foregroundColor: SemanticTokens.error, padding: const EdgeInsets.symmetric(horizontal: 6), minimumSize: Size.zero)),
+          const Spacer(),
+          TextButton(onPressed: () => setState(() => _showPhotos = !_showPhotos), child: Text(_showPhotos ? 'Hide photos' : 'Show photos', style: const TextStyle(fontSize: 10))),
+        ]),
+        if (_working) const LinearProgressIndicator(),
+        const SizedBox(height: 6),
+        Flexible(
+          child: _filtered.isEmpty
+              ? const Center(child: Text('No students match', style: TextStyle(fontSize: 11, color: ShellTokens.textDisabled)))
+              : Table(
+                  columnWidths: const {0: FixedColumnWidth(36), 1: FlexColumnWidth(2.5), 2: FixedColumnWidth(80), 3: FixedColumnWidth(70), 4: IntrinsicColumnWidth()},
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  border: TableBorder(horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5)),
+                  children: [
+                    TableRow(decoration: const BoxDecoration(color: ShellTokens.chromeSurface), children: [
+                      _cell('', bold: true),
+                      _cell('Name', bold: true),
+                      _cell('Status', bold: true),
+                      _cell('Time', bold: true),
+                      _cell('', bold: true),
+                    ]),
+                    ..._filtered.map((r) {
+                      final status = r['status'] as String?;
+                      final isEndingSoon = _isSessionEndingSoon() && status == null;
+                      return TableRow(
+                        decoration: BoxDecoration(
+                          color: isEndingSoon ? SemanticTokens.warning.withValues(alpha: 0.08)
+                              : (status == 'absent' || (status != null && status != 'present')) ? SemanticTokens.error.withValues(alpha: 0.05)
+                              : Colors.transparent,
+                        ),
+                        children: [
+                          _photoCell(r, _showPhotos),
+                          _nameCell(r, status, isEndingSoon),
+                          _statusCell(status, r['minutes_late'] as int?, r['is_backdated'] as bool),
+                          _cell(r['check_in_time'] != null ? _fmtTime(r['check_in_time'] as DateTime) : '\u2014'),
+                          _actionsCell(r, status),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+        ),
+      ]),
     );
   }
+
+  bool _isSessionEndingSoon() {
+    final end = widget.session['end_time'] as DateTime;
+    final now = DateTime.now();
+    final endToday = DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    return endToday.difference(now).inMinutes <= 10 && endToday.difference(now).inMinutes > 0;
+  }
+
+  Widget _rosterChip(String label, bool selected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 5),
+      child: Material(
+        color: selected ? ShellTokens.accentMuted : ShellTokens.chromeBase,
+        borderRadius: BorderRadius.circular(4),
+        child: InkWell(borderRadius: BorderRadius.circular(4), onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: selected ? ShellTokens.textPrimary : ShellTokens.textSecondary)))),
+      ),
+    );
+  }
+
+  Widget _cell(String text, {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: Text(text, style: TextStyle(fontSize: 10, fontWeight: bold ? FontWeight.w600 : FontWeight.w400, color: bold ? ShellTokens.textDisabled : ShellTokens.textSecondary)),
+    );
+  }
+
+  Widget _photoCell(Map<String, dynamic> r, bool showPhoto) {
+    final path = r['photo_path'] as String?;
+    final first = (r['first_name_ar'] as String? ?? '?')[0];
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: showPhoto && path != null && path.isNotEmpty
+          ? ClipOval(child: Image.file(File(path), width: 28, height: 28, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _defaultAvatar(first)))
+          : _defaultAvatar(first),
+    );
+  }
+
+  Widget _defaultAvatar(String letter) => CircleAvatar(radius: 14, backgroundColor: ShellTokens.accentMuted, child: Text(letter, style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 10, fontWeight: FontWeight.w700)));
+
+  Widget _nameCell(Map<String, dynamic> r, String? status, bool isEndingSoon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${r['first_name_ar'] ?? ''} ${r['last_name_ar'] ?? ''}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: ShellTokens.textPrimary)),
+          Text(r['code'] ?? '', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+        ])),
+        if (status == 'absent' && r['absence_reason'] != null)
+          Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: SemanticTokens.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(3)), child: Text(r['absence_reason'] as String, style: const TextStyle(fontSize: 8, color: SemanticTokens.error))),
+      ]),
+    );
+  }
+
+  Widget _statusCell(String? status, int? minutesLate, bool isBackdated) {
+    final label = status ?? 'Pending';
+    final color = status == 'present' ? SemanticTokens.success
+        : status == 'late' ? const Color(0xFFC2823A)
+        : status == 'absent' || status == 'excused_absence' ? SemanticTokens.error
+        : ShellTokens.textDisabled;
+    final icon = status == 'present' ? PhosphorIcons.checkCircle
+        : status == 'late' ? PhosphorIcons.clock
+        : status == 'absent' || status == 'excused_absence' ? PhosphorIcons.x
+        : PhosphorIcons.clock;
+    final extra = minutesLate != null ? ' (+${minutesLate}m)' : (isBackdated ? ' \u2190' : '');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 2),
+        Text('$label$extra', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: color)),
+      ]),
+    );
+  }
+
+  Widget _actionsCell(Map<String, dynamic> r, String? status) {
+    if (status == 'present' && r['attendance_id'] != null) {
+      return IconButton(icon: const Icon(PhosphorIcons.arrowCounterClockwise, size: 14, color: ShellTokens.textSecondary), onPressed: () => _undoCheckin(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Undo');
+    }
+    if (status == null || status == 'absent') {
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(icon: const Icon(PhosphorIcons.checkCircle, size: 14, color: SemanticTokens.success), onPressed: () => _markPresent(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Check in'),
+        if (status == null) IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: SemanticTokens.error), onPressed: () => _markAbsent(r), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Mark absent'),
+      ]);
+    }
+    return const SizedBox(width: 28);
+  }
+
+  String _fmtTime(DateTime t) => '${t.hour}:${t.minute.toString().padLeft(2, '0')}';
 }
