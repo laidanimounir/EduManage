@@ -1,30 +1,42 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' hide Column, Table;
+import '../../constants/chart_tokens.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/theme_tokens.dart';
 import '../../constants/app_constants.dart';
-import '../../repositories/student_repository.dart';
-import '../../repositories/teacher_repository.dart';
-import '../../repositories/session_repository.dart';
-import '../../repositories/attendance_repository.dart';
 import '../../widgets/app_loading.dart';
+import '../../screens/payments/unified_payment_screen.dart' show UnifiedPaymentScreen;
 
 class DashboardScreen extends StatefulWidget {
   final AppDatabase database;
-
   const DashboardScreen({super.key, required this.database});
-
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   DateTime? _dateFrom, _dateTo;
+
   Map<String, double> _metrics = {};
   int _totalStudents = 0, _totalTeachers = 0, _todaySessions = 0, _todayAttendance = 0;
+
+  List<Map<String, dynamic>> _alerts = [];
+  List<Map<String, dynamic>> _liveSessions = [];
+  Map<String, double> _prevMetrics = {};
+  Map<String, List<double>> _sparklineData = {};
+  Map<String, int> _billingHealth = {};
+  Map<String, dynamic> _teacherSummary = {};
+  Map<String, int> _enrollmentTrend = {};
+  List<Map<String, dynamic>> _classrooms = [];
+  double _familyDiscount = 0;
+  int _activeStudentCount = 0;
+
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -33,40 +45,139 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadStats() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
-      final sRepo = StudentRepository(widget.database);
-      final tRepo = TeacherRepository(widget.database);
+      final now = DateTime.now();
+      final from = _dateFrom ?? DateTime(now.year, 1, 1);
+      final to = _dateTo ?? now;
+
       final results = await Future.wait([
-        sRepo.getAll(),
-        tRepo.getAll(),
+        widget.database.customSelect('SELECT COUNT(*) AS cnt FROM students WHERE is_archived = 0').map((r) => r.read<int>('cnt')).getSingle(),
+        widget.database.customSelect('SELECT COUNT(*) AS cnt FROM teachers WHERE is_archived = 0').map((r) => r.read<int>('cnt')).getSingle(),
         widget.database.getPeriodSummary(from: _dateFrom, to: _dateTo),
+        _loadAlerts(),
+        _loadLiveSessions(),
+        widget.database.getPreviousPeriodComparison(metric: 'summary', from: from, to: to).catchError((_) => <String, double>{}),
+        _loadSparklines(),
+        widget.database.getBillingCycleHealth().catchError((_) => <String, dynamic>{}),
+        widget.database.getTeacherPayoutSummary().catchError((_) => <String, dynamic>{}),
+        widget.database.getEnrollmentTrend(from, to).catchError((_) => <String, int>{}),
+        widget.database.getClassroomUtilization().catchError((_) => <Map<String, dynamic>>[]),
+        widget.database.getFamilyDiscountTotal(from, to).catchError((_) => 0.0),
+        widget.database.customSelect(
+          'SELECT COUNT(*) AS cnt FROM students s JOIN enrollments e ON s.id = e.student_id WHERE s.is_archived = 0 AND e.status = ? AND e.is_transferred = 0',
+          variables: [Variable.withString('active')],
+        ).map((r) => r.read<int>('cnt')).getSingle().catchError((_) => 0),
       ]);
 
-      final students = results[0] as List;
-      final teachers = results[1] as List;
-      final summary = results[2] as Map<String, double>;
-
-      _totalStudents = students.length;
-      _totalTeachers = teachers.length;
-      _metrics = summary;
+      _totalStudents = results[0] as int;
+      _totalTeachers = results[1] as int;
+      _metrics = results[2] as Map<String, double>;
+      _alerts = results[3] as List<Map<String, dynamic>>;
+      _liveSessions = results[4] as List<Map<String, dynamic>>;
+      _prevMetrics = results[5] as Map<String, double>;
+      _sparklineData = results[6] as Map<String, List<double>>;
+      _billingHealth = (results[7] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toInt()));
+      _teacherSummary = results[8] as Map<String, dynamic>;
+      _enrollmentTrend = (results[9] as Map<String, int>);
+      _classrooms = results[10] as List<Map<String, dynamic>>;
+      _familyDiscount = results[11] as double;
+      _activeStudentCount = results[12] as int;
 
       if (_dateFrom == null) {
-        final now = DateTime.now();
-        final sessionRepo = SessionRepository(widget.database);
-        final attendanceRepo = AttendanceRepository(widget.database);
         final todayResults = await Future.wait([
-          sessionRepo.getByDay(now.weekday),
-          attendanceRepo.getTodayAttendance(),
+          widget.database.customSelect('SELECT COUNT(*) AS cnt FROM sessions WHERE day_of_week = ? AND is_active = 1 AND is_archived = 0', variables: [Variable.withInt(now.weekday)]).map((r) => r.read<int>('cnt')).getSingle(),
+          widget.database.customSelect('SELECT COUNT(*) AS cnt FROM attendance WHERE attendance_date >= ? AND attendance_date < ?', variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1))]).map((r) => r.read<int>('cnt')).getSingle(),
         ]);
-        _todaySessions = (todayResults[0] as List).length;
-        _todayAttendance = (todayResults[1] as List).length;
+        _todaySessions = todayResults[0] as int;
+        _todayAttendance = todayResults[1] as int;
       }
 
       if (mounted) setState(() => _loading = false);
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Failed to load dashboard: $e'; });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadAlerts() async {
+    final alerts = <Map<String, dynamic>>[];
+    try {
+      final unbilled = await widget.database.countUnbilledActiveStudents();
+      if (unbilled > 0) alerts.add({'icon': PhosphorIcons.warning, 'color': const Color(0xFFC2823A), 'text': '$unbilled unbilled active students', 'screen': 'balances'});
+
+      final topTeachers = await widget.database.getTeacherPayoutSummary().then((s) => s['topOverdueTeachers'] as List).catchError((_) => <Map>[]);
+      for (final t in topTeachers) {
+        if (t['lastPayout'] == null || (t['thresholdDays'] != null && DateTime.now().difference(t['lastPayout'] as DateTime).inDays > (t['thresholdDays'] as int))) {
+          alerts.add({'icon': PhosphorIcons.warning, 'color': SemanticTokens.error, 'text': '${t['name']} is overdue for payout', 'screen': 'teachers', 'teacherId': t['id']});
+        }
+      }
+
+      final waitlistCount = await widget.database.customSelect('SELECT COUNT(*) AS cnt FROM enrollment_waitlist').map((r) => r.read<int>('cnt')).getSingle().catchError((_) => 0);
+      if (waitlistCount > 0) alerts.add({'icon': PhosphorIcons.usersThree, 'color': const Color(0xFFC2823A), 'text': '$waitlistCount student(s) on waitlist', 'screen': 'enrollments'});
+    } catch (_) {}
+    return alerts;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLiveSessions() async {
+    final live = <Map<String, dynamic>>[];
+    try {
+      final now = DateTime.now();
+      final today = now.weekday;
+      final rows = await widget.database.customSelect(
+        'SELECT s.id, s.subject_group_id, s.teacher_id, s.start_time, s.end_time, sg.name_ar AS group_name, t.first_name_ar, t.last_name_ar '
+        'FROM sessions s '
+        'JOIN subject_groups sg ON s.subject_group_id = sg.id '
+        'LEFT JOIN teachers t ON s.teacher_id = t.id '
+        'WHERE s.day_of_week = ? AND s.is_active = 1 AND s.is_archived = 0',
+        variables: [Variable.withInt(today)],
+      ).get();
+      for (final r in rows) {
+        final startTime = DateTime(now.year, now.month, now.day, r.read<DateTime>('start_time').hour, r.read<DateTime>('start_time').minute);
+        final endTime = DateTime(now.year, now.month, now.day, r.read<DateTime>('end_time').hour, r.read<DateTime>('end_time').minute);
+        if (now.isAfter(startTime) && now.isBefore(endTime)) {
+          final attCount = await widget.database.customSelect(
+            'SELECT COUNT(*) AS cnt FROM attendance WHERE session_id = ? AND attendance_date >= ? AND attendance_date < ?',
+            variables: [Variable.withString(r.read<String>('id')), Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1))],
+          ).map((rr) => rr.read<int>('cnt')).getSingle().catchError((_) => 0);
+          live.add({
+            'id': r.read<String>('id'), 'groupId': r.read<String>('subject_group_id'), 'teacherId': r.read<String>('teacher_id'),
+            'groupName': r.read<String>('group_name'), 'teacherName': '${r.read<String>('first_name_ar')} ${r.read<String>('last_name_ar')}',
+            'time': '${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')}-${endTime.hour}:${endTime.minute.toString().padLeft(2, '0')}',
+            'attendance': attCount,
+          });
+        }
+      }
+    } catch (_) {}
+    return live;
+  }
+
+  Future<Map<String, List<double>>> _loadSparklines() async {
+    final data = <String, List<double>>{};
+    try {
+      final trend = await widget.database.getMonthlyTrend(6);
+      data['revenue'] = trend.map((m) => (m['revenue'] as double?) ?? 0).toList();
+      data['collectionRate'] = trend.map((m) => (m['collectionRate'] as double?) ?? 0).toList();
+    } catch (_) {
+      data['revenue'] = List.filled(6, 0.0);
+      data['collectionRate'] = List.filled(6, 0.0);
+    }
+    return data;
+  }
+
+  String _trendLabel(double current, double previous) {
+    if (current == 0 || previous == 0) return '';
+    final pct = ((current - previous) / previous * 100).round();
+    return pct >= 0 ? '+$pct%' : '$pct%';
+  }
+
+  Color _trendColor(double current, double previous) {
+    if (current == 0 || previous == 0) return ChartTokens.trendNeutral;
+    return current >= previous ? ChartTokens.trendUp : ChartTokens.trendDown;
+  }
+
+  IconData? _trendIcon(double current, double previous) {
+    if (current == 0 || previous == 0) return null;
+    return current >= previous ? PhosphorIcons.trendUp : PhosphorIcons.arrowLeft;
   }
 
   @override
@@ -76,68 +187,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final expenses = _metrics['expenses'] ?? 0;
     final outstanding = _metrics['outstanding'] ?? 0;
     final net = revenue - expenses;
+    final prevRevenue = _prevMetrics['revenue'] ?? 0;
+    final prevExpenses = _prevMetrics['expenses'] ?? 0;
+    final prevOutstanding = _prevMetrics['outstanding'] ?? 0;
+    final prevNet = prevRevenue - prevExpenses;
 
     return Scaffold(
       backgroundColor: ContentTokens.background,
-      body: RefreshIndicator(
-        onRefresh: _loadStats,
-        child: _loading
-            ? const AppLoading()
-            : ListView(
-                padding: const EdgeInsets.all(12),
-                children: [
-                  Row(children: [
-                    _buildDateBtn(l10n.from, _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }),
-                    const SizedBox(width: 8),
-                    _buildDateBtn(l10n.to, _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }),
-                    if (_dateFrom != null || _dateTo != null) ...[
-                      const SizedBox(width: 4),
-                      IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary),
-                        onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
-                        padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 24, minHeight: 24)),
+      body: _loading
+          ? const AppLoading()
+          : _error != null
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(PhosphorIcons.warning, size: 32, color: SemanticTokens.warning),
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: ShellTokens.textSecondary)),
+                  const SizedBox(height: 12),
+                  TextButton(onPressed: _loadStats, child: const Text('Retry')),
+                ]))
+              : RefreshIndicator(
+                  onRefresh: _loadStats,
+                  child: ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      _buildDateFilter(l10n),
+                      const SizedBox(height: 8),
+                      if (_alerts.isNotEmpty) ...[_buildAlertsSection(), const SizedBox(height: 10)],
+                      _buildQuickActions(l10n),
+                      const SizedBox(height: 10),
+                      if (_liveSessions.isNotEmpty) ...[_buildLiveSection(), const SizedBox(height: 10)],
+                      _buildKpiRow1(l10n),
+                      const SizedBox(height: 8),
+                      _buildKpiRow2(l10n, revenue, prevRevenue, expenses, prevExpenses),
+                      const SizedBox(height: 8),
+                      _buildKpiRow3(l10n, net, prevNet, outstanding, prevOutstanding),
+                      const SizedBox(height: 12),
+                      _buildFinancialDepth(l10n, revenue, net),
+                      const SizedBox(height: 10),
+                      _buildBillingHealth(),
+                      const SizedBox(height: 10),
+                      _buildTeacherSummary(),
+                      const SizedBox(height: 10),
+                      _buildEnrollmentTrend(),
+                      const SizedBox(height: 10),
+                      _buildClassroomUtilization(),
+                      const SizedBox(height: 20),
                     ],
-                  ]),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    _kpiCard(l10n.totalStudents, '$_totalStudents', PhosphorIcons.users, ShellTokens.accent),
-                    const SizedBox(width: 8),
-                    _kpiCard(l10n.totalTeachers, '$_totalTeachers', PhosphorIcons.chalkboardTeacher, const Color(0xFF5B8C5A)),
-                  ]),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    _kpiCard(l10n.todaySessions, '$_todaySessions', PhosphorIcons.clock, const Color(0xFFC2823A)),
-                    const SizedBox(width: 8),
-                    _kpiCard(l10n.todayAttendance, '$_todayAttendance', PhosphorIcons.checkCircle, const Color(0xFF4B8B4A)),
-                  ]),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    _kpiCard('Revenue', '${revenue.toStringAsFixed(0)} DA', PhosphorIcons.trendUp, SemanticTokens.success),
-                    const SizedBox(width: 8),
-                    _kpiCard('Expenses', '${expenses.toStringAsFixed(0)} DA', PhosphorIcons.currencyCircleDollar, SemanticTokens.error),
-                  ]),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    _kpiCard('Net', '${net.toStringAsFixed(0)} DA', PhosphorIcons.chartBar, net >= 0 ? SemanticTokens.success : SemanticTokens.error),
-                    const SizedBox(width: 8),
-                    _kpiCard(l10n.outstandingDebts, '${outstanding.toStringAsFixed(0)} DA', PhosphorIcons.wallet, outstanding > 0 ? const Color(0xFFC2483D) : SemanticTokens.success),
-                  ]),
-                  const SizedBox(height: 8),
-                  _kpiCard('Collection Rate', _collectionRate, PhosphorIcons.checkCircle, ShellTokens.accent, fullWidth: true),
-                ],
-              ),
-      ),
+                  ),
+                ),
     );
   }
 
-  String get _collectionRate {
-    final revenue = _metrics['revenue'] ?? 0;
-    if (revenue == 0) return 'N/A';
-    final paid = revenue - (_metrics['outstanding'] ?? 0);
-    final rate = (paid / revenue * 100).clamp(0, 100);
-    return '${rate.toStringAsFixed(0)}%';
+  Widget _buildDateFilter(AppLocalizations l10n) {
+    String fmtDt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    return Row(children: [
+      _buildDateBtn(l10n.from, _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }, fmtDt),
+      const SizedBox(width: 8),
+      _buildDateBtn(l10n.to, _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }, fmtDt),
+      if (_dateFrom != null || _dateTo != null) ...[
+        const SizedBox(width: 4),
+        IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary),
+          onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
+          padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 24, minHeight: 24)),
+      ],
+    ]);
   }
 
-  Widget _buildDateBtn(String label, DateTime? value, ValueChanged<DateTime> onPick) {
+  Widget _buildDateBtn(String label, DateTime? value, ValueChanged<DateTime> onPick, String Function(DateTime) fmt) {
     return GestureDetector(
       onTap: () async {
         final d = await showDatePicker(context: context, initialDate: value ?? DateTime.now(),
@@ -149,27 +264,429 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(color: ShellTokens.chromeSurface, borderRadius: BorderRadius.circular(6),
             border: Border.all(color: value != null ? ShellTokens.accent : ShellTokens.chromeBorder)),
         child: Center(child: Text(
-          value != null ? '${value.year}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}' : label,
+          value != null ? fmt(value) : label,
           style: TextStyle(fontSize: 11, color: value != null ? ShellTokens.textPrimary : ShellTokens.textDisabled))),
       ),
     );
   }
 
-  Widget _kpiCard(String label, String value, IconData icon, Color color, {bool fullWidth = false}) {
-    final widget = Card(
+  Widget _buildAlertsSection() {
+    return Card(
       color: ShellTokens.chromeSurface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          Icon(icon, size: fullWidth ? 20 : 24, color: color),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: fullWidth ? 18 : 20, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.warning),
+            const SizedBox(width: 6),
+            const Text('Needs Attention', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          ]),
+          const SizedBox(height: 6),
+          ..._alerts.map((a) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              Icon(a['icon'] as IconData, size: 12, color: a['color'] as Color),
+              const SizedBox(width: 6),
+              Expanded(child: Text(a['text'] as String, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+              const Icon(PhosphorIcons.caretRight, size: 10, color: ShellTokens.textDisabled),
+            ]),
+          )),
         ]),
       ),
     );
-    if (fullWidth) return widget;
-    return Expanded(child: widget);
   }
+
+  Widget _buildQuickActions(AppLocalizations l10n) {
+    return SizedBox(
+      height: 56,
+      child: ListView(scrollDirection: Axis.horizontal, children: [
+        _actionBtn(PhosphorIcons.currencyCircleDollar, 'Record Payment', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => UnifiedPaymentScreen(database: widget.database)));
+        }),
+        _actionBtn(PhosphorIcons.checkCircle, l10n.checkIn, () {}),
+        _actionBtn(PhosphorIcons.chalkboardTeacher, 'Pay Teacher', () {}),
+        _actionBtn(PhosphorIcons.plus, 'New Student', () {}),
+        _actionBtn(PhosphorIcons.calendar, 'Today', () {}),
+      ]),
+    );
+  }
+
+  Widget _actionBtn(IconData icon, String label, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 6),
+      child: Material(
+        color: ShellTokens.chromeSurface,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(icon, size: 18, color: ShellTokens.accent),
+              const SizedBox(height: 2),
+              Text(label, style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveSection() {
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 8, height: 8, decoration: const BoxDecoration(color: SemanticTokens.success, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            const Text('Live Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          ]),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _liveSessions.length,
+              itemBuilder: (_, i) {
+                final s = _liveSessions[i];
+                return Container(
+                  width: 180,
+                  margin: const EdgeInsetsDirectional.only(end: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: ShellTokens.chromeBase.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(6), border: Border.all(color: SemanticTokens.success.withValues(alpha: 0.3))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(s['groupName'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      const SizedBox(width: 4),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: SemanticTokens.success.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)), child: const Text('Live', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: SemanticTokens.success))),
+                    ]),
+                    const SizedBox(height: 2),
+                    Text(s['time'] ?? '', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+                    const Spacer(),
+                    Text('${s['teacherName'] ?? ''} \u00b7 ${s['attendance']} present', style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ]),
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildKpiRow1(AppLocalizations l10n) {
+    return Row(children: [
+      _kpiCard(l10n.totalStudents, '$_totalStudents', PhosphorIcons.users, ShellTokens.accent, prevValue: 0),
+      const SizedBox(width: 8),
+      _kpiCard(l10n.totalTeachers, '$_totalTeachers', PhosphorIcons.chalkboardTeacher, const Color(0xFF5B8C5A), prevValue: 0),
+    ]);
+  }
+
+  Widget _buildKpiRow2(AppLocalizations l10n, double revenue, double prevRevenue, double expenses, double prevExpenses) {
+    return Row(children: [
+      _kpiCard('Revenue', '${revenue.toStringAsFixed(0)}', PhosphorIcons.trendUp, SemanticTokens.success, prevValue: prevRevenue, sparkline: _sparklineData['revenue'], suffix: AppConstants.currencySymbol),
+      const SizedBox(width: 8),
+      _kpiCard('Expenses', '${expenses.toStringAsFixed(0)}', PhosphorIcons.currencyCircleDollar, SemanticTokens.error, prevValue: prevExpenses, suffix: AppConstants.currencySymbol),
+    ]);
+  }
+
+  Widget _buildKpiRow3(AppLocalizations l10n, double net, double prevNet, double outstanding, double prevOutstanding) {
+    return Row(children: [
+      _kpiCard('Net', '${net.toStringAsFixed(0)}', PhosphorIcons.chartBar, net >= 0 ? SemanticTokens.success : SemanticTokens.error, prevValue: prevNet, suffix: AppConstants.currencySymbol),
+      const SizedBox(width: 8),
+      _kpiCard(l10n.outstandingDebts, '${outstanding.toStringAsFixed(0)}', PhosphorIcons.wallet, outstanding > 0 ? const Color(0xFFC2483D) : SemanticTokens.success, prevValue: prevOutstanding, suffix: AppConstants.currencySymbol),
+    ]);
+  }
+
+  Widget _kpiCard(String label, String value, IconData icon, Color color, {bool fullWidth = false, double prevValue = 0, List<double>? sparkline, String suffix = ''}) {
+    final num = double.tryParse(value) ?? 0;
+    final trendLabel = prevValue != 0 ? _trendLabel(num, prevValue) : '';
+    final trendColor = prevValue != 0 ? _trendColor(num, prevValue) : ChartTokens.trendNeutral;
+    final trendIcon = prevValue != 0 ? _trendIcon(num, prevValue) : null;
+    final showSuffix = suffix.isNotEmpty ? suffix : '';
+
+    final card = Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(children: [
+          Icon(icon, size: fullWidth ? 20 : 22, color: color),
+          const SizedBox(height: 6),
+          _AnimatedNumber(value: num, suffix: showSuffix, color: color, fontSize: fullWidth ? 16 : 18),
+          const SizedBox(height: 1),
+          Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
+          if (trendLabel.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              if (trendIcon != null) Icon(trendIcon, size: 10, color: trendColor),
+              const SizedBox(width: 2),
+              Text(trendLabel.startsWith('-') ? trendLabel.substring(1) : trendLabel, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: trendColor)),
+            ]),
+          ],
+          if (sparkline != null && sparkline.any((v) => v > 0)) ...[
+            const SizedBox(height: 4),
+            SizedBox(height: 28, child: _SparklineChart(data: sparkline)),
+          ],
+        ]),
+      ),
+    );
+    if (fullWidth) return card;
+    return Expanded(child: card);
+  }
+
+  Widget _buildFinancialDepth(AppLocalizations l10n, double revenue, double net) {
+    final avgRevenue = _activeStudentCount > 0 ? (revenue / _activeStudentCount) : 0.0;
+    final netAfterDiscounts = net - _familyDiscount;
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Financial Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 6),
+          _finRow('Collection Rate', _collectionRate),
+          _finRow('Family Discounts', '${_familyDiscount.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Net After Discounts', '${netAfterDiscounts.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Avg Revenue / Student', '${avgRevenue.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Active Students', '$_activeStudentCount'),
+        ]),
+      ),
+    );
+  }
+
+  Widget _finRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+    );
+  }
+
+  Widget _buildBillingHealth() {
+    final open = _billingHealth['openCycles'] ?? 0;
+    final closed = _billingHealth['closedCycles'] ?? 0;
+    final mid = _billingHealth['midCycleStudents'] ?? 0;
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Billing Cycle Health', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 6),
+          Row(children: [
+            _healthStat('Open Cycles', '$open', SemanticTokens.warning),
+            _healthStat('Closed Cycles', '$closed', SemanticTokens.success),
+            _healthStat('Mid-Cycle', '$mid', ShellTokens.accent),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _healthStat(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+        child: Column(children: [
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildTeacherSummary() {
+    final topTeachers = _teacherSummary['topOverdueTeachers'] as List? ?? [];
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Teacher Payouts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 6),
+          Text('Total Payouts: ${(_teacherSummary['totalPayouts'] as double?)?.toStringAsFixed(0) ?? '0'} ${AppConstants.currencySymbol}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+          if (topTeachers.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            const Text('Nearest to Overdue:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ShellTokens.textDisabled)),
+            const SizedBox(height: 2),
+            ...topTeachers.take(5).map((t) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1),
+              child: Text('${t['name']} (${t['code']})', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            )),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildEnrollmentTrend() {
+    final newE = _enrollmentTrend['newEnrollments'] ?? 0;
+    final dropped = _enrollmentTrend['dropped'] ?? 0;
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Enrollment Trend', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 6),
+          Row(children: [
+            _healthStat('New', '$newE', SemanticTokens.success),
+            _healthStat('Dropped', '$dropped', SemanticTokens.error),
+            _healthStat('Net', '${newE - dropped}', newE - dropped >= 0 ? SemanticTokens.success : SemanticTokens.error),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildClassroomUtilization() {
+    return Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Classroom Utilization', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 6),
+          ..._classrooms.take(8).map((c) {
+            final capacity = (c['capacity'] as int?) ?? 1;
+            final sessions = (c['sessionCount'] as int?) ?? 0;
+            final pct = capacity > 0 ? (sessions * 100 ~/ capacity).clamp(0, 100).toDouble() / 100 : 0.0;
+            final isLow = pct < 0.2;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(children: [
+                SizedBox(width: 80, child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 6),
+                Expanded(child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(value: pct, minHeight: 6, backgroundColor: ShellTokens.chromeBorder, color: isLow ? SemanticTokens.warning : SemanticTokens.success),
+                )),
+                const SizedBox(width: 6),
+                Text('$sessions/${c['capacity']}', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+                if (isLow) Container(
+                  margin: const EdgeInsetsDirectional.only(start: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                  decoration: BoxDecoration(color: SemanticTokens.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
+                  child: const Text('low', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: SemanticTokens.warning)),
+                ),
+              ]),
+            );
+          }),
+        ]),
+      ),
+    );
+  }
+
+  String get _collectionRate {
+    final revenue = _metrics['revenue'] ?? 0;
+    if (revenue == 0) return 'N/A';
+    final paid = revenue - (_metrics['outstanding'] ?? 0);
+    final rate = (paid / revenue * 100).clamp(0, 100);
+    return '${rate.toStringAsFixed(0)}%';
+  }
+}
+
+class _AnimatedNumber extends StatefulWidget {
+  final double value;
+  final String suffix;
+  final Color color;
+  final double fontSize;
+  const _AnimatedNumber({required this.value, this.suffix = '', required this.color, required this.fontSize});
+  @override
+  State<_AnimatedNumber> createState() => _AnimatedCounterState();
+}
+
+class _AnimatedCounterState extends State<_AnimatedNumber> with TickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: Duration(milliseconds: max(400, (widget.value * 0.008).round().clamp(200, 1200))));
+    _anim = Tween<double>(begin: 0, end: widget.value).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _ctrl.forward();
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedNumber old) {
+    super.didUpdateWidget(old);
+    if (old.value != widget.value) {
+      _ctrl.duration = Duration(milliseconds: max(400, (widget.value * 0.008).round().clamp(200, 1200)));
+      _anim = Tween<double>(begin: 0, end: widget.value).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+      _ctrl.reset();
+      _ctrl.forward();
+    }
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Text(
+        widget.suffix.isNotEmpty ? '${_anim.value.toStringAsFixed(0)} ${widget.suffix}' : '${_anim.value.toStringAsFixed(0)}',
+        style: TextStyle(fontSize: widget.fontSize, fontWeight: FontWeight.w700, color: widget.color),
+      ),
+    );
+  }
+}
+
+class _SparklineChart extends StatelessWidget {
+  final List<double> data;
+  const _SparklineChart({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.length < 2) return const SizedBox.shrink();
+    return CustomPaint(
+      size: const Size(double.infinity, 28),
+      painter: _SparklinePainter(data),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> data;
+  _SparklinePainter(this.data);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.length < 2) return;
+    final maxVal = data.reduce(max);
+    final minVal = data.reduce(min);
+    final range = maxVal - minVal;
+    if (range == 0) return;
+
+    final paint = Paint()
+      ..color = ShellTokens.accent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    final dx = size.width / (data.length - 1);
+    final h = size.height * 0.8;
+    final top = (size.height - h) / 2;
+
+    for (var i = 0; i < data.length; i++) {
+      final x = i * dx;
+      final y = top + h - ((data[i] - minVal) / range * h);
+      if (i == 0) { path.moveTo(x, y); } else { path.lineTo(x, y); }
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
