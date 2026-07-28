@@ -24,6 +24,7 @@ import '../../repositories/transaction_service.dart';
 import '../../widgets/shell_dialog.dart';
 import '../../widgets/shell_input_decoration.dart';
 import '../payments/student_history_dialog.dart';
+import '../../widgets/bulk_payment_dialog.dart';
 import '../payments/unified_payment_screen.dart';
 
 class StudentBalancesScreen extends StatefulWidget {
@@ -178,7 +179,7 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
   void _openBulkPayment() {
     showDialog(
       context: context,
-      builder: (_) => _BulkPaymentDialog(database: widget.database),
+      builder: (_) => BulkPaymentDialog(database: widget.database),
     ).then((_) => _fetchPage());
   }
 
@@ -692,7 +693,7 @@ class _BulkPaymentDialogState extends State<_BulkPaymentDialog> {
           decoration: ShellInputDecoration.textField(hintText: 'Reason (optional)'),
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
         const SizedBox(height: 12),
-        ShellSectionHeader(text: '$total students selected — all with outstanding balance', withBorder: true),
+        ShellSectionHeader(text: '$total students selected ï¿½ all with outstanding balance', withBorder: true),
         Flexible(
           child: ListView.builder(
             shrinkWrap: true, itemCount: _studentData.length,

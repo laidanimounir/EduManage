@@ -10,6 +10,7 @@ import '../../widgets/shell_section_header.dart';
 import '../../widgets/shell_input_decoration.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
+import '../../widgets/bulk_payment_dialog.dart';
 
 class FamilyScreen extends StatefulWidget {
   final AppDatabase database;
@@ -91,6 +92,21 @@ class _FamilyScreenState extends State<FamilyScreen> {
     }
   }
 
+  Future<void> _payFamily(Family f) async {
+    final memberRows = await (widget.database.select(widget.database.familyMembers)
+      ..where((t) => t.familyId.equals(f.id))).get();
+    final ids = memberRows.map((m) => m.studentId).toSet();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => BulkPaymentDialog(
+        database: widget.database,
+        preSelectedStudentIds: ids,
+        title: 'Pay ${f.name}',
+      ),
+    ).then((_) => _load());
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -140,6 +156,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                                   : '${members.length} member(s)',
                           style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
                         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 14, color: ShellTokens.accent),
+                            onPressed: () => _payFamily(f), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            tooltip: 'Record Payment for Family'),
                           IconButton(icon: const Icon(PhosphorIcons.pencilSimple, size: 14, color: ShellTokens.textSecondary),
                             onPressed: () => _openEdit(f), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
                           IconButton(icon: const Icon(PhosphorIcons.archive, size: 14, color: SemanticTokens.error),

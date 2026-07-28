@@ -69,13 +69,16 @@ class TransactionService extends BaseRepository {
       amount -= enrollment.customDiscount!;
     }
 
+    double familyDiscountAmount = 0;
+    String? familyDiscountNote;
     final family = await db.getFamilyByMember(studentId);
     if (family != null) {
       if (family.discountPercent != null) {
-        amount -= amount * family.discountPercent! / 100;
+        familyDiscountAmount = amount * family.discountPercent! / 100;
+        familyDiscountNote = 'Family discount (${family.name}) — ${family.discountPercent!.toStringAsFixed(0)}%';
       } else if (family.discountFixed != null) {
-        amount -= family.discountFixed!;
-        if (amount < 0) amount = 0;
+        familyDiscountAmount = family.discountFixed!;
+        familyDiscountNote = 'Family discount (${family.name}) — ${family.discountFixed!.toStringAsFixed(0)} DA';
       }
     }
 
@@ -120,6 +123,27 @@ class TransactionService extends BaseRepository {
       entityId: Value(id),
       details: Value('Student: $studentId, Session: $sessionId, Amount: $amount'),
     ));
+
+    if (familyDiscountAmount > 0 && familyDiscountNote != null) {
+      final discountId = await _txRepo.insert(TransactionsCompanion(
+        studentId: Value(studentId),
+        enrollmentId: Value(enrollmentId),
+        sessionId: Value(sessionId),
+        type: const Value('discount'),
+        amount: Value(familyDiscountAmount),
+        transactionDate: Value(txDate),
+        note: Value(familyDiscountNote),
+        referenceTransactionId: Value(id),
+        createdByUserId: Value(createdByUserId),
+      ));
+      await _auditRepo.create(AuditLogCompanion(
+        userId: Value(createdByUserId ?? 'system'),
+        action: const Value('family_discount_applied'),
+        entityType: const Value('transaction'),
+        entityId: Value(discountId),
+        details: Value('Student: $studentId, Charge: $id, Discount: $familyDiscountAmount, Family: ${familyDiscountNote}'),
+      ));
+    }
 
     return id;
   }
