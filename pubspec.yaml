@@ -26,6 +26,7 @@ dependencies:
   crypto: ^3.0.3
   image_picker: ^1.1.2
   excel: ^4.0.6
+  fl_chart: ^0.70.2
 
 dev_dependencies:
   flutter_test:
