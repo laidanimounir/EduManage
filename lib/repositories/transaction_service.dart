@@ -94,6 +94,7 @@ class TransactionService extends BaseRepository {
     Map<String, double>? allocations,
   }) async {
     if (amount <= 0) throw ArgumentError('Amount must be positive');
+    await _checkPeriodOpen(DateTime.now());
 
     final id = await _txRepo.insert(TransactionsCompanion(
       studentId: Value(studentId),
@@ -201,6 +202,8 @@ class TransactionService extends BaseRepository {
     final session = await _sessionRepo.getById(sessionId);
     if (session == null) throw ArgumentError('Session not found');
 
+    await _checkPeriodOpen(txDate);
+
     final cancelled = await _isSessionCancelled(sessionId, txDate);
     if (cancelled) {
       throw StateError('Cannot pay out for a cancelled session');
@@ -283,6 +286,7 @@ class TransactionService extends BaseRepository {
     String? createdByUserId,
   }) async {
     if (amount <= 0) throw ArgumentError('Amount must be positive');
+    await _checkPeriodOpen(DateTime.now());
 
     final id = await _txRepo.insert(TransactionsCompanion(
       teacherId: Value(teacherId),
@@ -556,5 +560,35 @@ class TransactionService extends BaseRepository {
       ..where((t) => t.studentId.equals(studentId) & t.type.equals('registration_fee')))
         .get();
     return result.length;
+  }
+
+  Future<void> createBalanceTransfer({
+    required String fromStudentId,
+    required String toStudentId,
+    required double amount,
+    required String note,
+    String? createdByUserId,
+  }) async {
+    if (amount <= 0) throw ArgumentError('Amount must be positive');
+    await _checkPeriodOpen(DateTime.now());
+    await createStudentPayment(
+      studentId: toStudentId, amount: amount,
+      note: 'Transfer from $fromStudentId: $note',
+      paymentMethod: 'transfer', createdByUserId: createdByUserId,
+    );
+    await _auditRepo.create(AuditLogCompanion(
+      userId: Value(createdByUserId ?? 'system'),
+      action: const Value('balance_transfer'),
+      entityType: const Value('transaction'),
+      entityId: Value(toStudentId),
+      details: Value('From: $fromStudentId, To: $toStudentId, Amount: $amount, Note: $note'),
+    ));
+  }
+
+  Future<void> _checkPeriodOpen(DateTime date) async {
+    final closed = await db.isPeriodClosed(date.year, date.month);
+    if (closed) {
+      throw StateError('Cannot modify transactions in a closed period (${date.year}-${date.month.toString().padLeft(2, '0')})');
+    }
   }
 }

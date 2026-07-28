@@ -11376,6 +11376,418 @@ class PaymentAllocationsCompanion extends UpdateCompanion<PaymentAllocation> {
   }
 }
 
+class $ClosedPeriodsTable extends ClosedPeriods
+    with TableInfo<$ClosedPeriodsTable, ClosedPeriod> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ClosedPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedAtMeta = const VerificationMeta(
+    'closedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+    'closed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _closedByUserIdMeta = const VerificationMeta(
+    'closedByUserId',
+  );
+  @override
+  late final GeneratedColumn<String> closedByUserId = GeneratedColumn<String>(
+    'closed_by_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    year,
+    month,
+    closedAt,
+    closedByUserId,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'closed_periods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ClosedPeriod> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(
+        _closedAtMeta,
+        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
+      );
+    }
+    if (data.containsKey('closed_by_user_id')) {
+      context.handle(
+        _closedByUserIdMeta,
+        closedByUserId.isAcceptableOrUnknown(
+          data['closed_by_user_id']!,
+          _closedByUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ClosedPeriod map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ClosedPeriod(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      )!,
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}month'],
+      )!,
+      closedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closed_at'],
+      )!,
+      closedByUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}closed_by_user_id'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ClosedPeriodsTable createAlias(String alias) {
+    return $ClosedPeriodsTable(attachedDatabase, alias);
+  }
+}
+
+class ClosedPeriod extends DataClass implements Insertable<ClosedPeriod> {
+  final String id;
+  final int year;
+  final int month;
+  final DateTime closedAt;
+  final String? closedByUserId;
+  final String deviceId;
+  const ClosedPeriod({
+    required this.id,
+    required this.year,
+    required this.month,
+    required this.closedAt,
+    this.closedByUserId,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    map['closed_at'] = Variable<DateTime>(closedAt);
+    if (!nullToAbsent || closedByUserId != null) {
+      map['closed_by_user_id'] = Variable<String>(closedByUserId);
+    }
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  ClosedPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return ClosedPeriodsCompanion(
+      id: Value(id),
+      year: Value(year),
+      month: Value(month),
+      closedAt: Value(closedAt),
+      closedByUserId: closedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedByUserId),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory ClosedPeriod.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ClosedPeriod(
+      id: serializer.fromJson<String>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      closedAt: serializer.fromJson<DateTime>(json['closedAt']),
+      closedByUserId: serializer.fromJson<String?>(json['closedByUserId']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'closedAt': serializer.toJson<DateTime>(closedAt),
+      'closedByUserId': serializer.toJson<String?>(closedByUserId),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  ClosedPeriod copyWith({
+    String? id,
+    int? year,
+    int? month,
+    DateTime? closedAt,
+    Value<String?> closedByUserId = const Value.absent(),
+    String? deviceId,
+  }) => ClosedPeriod(
+    id: id ?? this.id,
+    year: year ?? this.year,
+    month: month ?? this.month,
+    closedAt: closedAt ?? this.closedAt,
+    closedByUserId: closedByUserId.present
+        ? closedByUserId.value
+        : this.closedByUserId,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  ClosedPeriod copyWithCompanion(ClosedPeriodsCompanion data) {
+    return ClosedPeriod(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      closedByUserId: data.closedByUserId.present
+          ? data.closedByUserId.value
+          : this.closedByUserId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClosedPeriod(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('closedByUserId: $closedByUserId, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, year, month, closedAt, closedByUserId, deviceId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ClosedPeriod &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.closedAt == this.closedAt &&
+          other.closedByUserId == this.closedByUserId &&
+          other.deviceId == this.deviceId);
+}
+
+class ClosedPeriodsCompanion extends UpdateCompanion<ClosedPeriod> {
+  final Value<String> id;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<DateTime> closedAt;
+  final Value<String?> closedByUserId;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const ClosedPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.closedByUserId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ClosedPeriodsCompanion.insert({
+    required String id,
+    required int year,
+    required int month,
+    this.closedAt = const Value.absent(),
+    this.closedByUserId = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       year = Value(year),
+       month = Value(month),
+       deviceId = Value(deviceId);
+  static Insertable<ClosedPeriod> custom({
+    Expression<String>? id,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<DateTime>? closedAt,
+    Expression<String>? closedByUserId,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (closedAt != null) 'closed_at': closedAt,
+      if (closedByUserId != null) 'closed_by_user_id': closedByUserId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ClosedPeriodsCompanion copyWith({
+    Value<String>? id,
+    Value<int>? year,
+    Value<int>? month,
+    Value<DateTime>? closedAt,
+    Value<String?>? closedByUserId,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return ClosedPeriodsCompanion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      closedAt: closedAt ?? this.closedAt,
+      closedByUserId: closedByUserId ?? this.closedByUserId,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    if (closedByUserId.present) {
+      map['closed_by_user_id'] = Variable<String>(closedByUserId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClosedPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('closedByUserId: $closedByUserId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11400,6 +11812,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SchoolLevelsTable schoolLevels = $SchoolLevelsTable(this);
   late final $PaymentAllocationsTable paymentAllocations =
       $PaymentAllocationsTable(this);
+  late final $ClosedPeriodsTable closedPeriods = $ClosedPeriodsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11423,6 +11836,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     schoolClosures,
     schoolLevels,
     paymentAllocations,
+    closedPeriods,
   ];
 }
 
@@ -21002,6 +21416,227 @@ typedef $$PaymentAllocationsTableProcessedTableManager =
         bool chargeTransactionId,
       })
     >;
+typedef $$ClosedPeriodsTableCreateCompanionBuilder =
+    ClosedPeriodsCompanion Function({
+      required String id,
+      required int year,
+      required int month,
+      Value<DateTime> closedAt,
+      Value<String?> closedByUserId,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$ClosedPeriodsTableUpdateCompanionBuilder =
+    ClosedPeriodsCompanion Function({
+      Value<String> id,
+      Value<int> year,
+      Value<int> month,
+      Value<DateTime> closedAt,
+      Value<String?> closedByUserId,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+class $$ClosedPeriodsTableFilterComposer
+    extends Composer<_$AppDatabase, $ClosedPeriodsTable> {
+  $$ClosedPeriodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ClosedPeriodsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ClosedPeriodsTable> {
+  $$ClosedPeriodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ClosedPeriodsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ClosedPeriodsTable> {
+  $$ClosedPeriodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get closedAt =>
+      $composableBuilder(column: $table.closedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$ClosedPeriodsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ClosedPeriodsTable,
+          ClosedPeriod,
+          $$ClosedPeriodsTableFilterComposer,
+          $$ClosedPeriodsTableOrderingComposer,
+          $$ClosedPeriodsTableAnnotationComposer,
+          $$ClosedPeriodsTableCreateCompanionBuilder,
+          $$ClosedPeriodsTableUpdateCompanionBuilder,
+          (
+            ClosedPeriod,
+            BaseReferences<_$AppDatabase, $ClosedPeriodsTable, ClosedPeriod>,
+          ),
+          ClosedPeriod,
+          PrefetchHooks Function()
+        > {
+  $$ClosedPeriodsTableTableManager(_$AppDatabase db, $ClosedPeriodsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ClosedPeriodsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ClosedPeriodsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ClosedPeriodsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<int> year = const Value.absent(),
+                Value<int> month = const Value.absent(),
+                Value<DateTime> closedAt = const Value.absent(),
+                Value<String?> closedByUserId = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ClosedPeriodsCompanion(
+                id: id,
+                year: year,
+                month: month,
+                closedAt: closedAt,
+                closedByUserId: closedByUserId,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required int year,
+                required int month,
+                Value<DateTime> closedAt = const Value.absent(),
+                Value<String?> closedByUserId = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => ClosedPeriodsCompanion.insert(
+                id: id,
+                year: year,
+                month: month,
+                closedAt: closedAt,
+                closedByUserId: closedByUserId,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ClosedPeriodsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ClosedPeriodsTable,
+      ClosedPeriod,
+      $$ClosedPeriodsTableFilterComposer,
+      $$ClosedPeriodsTableOrderingComposer,
+      $$ClosedPeriodsTableAnnotationComposer,
+      $$ClosedPeriodsTableCreateCompanionBuilder,
+      $$ClosedPeriodsTableUpdateCompanionBuilder,
+      (
+        ClosedPeriod,
+        BaseReferences<_$AppDatabase, $ClosedPeriodsTable, ClosedPeriod>,
+      ),
+      ClosedPeriod,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -21042,4 +21677,6 @@ class $AppDatabaseManager {
       $$SchoolLevelsTableTableManager(_db, _db.schoolLevels);
   $$PaymentAllocationsTableTableManager get paymentAllocations =>
       $$PaymentAllocationsTableTableManager(_db, _db.paymentAllocations);
+  $$ClosedPeriodsTableTableManager get closedPeriods =>
+      $$ClosedPeriodsTableTableManager(_db, _db.closedPeriods);
 }

@@ -197,6 +197,20 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     }
   }
 
+  void _openClosePeriod() {
+    showDialog(
+      context: context,
+      builder: (_) => _ClosePeriodDialog(database: widget.database),
+    ).then((_) => _fetchPage());
+  }
+
+  void _openBalanceTransfer() {
+    showDialog(
+      context: context,
+      builder: (_) => _BalanceTransferDialog(database: widget.database),
+    ).then((_) => _fetchPage());
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -297,6 +311,12 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
               const Spacer(),
               IconButton(icon: const Icon(PhosphorIcons.receipt, size: 16, color: ShellTokens.textSecondary),
                 onPressed: _openStudentHistory, tooltip: l10n.paymentHistory, padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+              IconButton(icon: const Icon(PhosphorIcons.arrowsLeftRight, size: 16, color: ShellTokens.textSecondary),
+                onPressed: _openBalanceTransfer, tooltip: 'Transfer', padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+              IconButton(icon: const Icon(PhosphorIcons.archive, size: 16, color: ShellTokens.textSecondary),
+                onPressed: _openClosePeriod, tooltip: 'Close Period', padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
               IconButton(icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
                 onPressed: _openRecordPayment, tooltip: l10n.recordPayment, padding: EdgeInsets.zero,
@@ -1180,5 +1200,183 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
           )),
       ]),
     );
+  }
+}
+
+
+
+class _ClosePeriodDialog extends StatefulWidget {
+  final AppDatabase database;
+  const _ClosePeriodDialog({required this.database});
+  @override
+  State<_ClosePeriodDialog> createState() => _ClosePeriodDialogState();
+}
+
+class _ClosePeriodDialogState extends State<_ClosePeriodDialog> {
+  int _year = DateTime.now().year;
+  int _month = DateTime.now().month;
+  Map<String, double>? _summary;
+  bool _loadingWatch = false;
+  bool _saving = false;
+
+  Future<void> _loadSummary() async {
+    setState(() => _loadingWatch = true);
+    final s = await widget.database.getPeriodSummary(_year, _month);
+    if (mounted) setState(() { _summary = s; _loadingWatch = false; });
+  }
+
+  Future<void> _close() async {
+    setState(() => _saving = true);
+    await widget.database.closePeriod(_year, _month, 'system');
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final months = const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return ShellDialog(
+      maxWidth: 460, title: 'Close Period',
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: DropdownButtonFormField<int>(
+            value: _year, decoration: ShellInputDecoration.dropdown(),
+            items: List.generate(5, (i) => _year - 2 + i).map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+            onChanged: (v) => setState(() { _year = v!; _summary = null; }),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: DropdownButtonFormField<int>(
+            value: _month, decoration: ShellInputDecoration.dropdown(),
+            items: months.asMap().entries.map((e) => DropdownMenuItem(value: e.key + 1, child: Text(e.value))).toList(),
+            onChanged: (v) => setState(() { _month = v!; _summary = null; }),
+          )),
+          const SizedBox(width: 8),
+          IconButton(onPressed: _loadSummary, icon: const Icon(PhosphorIcons.magnifyingGlass, size: 16, color: ShellTokens.accent)),
+        ]),
+        const SizedBox(height: 12),
+        if (_loadingWatch) const Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
+        else if (_summary != null) ...[
+          _summaryLine('Revenue', _summary!['revenue']!, SemanticTokens.success),
+          _summaryLine('Expenses', _summary!['expenses']!, SemanticTokens.error),
+          _summaryLine('Outstanding Debt', _summary!['outstanding']!, SemanticTokens.warning),
+          const Divider(color: ShellTokens.chromeBorder),
+          _summaryLine('Net', _summary!['revenue']! - _summary!['expenses']!,
+            (_summary!['revenue']! - _summary!['expenses']!) >= 0 ? SemanticTokens.success : SemanticTokens.error),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: FilledButton(
+            onPressed: _saving ? null : _close,
+            style: FilledButton.styleFrom(backgroundColor: SemanticTokens.error, foregroundColor: ShellTokens.chromeBase),
+            child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : const Text('Close Period'),
+          )),
+        ],
+      ]),
+    );
+  }
+
+  Widget _summaryLine(String label, double amount, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+        Text('${amount.toStringAsFixed(0)} DA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
+      ]),
+    );
+  }
+}
+
+class _BalanceTransferDialog extends StatefulWidget {
+  final AppDatabase database;
+  const _BalanceTransferDialog({required this.database});
+  @override
+  State<_BalanceTransferDialog> createState() => _BalanceTransferDialogState();
+}
+
+class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
+  final _amountCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
+  Student? _from, _to;
+  bool _saving = false;
+
+  @override
+  void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    final amount = double.tryParse(_amountCtrl.text);
+    if (amount == null || amount <= 0 || _from == null || _to == null || _reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All fields required')));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await TransactionService(widget.database).createBalanceTransfer(
+        fromStudentId: _from!.id, toStudentId: _to!.id, amount: amount, note: _reasonCtrl.text.trim(),
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<Student?> _pick() async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<Student>(
+      context: context,
+      builder: (ctx) => ShellDialog(
+        maxWidth: 400, title: 'Select Student',
+        body: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: ctrl, autofocus: true,
+            decoration: ShellInputDecoration.textField(hintText: 'Code or Name'),
+            onSubmitted: (q) async {
+              final r = await StudentRepository(widget.database).search(q);
+              if (r.isNotEmpty) Navigator.pop(ctx, r.first);
+            },
+          ),
+        ]),
+      ),
+    );
+    ctrl.dispose();
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ShellDialog(
+      maxWidth: 460, title: 'Transfer Balance',
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ShellSectionHeader(text: 'From Student', withBorder: false),
+        const SizedBox(height: 6),
+        _studentBtn(_from, 'From', (s) => setState(() => _from = s)),
+        const SizedBox(height: 8),
+        ShellSectionHeader(text: 'To Student', withBorder: false),
+        const SizedBox(height: 6),
+        _studentBtn(_to, 'To', (s) => setState(() => _to = s)),
+        const SizedBox(height: 8),
+        TextField(controller: _amountCtrl, keyboardType: TextInputType.number,
+          decoration: ShellInputDecoration.textField(hintText: 'Amount (DA)')),
+        const SizedBox(height: 8),
+        TextField(controller: _reasonCtrl,
+          decoration: ShellInputDecoration.textField(hintText: 'Reason')),
+        const SizedBox(height: 16),
+        SizedBox(width: double.infinity, child: FilledButton(
+          onPressed: _saving ? null : _save,
+          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
+          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : const Text('Transfer'),
+        )),
+      ]),
+    );
+  }
+
+  Widget _studentBtn(Student? s, String hint, ValueChanged<Student> onPick) {
+    return s != null
+        ? Row(children: [
+            Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+          ])
+        : OutlinedButton.icon(
+            onPressed: () async { final p = await _pick(); if (p != null) onPick(p); },
+            icon: const Icon(PhosphorIcons.magnifyingGlass, size: 14),
+            label: Text('Select $hint', style: const TextStyle(fontSize: 11)),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder)),
+          );
   }
 }

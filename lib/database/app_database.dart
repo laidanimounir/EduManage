@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
+import '../utils/uuid_helper.dart';
+import '../utils/device_id.dart';
 
 part 'app_database.g.dart';
 
@@ -299,8 +301,20 @@ class PaymentAllocations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class ClosedPeriods extends Table {
+  TextColumn get id => text()();
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  DateTimeColumn get closedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get closedByUserId => text().nullable()();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -331,7 +345,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -401,6 +415,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 8) {
         await m.createTable(paymentAllocations);
+      }
+      if (from < 9) {
+        await m.createTable(closedPeriods);
       }
     },
   );
@@ -810,5 +827,56 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(studentId)],
     ).getSingle();
     return result.read<DateTime?>('oldest_date');
+  }
+
+  Future<bool> isPeriodClosed(int year, int month) async {
+    final result = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM closed_periods WHERE year = ? AND month = ?',
+      variables: [Variable.withInt(year), Variable.withInt(month)],
+    ).getSingle();
+    return result.read<int>('cnt') > 0;
+  }
+
+  Future<void> closePeriod(int year, int month, String userId) async {
+    await into(closedPeriods).insert(ClosedPeriodsCompanion(
+      id: Value(UuidHelper.generate()),
+      year: Value(year),
+      month: Value(month),
+      closedByUserId: Value(userId),
+      deviceId: Value(await DeviceId.get()),
+    ));
+  }
+
+  Future<Map<String, double>> getPeriodSummary(int year, int month) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1).subtract(const Duration(days: 1));
+    final endInclusive = DateTime(end.year, end.month, end.day, 23, 59, 59);
+
+    final revenue = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions '
+      'WHERE type IN (\'student_payment\', \'registration_fee_payment\') AND transaction_date >= ? AND transaction_date <= ?',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(endInclusive)],
+    ).map((r) => r.read<double>('total')).getSingle();
+
+    final expenses = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions '
+      'WHERE type IN (\'expense\', \'teacher_payout\') AND transaction_date >= ? AND transaction_date <= ?',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(endInclusive)],
+    ).map((r) => r.read<double>('total')).getSingle();
+
+    final outstanding = await customSelect(
+      'SELECT COALESCE(SUM(CASE WHEN type IN (\'session_charge\',\'correction\',\'registration_fee\') THEN amount '
+      'WHEN type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\') THEN -amount ELSE 0 END), 0) AS total FROM transactions',
+      variables: [],
+    ).map((r) => r.read<double>('total')).getSingle();
+
+    return {'revenue': revenue, 'expenses': expenses, 'outstanding': outstanding};
+  }
+
+  Future<List<Map<String, dynamic>>> getClosedPeriods() async {
+    return await (select(closedPeriods)
+      ..orderBy([(t) => OrderingTerm.desc(t.year), (t) => OrderingTerm.desc(t.month)]))
+        .map((r) => {'year': r.year, 'month': r.month, 'closedAt': r.closedAt})
+        .get();
   }
 }
