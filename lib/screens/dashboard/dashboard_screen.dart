@@ -1,13 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/theme_tokens.dart';
+import '../../constants/app_constants.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/teacher_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/attendance_repository.dart';
-import '../../repositories/transaction_repository.dart';
 import '../../widgets/app_loading.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -20,78 +21,67 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late final StudentRepository _studentRepo;
-  late final TeacherRepository _teacherRepo;
-  late final SessionRepository _sessionRepo;
-  late final AttendanceRepository _attendanceRepo;
-  late final TransactionRepository _transactionRepo;
-
-  int _totalStudents = 0;
-  int _totalTeachers = 0;
-  int _todaySessions = 0;
-  int _todayAttendance = 0;
-  double _monthlyRevenue = 0;
-  double _outstandingDebts = 0;
+  DateTime? _dateFrom, _dateTo;
+  Map<String, double> _metrics = {};
+  int _totalStudents = 0, _totalTeachers = 0, _todaySessions = 0, _todayAttendance = 0;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _studentRepo = StudentRepository(widget.database);
-    _teacherRepo = TeacherRepository(widget.database);
-    _sessionRepo = SessionRepository(widget.database);
-    _attendanceRepo = AttendanceRepository(widget.database);
-    _transactionRepo = TransactionRepository(widget.database);
     _loadStats();
   }
 
   Future<void> _loadStats() async {
     setState(() => _loading = true);
     try {
-      final students = await _studentRepo.getAll();
-      final teachers = await _teacherRepo.getAll();
+      final sRepo = StudentRepository(widget.database);
+      final tRepo = TeacherRepository(widget.database);
+      final results = await Future.wait([
+        sRepo.getAll(),
+        tRepo.getAll(),
+        widget.database.getPeriodSummary(
+          _dateFrom != null ? _dateFrom!.year : DateTime.now().year,
+          _dateFrom != null ? _dateFrom!.month : 1,
+        ),
+      ]);
 
-      final now = DateTime.now();
-      final todaySessions = await _sessionRepo.getByDay(now.weekday);
-      final todayAttendance = await _attendanceRepo.getTodayAttendance();
+      final students = results[0] as List;
+      final teachers = results[1] as List;
+      final summary = results[2] as Map<String, double>;
 
-      final monthStart = DateTime(now.year, now.month, 1);
-      final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-      final monthTx = await _transactionRepo.getByDateRange(monthStart, monthEnd);
+      _totalStudents = students.length;
+      _totalTeachers = teachers.length;
+      _metrics = summary;
 
-      final allTx = await _transactionRepo.getAll();
+      if (_dateFrom == null) {
+        final now = DateTime.now();
+        final sessionRepo = SessionRepository(widget.database);
+        final attendanceRepo = AttendanceRepository(widget.database);
+        final todayResults = await Future.wait([
+          sessionRepo.getByDay(now.weekday),
+          attendanceRepo.getTodayAttendance(),
+        ]);
+        _todaySessions = (todayResults[0] as List).length;
+        _todayAttendance = (todayResults[1] as List).length;
+      }
 
-      final monthlyRevenue = monthTx
-          .where((t) => t.type == 'session_charge')
-          .fold<double>(0, (sum, t) => sum + t.amount);
-
-      final allCharges = allTx
-          .where((t) => t.type == 'session_charge')
-          .fold<double>(0, (sum, t) => sum + t.amount);
-      final allPayments = allTx
-          .where((t) => t.type == 'student_payment' || t.type == 'discount')
-          .fold<double>(0, (sum, t) => sum + t.amount);
-      final outstandingDebts = allCharges - allPayments;
-
-      setState(() {
-        _totalStudents = students.length;
-        _totalTeachers = teachers.length;
-        _todaySessions = todaySessions.length;
-        _todayAttendance = todayAttendance.length;
-        _monthlyRevenue = monthlyRevenue;
-        _outstandingDebts = outstandingDebts < 0 ? 0 : outstandingDebts;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final revenue = _metrics['revenue'] ?? 0;
+    final expenses = _metrics['expenses'] ?? 0;
+    final outstanding = _metrics['outstanding'] ?? 0;
+    final net = revenue - expenses;
 
     return Scaffold(
+      backgroundColor: ContentTokens.background,
       body: RefreshIndicator(
         onRefresh: _loadStats,
         child: _loading
@@ -99,106 +89,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.totalStudents,
-                          _totalStudents.toString(),
-                          PhosphorIcons.users,
-                          ShellTokens.accent,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.totalTeachers,
-                          _totalTeachers.toString(),
-                          PhosphorIcons.chalkboardTeacher,
-                          const Color(0xFF5B8C5A),
-                        ),
-                      ),
+                  Row(children: [
+                    _buildDateBtn(l10n.from, _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }),
+                    const SizedBox(width: 8),
+                    _buildDateBtn(l10n.to, _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }),
+                    if (_dateFrom != null || _dateTo != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary),
+                        onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
+                        padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 24, minHeight: 24)),
                     ],
-                  ),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    _kpiCard(l10n.totalStudents, '$_totalStudents', PhosphorIcons.users, ShellTokens.accent),
+                    const SizedBox(width: 8),
+                    _kpiCard(l10n.totalTeachers, '$_totalTeachers', PhosphorIcons.chalkboardTeacher, const Color(0xFF5B8C5A)),
+                  ]),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.todaySessions,
-                          _todaySessions.toString(),
-                          PhosphorIcons.clock,
-                          const Color(0xFFC2823A),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.todayAttendance,
-                          _todayAttendance.toString(),
-                          PhosphorIcons.checkCircle,
-                          const Color(0xFF4B8B4A),
-                        ),
-                      ),
-                    ],
-                  ),
+                  Row(children: [
+                    _kpiCard(l10n.todaySessions, '$_todaySessions', PhosphorIcons.clock, const Color(0xFFC2823A)),
+                    const SizedBox(width: 8),
+                    _kpiCard(l10n.todayAttendance, '$_todayAttendance', PhosphorIcons.checkCircle, const Color(0xFF4B8B4A)),
+                  ]),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.monthlyRevenue,
-                          '${_monthlyRevenue.toStringAsFixed(0)} DA',
-                          PhosphorIcons.trendUp,
-                          const Color(0xFF5B8C5A),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatCard(
-                          l10n.outstandingDebts,
-                          '${_outstandingDebts.toStringAsFixed(0)} DA',
-                          PhosphorIcons.warning,
-                          const Color(0xFFC2483D),
-                        ),
-                      ),
-                    ],
-                  ),
+                  Row(children: [
+                    _kpiCard('Revenue', '${revenue.toStringAsFixed(0)} DA', PhosphorIcons.trendUp, SemanticTokens.success),
+                    const SizedBox(width: 8),
+                    _kpiCard('Expenses', '${expenses.toStringAsFixed(0)} DA', PhosphorIcons.currencyCircleDollar, SemanticTokens.error),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    _kpiCard('Net', '${net.toStringAsFixed(0)} DA', PhosphorIcons.chartBar, net >= 0 ? SemanticTokens.success : SemanticTokens.error),
+                    const SizedBox(width: 8),
+                    _kpiCard(l10n.outstandingDebts, '${outstanding.toStringAsFixed(0)} DA', PhosphorIcons.wallet, outstanding > 0 ? const Color(0xFFC2483D) : SemanticTokens.success),
+                  ]),
+                  const SizedBox(height: 8),
+                  _kpiCard('Collection Rate', _collectionRate, PhosphorIcons.checkCircle, ShellTokens.accent, fullWidth: true),
                 ],
               ),
       ),
     );
   }
 
-  Widget _buildStatCard(
-      String label, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: ShellTokens.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+  String get _collectionRate {
+    final revenue = _metrics['revenue'] ?? 0;
+    if (revenue == 0) return 'N/A';
+    final paid = revenue - (_metrics['outstanding'] ?? 0);
+    final rate = (paid / revenue * 100).clamp(0, 100);
+    return '${rate.toStringAsFixed(0)}%';
+  }
+
+  Widget _buildDateBtn(String label, DateTime? value, ValueChanged<DateTime> onPick) {
+    return GestureDetector(
+      onTap: () async {
+        final d = await showDatePicker(context: context, initialDate: value ?? DateTime.now(),
+            firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
+        if (d != null) onPick(d);
+      },
+      child: Container(
+        height: 34, padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(color: ShellTokens.chromeSurface, borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: value != null ? ShellTokens.accent : ShellTokens.chromeBorder)),
+        child: Center(child: Text(
+          value != null ? '${value.year}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}' : label,
+          style: TextStyle(fontSize: 11, color: value != null ? ShellTokens.textPrimary : ShellTokens.textDisabled))),
       ),
     );
+  }
+
+  Widget _kpiCard(String label, String value, IconData icon, Color color, {bool fullWidth = false}) {
+    final widget = Card(
+      color: ShellTokens.chromeSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          Icon(icon, size: fullWidth ? 20 : 24, color: color),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: fullWidth ? 18 : 20, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
+        ]),
+      ),
+    );
+    if (fullWidth) return widget;
+    return Expanded(child: widget);
   }
 }
