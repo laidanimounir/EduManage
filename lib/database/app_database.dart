@@ -604,4 +604,186 @@ class AppDatabase extends _$AppDatabase {
 
     return true;
   }
+
+  Future<Map<String, dynamic>> getTransactionsPage({
+    required int offset,
+    required int limit,
+    String? typeFilter,
+    String? studentFilter,
+    String? searchQuery,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String? sortField,
+    bool sortAsc = false,
+  }) async {
+    final conditions = <String>[];
+    final variables = <Variable>[];
+
+    if (typeFilter != null && typeFilter != 'all') {
+      conditions.add('t.type = ?');
+      variables.add(Variable.withString(typeFilter));
+    }
+    if (studentFilter != null) {
+      conditions.add('t.student_id = ?');
+      variables.add(Variable.withString(studentFilter));
+    }
+    if (dateFrom != null) {
+      conditions.add('t.transaction_date >= ?');
+      variables.add(Variable.withDateTime(dateFrom));
+    }
+    if (dateTo != null) {
+      final toEnd = DateTime(dateTo.year, dateTo.month, dateTo.day, 23, 59, 59);
+      conditions.add('t.transaction_date <= ?');
+      variables.add(Variable.withDateTime(toEnd));
+    }
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      conditions.add('(s.first_name_ar LIKE ? OR s.last_name_ar LIKE ? OR s.code LIKE ? '
+          'OR tch.first_name_ar LIKE ? OR tch.last_name_ar LIKE ? OR tch.code LIKE ?)');
+      final like = '%$searchQuery%';
+      for (int i = 0; i < 6; i++) {
+        variables.add(Variable.withString(like));
+      }
+    }
+
+    final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
+
+    final sortCol = sortField == 'date' ? 't.transaction_date' :
+        sortField == 'amount' ? 't.amount' :
+        sortField == 'type' ? 't.type' :
+        't.transaction_date';
+    final sortDir = sortAsc ? 'ASC' : 'DESC';
+
+    final countQuery = 'SELECT COUNT(*) AS cnt FROM transactions t '
+        'LEFT JOIN students s ON t.student_id = s.id '
+        'LEFT JOIN teachers tch ON t.teacher_id = tch.id '
+        '$whereClause';
+    final countResult = await customSelect(countQuery, variables: variables).getSingle();
+    final total = countResult.read<int>('cnt');
+
+    final dataQuery = 'SELECT t.*, '
+        's.first_name_ar AS student_first, s.last_name_ar AS student_last, s.code AS student_code, '
+        'tch.first_name_ar AS teacher_first, tch.last_name_ar AS teacher_last, tch.code AS teacher_code '
+        'FROM transactions t '
+        'LEFT JOIN students s ON t.student_id = s.id '
+        'LEFT JOIN teachers tch ON t.teacher_id = tch.id '
+        '$whereClause '
+        'ORDER BY $sortCol $sortDir '
+        'LIMIT ? OFFSET ?';
+    final dataVars = [...variables, Variable.withInt(limit), Variable.withInt(offset)];
+    final rows = await customSelect(dataQuery, variables: dataVars).get();
+
+    final transactions = rows.map((row) {
+      final tx = Transaction(
+        id: row.read<String>('id'),
+        studentId: row.read<String?>('student_id'),
+        teacherId: row.read<String?>('teacher_id'),
+        enrollmentId: row.read<String?>('enrollment_id'),
+        sessionId: row.read<String?>('session_id'),
+        type: row.read<String>('type'),
+        amount: row.read<double>('amount'),
+        transactionDate: row.read<DateTime>('transaction_date'),
+        note: row.read<String?>('note'),
+        createdByUserId: row.read<String?>('created_by_user_id'),
+        deviceId: row.read<String>('device_id'),
+        referenceTransactionId: row.read<String?>('reference_transaction_id'),
+        rateSnapshot: row.read<String?>('rate_snapshot'),
+        createdAt: row.read<DateTime>('created_at'),
+        paymentMethod: row.read<String?>('payment_method'),
+        priceSnapshot: row.read<String?>('price_snapshot'),
+      );
+      return {
+        'transaction': tx,
+        'studentName': row.read<String?>('student_first') != null
+            ? '${row.read<String?>('student_first')} ${row.read<String?>('student_last')}'
+            : null,
+        'studentCode': row.read<String?>('student_code'),
+        'teacherName': row.read<String?>('teacher_first') != null
+            ? '${row.read<String?>('teacher_first')} ${row.read<String?>('teacher_last')}'
+            : null,
+        'teacherCode': row.read<String?>('teacher_code'),
+      };
+    }).toList();
+
+    return {'total': total, 'transactions': transactions};
+  }
+
+  Future<Map<String, dynamic>> getStudentBalancesPage({
+    required int offset,
+    required int limit,
+    String? statusFilter,
+    String? schoolLevel,
+    String? groupId,
+    String? searchQuery,
+    String? sortField,
+    bool sortAsc = false,
+  }) async {
+    final conditions = <String>['s.is_archived = 0'];
+    final variables = <Variable>[];
+
+    if (schoolLevel != null && schoolLevel != 'all') {
+      conditions.add('s.school_level = ?');
+      variables.add(Variable.withString(schoolLevel));
+    }
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      conditions.add('(s.first_name_ar LIKE ? OR s.last_name_ar LIKE ? OR s.code LIKE ?)');
+      final like = '%$searchQuery%';
+      variables.add(Variable.withString(like));
+      variables.add(Variable.withString(like));
+      variables.add(Variable.withString(like));
+    }
+    if (groupId != null && groupId != 'all') {
+      conditions.add('s.id IN (SELECT e.student_id FROM enrollments e WHERE e.subject_group_id = ? AND e.status = \'active\')');
+      variables.add(Variable.withString(groupId));
+    }
+
+    final whereClause = conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}';
+
+    final sortCol = sortField == 'name' ? 's.first_name_ar' :
+        sortField == 'code' ? 's.code' :
+        sortField == 'debt' ? 'balance' :
+        'balance';
+    final sortDir = sortAsc ? 'ASC' : 'DESC';
+
+    final countQuery = 'SELECT COUNT(*) AS cnt FROM students s $whereClause';
+    final countResult = await customSelect(countQuery, variables: variables).getSingle();
+    final total = countResult.read<int>('cnt');
+
+    final dataQuery = 'SELECT s.id, s.first_name_ar, s.last_name_ar, s.code, s.school_level, '
+        'COALESCE((SELECT SUM(CASE WHEN t.type IN (\'session_charge\',\'correction\',\'registration_fee\') THEN t.amount '
+        'WHEN t.type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\') THEN -t.amount ELSE 0 END) '
+        'FROM transactions t WHERE t.student_id = s.id), 0) AS balance, '
+        'COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.student_id = s.id AND t.type IN (\'session_charge\',\'correction\',\'registration_fee\')), 0) AS total_charged, '
+        'COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.student_id = s.id AND t.type IN (\'student_payment\',\'discount\',\'reversal\',\'registration_fee_payment\')), 0) AS total_paid '
+        'FROM students s $whereClause ';
+
+    String dataQueryFinal;
+    if (statusFilter == 'owing') {
+      dataQueryFinal = '$dataQuery HAVING balance > 0 ';
+    } else if (statusFilter == 'settled') {
+      dataQueryFinal = '$dataQuery HAVING balance = 0 ';
+    } else if (statusFilter == 'credit') {
+      dataQueryFinal = '$dataQuery HAVING balance < 0 ';
+    } else {
+      dataQueryFinal = dataQuery;
+    }
+
+    dataQueryFinal += 'ORDER BY $sortCol $sortDir '
+        'LIMIT ? OFFSET ?';
+
+    final dataVars = [...variables, Variable.withInt(limit), Variable.withInt(offset)];
+    final rows = await customSelect(dataQueryFinal, variables: dataVars).get();
+
+    final entries = rows.map((row) => {
+      'studentId': row.read<String>('id'),
+      'firstName': row.read<String>('first_name_ar'),
+      'lastName': row.read<String>('last_name_ar'),
+      'code': row.read<String>('code'),
+      'schoolLevel': row.read<String?>('school_level'),
+      'balance': row.read<double>('balance'),
+      'totalCharged': row.read<double>('total_charged'),
+      'totalPaid': row.read<double>('total_paid'),
+    }).toList();
+
+    return {'total': total, 'entries': entries};
+  }
 }
