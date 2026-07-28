@@ -19,6 +19,7 @@ import '../../repositories/subject_group_repository.dart';
 import '../../repositories/classroom_repository.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/shell_dialog.dart';
+import 'teacher_self_service_screen.dart';
 
 class LiveAttendanceBoard extends StatefulWidget {
   final AppDatabase database;
@@ -423,6 +424,7 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
                   prefixIcon: const Icon(PhosphorIcons.identificationCard, size: 18, color: ShellTokens.textSecondary),
                   suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
                     IconButton(icon: const Icon(PhosphorIcons.magnifyingGlass, size: 16, color: ShellTokens.textSecondary), onPressed: _manualSearch, padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+                    IconButton(icon: const Icon(PhosphorIcons.chalkboardTeacher, size: 16, color: ShellTokens.textSecondary), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherSelfServiceScreen(database: widget.database, currentUserId: widget.currentUserId))), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Teacher Self-Service'),
                     IconButton(icon: Icon(_mode == 'student' ? PhosphorIcons.users : PhosphorIcons.chalkboardTeacher, size: 16, color: ShellTokens.accent), onPressed: () => setState(() => _mode = _mode == 'student' ? 'teacher' : 'student'), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Switch mode'),
                   ]),
                   filled: true,
