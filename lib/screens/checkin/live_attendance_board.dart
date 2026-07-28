@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../constants/chart_tokens.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
@@ -14,9 +13,7 @@ import '../../repositories/session_repository.dart';
 import '../../repositories/attendance_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/transaction_service.dart';
-import '../../repositories/audit_log_repository.dart';
 import '../../repositories/subject_group_repository.dart';
-import '../../repositories/classroom_repository.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/shell_dialog.dart';
 import 'teacher_self_service_screen.dart';
@@ -35,12 +32,14 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
   late final SessionRepository _sessionRepo;
   late final AttendanceRepository _attendanceRepo;
   late final TransactionService _txService;
-  late final AuditLogRepository _auditRepo;
-
   final _barcodeCtrl = TextEditingController();
   final _focusNode = FocusNode();
-  String _mode = 'student';
   bool _processing = false;
+
+  final _teacherSearchCtrl = TextEditingController();
+  Timer? _teacherDebounce;
+  List<Teacher> _teacherResults = [];
+  int? _teacherCount;
   String? _feedbackMsg;
   Color? _feedbackColor;
   String? _lastStudentName;
@@ -68,7 +67,6 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
     _sessionRepo = SessionRepository(widget.database);
     _attendanceRepo = AttendanceRepository(widget.database);
     _txService = TransactionService(widget.database);
-    _auditRepo = AuditLogRepository(widget.database);
     _loadFullData();
     _startLiveRefresh();
   }
@@ -77,6 +75,8 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
   void dispose() {
     _barcodeCtrl.dispose();
     _focusNode.dispose();
+    _teacherSearchCtrl.dispose();
+    _teacherDebounce?.cancel();
     _refreshTimer?.cancel();
     _feedbackTimer?.cancel();
     super.dispose();
@@ -162,6 +162,9 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
         _completedSessions = completed;
         _loading = false;
       });
+
+      final tc = await widget.database.getTodayTeacherCheckinCount();
+      if (mounted) setState(() => _teacherCount = tc);
     } catch (e, st) {
       if (mounted) setState(() {
         _loading = false;
@@ -183,11 +186,7 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
     if (_processing) return;
     setState(() => _processing = true);
     try {
-      if (_mode == 'student') {
-        await _processStudent(code);
-      } else {
-        await _processTeacher(code);
-      }
+      await _processStudent(code);
     } finally {
       if (mounted) setState(() => _processing = false);
     }
@@ -267,30 +266,48 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
     _feedbackTimer = delay;
   }
 
-  Future<void> _processTeacher(String code) async {
-    final teacher = await _teacherRepo.getByCode(code.trim());
-    if (teacher == null) { _showFeedback('Teacher not found', SemanticTokens.error); _flashInputBar(SemanticTokens.error); return; }
+  Future<void> _processTeacherByName(Teacher teacher) async {
     final now = DateTime.now();
     final sessions = await _sessionRepo.getActiveSessionsForTeacher(teacher.id, now);
-    if (sessions.isEmpty) { _showFeedback('No active session for teacher', SemanticTokens.warning); return; }
+    if (sessions.isEmpty) {
+      _showFeedback('No active session for ${teacher.firstNameAr}', SemanticTokens.warning);
+      return;
+    }
     try {
       final date = DateTime.now();
       final existing = await widget.database.customSelect(
         'SELECT id FROM attendance WHERE session_id = ? AND teacher_id = ? AND attendance_date >= ? AND attendance_date < ? AND status = \'present\'',
         variables: [Variable.withString(sessions.first.id), Variable.withString(teacher.id), Variable.withDateTime(DateTime(date.year, date.month, date.day)), Variable.withDateTime(DateTime(date.year, date.month, date.day + 1))],
       ).getSingleOrNull();
-      if (existing != null) { _showFeedback('${teacher.firstNameAr} already checked in', const Color(0xFFC2823A)); return; }
+      if (existing != null) {
+        _showFeedback('${teacher.firstNameAr} already checked in', const Color(0xFFC2823A));
+        return;
+      }
       await _attendanceRepo.create(AttendanceCompanion(
         teacherId: Value(teacher.id), sessionId: Value(sessions.first.id),
         attendanceDate: Value(date), personType: const Value('teacher'),
-        checkInMethod: const Value('barcode'), isManualEntry: const Value(false),
+        checkInMethod: const Value('manual'), isManualEntry: const Value(true),
         checkedInByUserId: Value(widget.currentUserId),
       ));
       await _txService.createTeacherPayout(teacherId: teacher.id, sessionId: sessions.first.id, date: date, createdByUserId: widget.currentUserId);
-      _showFeedback('${teacher.firstNameAr} ${teacher.lastNameAr} - Teacher check-in success', SemanticTokens.success);
+      _showFeedback('${teacher.firstNameAr} ${teacher.lastNameAr} — Check-in success', SemanticTokens.success);
+      _teacherCount = (_teacherCount ?? 0) + 1;
+      if (mounted) setState(() {});
     } catch (e) {
       _showFeedback('Check-in failed: $e', SemanticTokens.error);
     }
+  }
+
+  void _onTeacherSearchChanged(String query) {
+    _teacherDebounce?.cancel();
+    _teacherDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (query.trim().isEmpty) {
+        if (mounted) setState(() => _teacherResults = []);
+        return;
+      }
+      final results = await _teacherRepo.search(query.trim());
+      if (mounted) setState(() => _teacherResults = results);
+    });
   }
 
   Future<void> _showSessionPicker(Student student, List<Session> sessions) async {
@@ -423,6 +440,7 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
                 ]))
               : Column(children: [
                   _buildStickyTopBar(),
+                  _buildTeacherCheckinSection(),
                   Expanded(child: RefreshIndicator(onRefresh: _loadFullData, child: _buildBoard())),
                 ]),
     );
@@ -446,13 +464,12 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
                 autofocus: true,
                 style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary),
                 decoration: InputDecoration(
-                  hintText: _mode == 'student' ? 'Scan barcode or student code...' : 'Scan teacher barcode...',
+                  hintText: 'Scan barcode or student code...',
                   hintStyle: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled),
                   prefixIcon: const Icon(PhosphorIcons.identificationCard, size: 18, color: ShellTokens.textSecondary),
                   suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
                     IconButton(icon: const Icon(PhosphorIcons.magnifyingGlass, size: 16, color: ShellTokens.textSecondary), onPressed: _manualSearch, padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
                     IconButton(icon: const Icon(PhosphorIcons.chalkboardTeacher, size: 16, color: ShellTokens.textSecondary), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherSelfServiceScreen(database: widget.database, currentUserId: widget.currentUserId))), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Teacher Self-Service'),
-                    IconButton(icon: Icon(_mode == 'student' ? PhosphorIcons.users : PhosphorIcons.chalkboardTeacher, size: 16, color: ShellTokens.accent), onPressed: () => setState(() => _mode = _mode == 'student' ? 'teacher' : 'student'), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28), tooltip: 'Switch mode'),
                   ]),
                   filled: true,
                   fillColor: ShellTokens.chromeBase,
@@ -497,6 +514,85 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
           ),
         ],
       ]),
+    );
+  }
+
+  Widget _buildTeacherCheckinSection() {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+          shape: const RoundedRectangleBorder(side: BorderSide.none),
+          title: Row(children: [
+            const Icon(PhosphorIcons.chalkboardTeacher, size: 16, color: ShellTokens.accent),
+            const SizedBox(width: 6),
+            const Text('Teacher check-in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            if ((_teacherCount ?? 0) > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(color: ShellTokens.accentMuted, borderRadius: BorderRadius.circular(8)),
+                child: Text('$_teacherCount', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ShellTokens.accent)),
+              ),
+            ],
+          ]),
+          children: [
+            SizedBox(
+              height: 34,
+              child: TextField(
+                controller: _teacherSearchCtrl,
+                style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Search teacher by name...',
+                  hintStyle: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled),
+                  prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 14, color: ShellTokens.textSecondary),
+                  suffixIcon: _teacherResults.isNotEmpty
+                      ? IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary), onPressed: () { _teacherSearchCtrl.clear(); setState(() => _teacherResults = []); }, padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28))
+                      : null,
+                  filled: true,
+                  fillColor: ShellTokens.chromeBase,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+                  isDense: true,
+                ),
+                onChanged: _onTeacherSearchChanged,
+              ),
+            ),
+            if (_teacherResults.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 160),
+                decoration: BoxDecoration(border: Border.all(color: ShellTokens.chromeBorder), borderRadius: BorderRadius.circular(6)),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _teacherResults.length,
+                  itemBuilder: (_, i) {
+                    final t = _teacherResults[i];
+                    return ListTile(
+                      dense: true,
+                      title: Text('${t.firstNameAr} ${t.lastNameAr}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: ShellTokens.textPrimary)),
+                      subtitle: Text(t.code, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+                      onTap: () {
+                        _teacherSearchCtrl.clear();
+                        setState(() => _teacherResults = []);
+                        _processTeacherByName(t);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

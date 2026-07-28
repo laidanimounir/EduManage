@@ -1179,6 +1179,16 @@ class AppDatabase extends _$AppDatabase {
     return result.read<int>('cnt');
   }
 
+  Future<int> getTodayTeacherCheckinCount() async {
+    final now = DateTime.now();
+    final row = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM attendance '
+      'WHERE person_type = \'teacher\' AND attendance_date >= ? AND attendance_date < ? AND status = \'present\'',
+      variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1))],
+    ).getSingle();
+    return row.read<int>('cnt');
+  }
+
   Future<List<Map<String, dynamic>>> getTodaySessionsWithAttendance() async {
     final now = DateTime.now();
     final today = now.weekday;
