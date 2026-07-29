@@ -1179,6 +1179,23 @@ class AppDatabase extends _$AppDatabase {
     return result.read<int>('cnt');
   }
 
+  Future<List<Map<String, dynamic>>> getStudentSessionSchedule(String studentId) async {
+    return await customSelect(
+      'SELECT sg.name_ar AS group_name, s.day_of_week, s.start_time, s.end_time '
+      'FROM enrollments e '
+      'JOIN sessions s ON s.subject_group_id = e.subject_group_id AND s.is_active = 1 AND s.is_archived = 0 '
+      'JOIN subject_groups sg ON sg.id = e.subject_group_id '
+      'WHERE e.student_id = ? AND e.status = \'active\' AND e.is_transferred = 0 '
+      'ORDER BY s.day_of_week, s.start_time',
+      variables: [Variable.withString(studentId)],
+    ).map((r) => {
+      'group_name': r.read<String>('group_name'),
+      'day_of_week': r.read<int>('day_of_week'),
+      'start_time': r.read<DateTime>('start_time'),
+      'end_time': r.read<DateTime>('end_time'),
+    }).get();
+  }
+
   Future<int> getTodayTeacherCheckinCount() async {
     final now = DateTime.now();
     final row = await customSelect(
