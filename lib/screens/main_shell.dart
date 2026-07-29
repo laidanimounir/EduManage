@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants/phosphor_icons.dart';
@@ -9,7 +10,6 @@ import '../widgets/shell_header.dart';
 import '../widgets/quick_find_overlay.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'checkin/live_attendance_board.dart';
-import 'checkin/attendance_reports_screen.dart';
 import 'students/student_list_screen.dart';
 import 'students/student_balances_screen.dart';
 import 'teachers/teacher_list_screen.dart';
@@ -31,6 +31,8 @@ class MainShell extends StatefulWidget {
   final String userId;
   final String userRole;
   final String userName;
+  final String firstName;
+  final String lastName;
 
   const MainShell({
     super.key,
@@ -38,17 +40,21 @@ class MainShell extends StatefulWidget {
     required this.userId,
     required this.userRole,
     required this.userName,
+    required this.firstName,
+    required this.lastName,
   });
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _initialized = false;
   bool _sidebarHovered = false;
   bool _sidebarPinned = false;
+  bool _sidebarIntroPlayed = false;
+  bool _showWelcome = true;
   final Map<int, int> _visitCounters = {};
 
   late List<_NavItem> _items;
@@ -56,7 +62,22 @@ class _MainShellState extends State<MainShell> {
 
   static const double _collapsedWidth = 56;
   static const double _expandedWidth = 220;
-  static const Duration _animDuration = Duration(milliseconds: 180);
+
+  late final AnimationController _sidebarCtrl;
+
+  String get _displayName {
+    final full = '${widget.firstName} ${widget.lastName}'.trim();
+    return full.isNotEmpty ? full : widget.userName;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _sidebarCtrl = AnimationController(
+      duration: const Duration(milliseconds: 450),
+      vsync: this,
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -108,6 +129,22 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  Future<void> _playSidebarIntro() async {
+    if (!mounted) return;
+    _sidebarCtrl.duration = const Duration(milliseconds: 700);
+    _sidebarCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 2000));
+    if (!mounted) return;
+    _sidebarCtrl.duration = const Duration(milliseconds: 500);
+    _sidebarCtrl.reverse();
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    _sidebarCtrl.duration = const Duration(milliseconds: 450);
+    setState(() => _sidebarIntroPlayed = true);
+  }
+
   void _navigateTo(int index) {
     setState(() {
       _selectedIndex = index;
@@ -151,8 +188,6 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final currentLocale = Localizations.localeOf(context);
-    final width = (_sidebarHovered || _sidebarPinned) ? _expandedWidth : _collapsedWidth;
-    final expanded = _sidebarHovered || _sidebarPinned;
     final title = _selectedIndex < _items.length ? _items[_selectedIndex].label : '';
 
     return CallbackShortcuts(
@@ -161,100 +196,124 @@ class _MainShellState extends State<MainShell> {
         const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openQuickFind,
       },
       child: Scaffold(
-      body: Column(
-        children: [
-          ShellHeader(
-            title: title,
-            userName: widget.userName,
-            userRole: widget.userRole,
-            onLogout: _handleLogout,
-            onQuickFind: _openQuickFind,
-            onLocaleChanged: _handleLocaleChange,
-            currentLocale: currentLocale,
-          ),
-          Expanded(
-            child: Row(
+        body: Stack(
+          children: [
+            Column(
               children: [
-                MouseRegion(
-                  onEnter: (_) {
-                    if (!_sidebarPinned) setState(() => _sidebarHovered = true);
-                  },
-                  onExit: (_) {
-                    if (!_sidebarPinned) setState(() => _sidebarHovered = false);
-                  },
-                  child: AnimatedContainer(
-                    duration: _animDuration,
-                    curve: Curves.easeInOut,
-                    width: width,
-                    color: ShellTokens.chromeBase,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 8),
-                        Icon(
-                          PhosphorIcons.graduationCap,
-                          color: ShellTokens.textPrimary,
-                          size: 20,
-                        ),
-                        const SizedBox(height: 2),
-                        AnimatedOpacity(
-                          duration: _animDuration,
-                          opacity: expanded ? 1.0 : 0.0,
-                          child: const Text(
-                            'EduManage',
-                            style: TextStyle(
-                              color: ShellTokens.textPrimary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Divider(
-                          color: ShellTokens.chromeBorder,
-                          height: 1,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
-                        const SizedBox(height: 2),
-                        Expanded(
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: _buildSectionedTiles(isRtl),
-                          ),
-                        ),
-                        const Divider(
-                          color: ShellTokens.chromeBorder,
-                          height: 1,
-                          indent: 8,
-                          endIndent: 8,
-                        ),
-                        _PinToggle(
-                          pinned: _sidebarPinned,
-                          onToggle: () => setState(() => _sidebarPinned = !_sidebarPinned),
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                    ),
-                  ),
-                ),
-                const VerticalDivider(
-                  width: 1,
-                  color: ShellTokens.chromeBorder,
+                ShellHeader(
+                  title: title,
+                  userName: widget.userName,
+                  userRole: widget.userRole,
+                  displayName: _displayName,
+                  onLogout: _handleLogout,
+                  onQuickFind: _openQuickFind,
+                  onLocaleChanged: _handleLocaleChange,
+                  currentLocale: currentLocale,
                 ),
                 Expanded(
-                  child: IndexedStack(
-                    index: _selectedIndex,
-                    children: List.generate(_screens.length, (i) => KeyedSubtree(
-                      key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
-                      child: _screens[i],
-                    )),
+                  child: Row(
+                    children: [
+                      MouseRegion(
+                        onEnter: (_) {
+                          if (!_sidebarPinned && _sidebarIntroPlayed) {
+                            setState(() => _sidebarHovered = true);
+                            _sidebarCtrl.forward();
+                          }
+                        },
+                        onExit: (_) {
+                          if (!_sidebarPinned && _sidebarIntroPlayed) {
+                            setState(() => _sidebarHovered = false);
+                            _sidebarCtrl.value = 0.0;
+                          }
+                        },
+                        child: AnimatedBuilder(
+                          animation: _sidebarCtrl,
+                          builder: (context, _) {
+                            final width = _sidebarPinned
+                                ? _expandedWidth
+                                : _collapsedWidth + (_expandedWidth - _collapsedWidth) * _sidebarCtrl.value;
+                            return Container(
+                              width: width,
+                              color: ShellTokens.chromeBase,
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 8),
+                                  const Icon(
+                                    PhosphorIcons.graduationCap,
+                                    color: ShellTokens.textPrimary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Opacity(
+                                    opacity: _sidebarPinned ? 1.0 : _sidebarCtrl.value.clamp(0.0, 1.0),
+                                    child: const Text(
+                                      'EduManage',
+                                      style: TextStyle(
+                                        color: ShellTokens.textPrimary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Divider(
+                                    color: ShellTokens.chromeBorder,
+                                    height: 1,
+                                    indent: 8,
+                                    endIndent: 8,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Expanded(
+                                    child: ListView(
+                                      padding: EdgeInsets.zero,
+                                      children: _buildSectionedTiles(isRtl),
+                                    ),
+                                  ),
+                                  const Divider(
+                                    color: ShellTokens.chromeBorder,
+                                    height: 1,
+                                    indent: 8,
+                                    endIndent: 8,
+                                  ),
+                                  _PinToggle(
+                                    pinned: _sidebarPinned,
+                                    onToggle: () => setState(() => _sidebarPinned = !_sidebarPinned),
+                                  ),
+                                  const SizedBox(height: 4),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const VerticalDivider(
+                        width: 1,
+                        color: ShellTokens.chromeBorder,
+                      ),
+                      Expanded(
+                        child: IndexedStack(
+                          index: _selectedIndex,
+                          children: List.generate(_screens.length, (i) => KeyedSubtree(
+                            key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
+                            child: _screens[i],
+                          )),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
+            if (_showWelcome)
+              _WelcomeOverlay(
+                displayName: _displayName,
+                onComplete: () {
+                  setState(() => _showWelcome = false);
+                  _playSidebarIntro();
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -313,6 +372,91 @@ class _MainShellState extends State<MainShell> {
       }
     }
     return widgets;
+  }
+
+  @override
+  void dispose() {
+    _sidebarCtrl.dispose();
+    super.dispose();
+  }
+}
+
+class _WelcomeOverlay extends StatefulWidget {
+  final String displayName;
+  final VoidCallback onComplete;
+
+  const _WelcomeOverlay({required this.displayName, required this.onComplete});
+
+  @override
+  State<_WelcomeOverlay> createState() => _WelcomeOverlayState();
+}
+
+class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(duration: const Duration(milliseconds: 600), vsync: this);
+    final curve = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(curve);
+    _slide = Tween<Offset>(begin: const Offset(0.0, 0.15), end: Offset.zero).animate(curve);
+
+    _ctrl.forward();
+    Timer(const Duration(milliseconds: 3000), _startExit);
+  }
+
+  void _startExit() {
+    if (!mounted) return;
+    _ctrl.duration = const Duration(milliseconds: 400);
+    _ctrl.reverse().then((_) {
+      if (mounted) widget.onComplete();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Center(
+        child: SlideTransition(
+          position: _slide,
+          child: FadeTransition(
+            opacity: _fade,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              decoration: BoxDecoration(
+                color: ShellTokens.chromeSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: ShellTokens.chromeBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIcons.graduationCap, size: 36, color: ShellTokens.accent),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Welcome back, ${widget.displayName}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: ShellTokens.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

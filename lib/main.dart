@@ -99,6 +99,8 @@ class _EduManageAppState extends State<EduManageApp> {
               userId: _currentUser!.id,
               userRole: _currentUser!.role,
               userName: _currentUser!.username,
+              firstName: _currentUser!.firstName,
+              lastName: _currentUser!.lastName,
             )
           : LoginScreen(
               database: widget.databaseProvider.database,

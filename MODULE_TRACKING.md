@@ -1054,3 +1054,13 @@ for (final s in sessions) {
 - **Phase 3 — Password visibility toggle:** `_obscurePassword` boolean toggled by `suffixIcon` (`Icons.visibility` / `Icons.visibility_off`) on the password field, switching `obscureText`.
 - **Phase 4 — Autofocus:** `FocusNode` on username field with `autofocus: true`. `_usernameFocus.unfocus()` called during exit animation to prevent stray keyboard input.
 - **Phase 5 — Lockout mechanism (in-memory only):** After 5 consecutive failed attempts, a 45-second lockout activates (`_lockoutUntil` + `Timer.periodic(1s)` countdown). All form fields + button disable. Countdown message displayed as amber alert. Counter resets on successful login. Timer and state disposed in `dispose()`.
+
+### MainShell — Welcome overlay and sidebar polish
+
+- **Display name:** `MainShell` now receives `firstName`/`lastName` from `main.dart` and composes `displayName` = `'$firstName $lastName'.trim()` with `username` fallback. `ShellHeader._UserBlock` updated to accept and display `displayName` in the top bar instead of raw `username`.
+
+- **Welcome overlay (`_WelcomeOverlay`):** A self-dismissing centered overlay with its own `AnimationController` (600ms entrance fade+slide-up, 3000ms hold, 400ms exit fade+slide-down). Shows graduation cap icon + "Welcome back, [displayName]". Uses `Curves.easeOutCubic` consistent with login screen. Rendered in a `Stack` above the shell body, disappears after ~3.4s and triggers sidebar intro sequence.
+
+- **Sidebar hover polish:** Replaced `AnimatedContainer` (180ms uniform expand/collapse) with custom `AnimationController` (`_sidebarCtrl`, 450ms, `easeOutCubic`). `MouseRegion.onEnter` → `_sidebarCtrl.forward()` for smooth expansion. `MouseRegion.onExit` → `_sidebarCtrl.value = 0.0` for instant collapse. Pin toggle unchanged. Width computed by `lerpDouble(56, 220, _sidebarCtrl.value)` when unpinned; always 220px when pinned.
+
+- **One-time sidebar intro:** On first mount after login, following welcome overlay completion (~3.4s), `_playSidebarIntro()` runs: auto-expand 700ms → hold 2000ms → auto-collapse 500ms. Controller duration adjusted per phase. After collapse, `_sidebarIntroPlayed = true` and normal hover/pin behavior activates permanently. `_sidebarIntroPlayed` gates `MouseRegion` events — no hover response during intro.

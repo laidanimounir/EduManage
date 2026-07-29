@@ -8,6 +8,7 @@ class ShellHeader extends StatelessWidget {
   final String title;
   final String userName;
   final String userRole;
+  final String? displayName;
   final VoidCallback onLogout;
   final VoidCallback onQuickFind;
   final ValueChanged<Locale> onLocaleChanged;
@@ -18,6 +19,7 @@ class ShellHeader extends StatelessWidget {
     required this.title,
     required this.userName,
     required this.userRole,
+    this.displayName,
     required this.onLogout,
     required this.onQuickFind,
     required this.onLocaleChanged,
@@ -83,7 +85,7 @@ class ShellHeader extends StatelessWidget {
             onLocaleChanged: onLocaleChanged,
           ),
           const SizedBox(width: 12),
-          _UserBlock(userName: userName, userRole: userRole),
+          _UserBlock(userName: userName, userRole: userRole, displayName: displayName),
           const SizedBox(width: 6),
           _HeaderIconButton(
             icon: PhosphorIcons.signOut,
@@ -182,12 +184,14 @@ class _LanguageSwitch extends StatelessWidget {
 class _UserBlock extends StatelessWidget {
   final String userName;
   final String userRole;
+  final String? displayName;
 
-  const _UserBlock({required this.userName, required this.userRole});
+  const _UserBlock({required this.userName, required this.userRole, this.displayName});
 
   @override
   Widget build(BuildContext context) {
-    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+    final name = (displayName != null && displayName!.isNotEmpty) ? displayName! : userName;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final roleLabel = userRole.isNotEmpty
         ? '${userRole[0].toUpperCase()}${userRole.substring(1)}'
         : '';
@@ -213,7 +217,7 @@ class _UserBlock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              userName,
+              name,
               style: const TextStyle(
                 color: ShellTokens.textPrimary,
                 fontSize: 11,
