@@ -64,11 +64,14 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   static const double _expandedWidth = 220;
 
   late final AnimationController _sidebarCtrl;
+  List<Animation<double>> _itemAnimations = [];
 
   String get _displayName {
     final full = '${widget.firstName} ${widget.lastName}'.trim();
     return full.isNotEmpty ? full : widget.userName;
   }
+
+  int get _tileCount => _items.length;
 
   @override
   void initState() {
@@ -129,19 +132,40 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     }
   }
 
+  void _buildItemAnimations({required int count}) {
+    _itemAnimations = [];
+    const itemSpan = 0.35;
+    for (int i = 0; i < count; i++) {
+      final begin = (i / count) * (1.0 - itemSpan);
+      final end = (begin + itemSpan).clamp(0.0, 1.0);
+      _itemAnimations.add(
+        CurvedAnimation(
+          parent: _sidebarCtrl,
+          curve: Interval(begin, end, curve: Curves.easeOutCubic),
+        ),
+      );
+    }
+  }
+
   Future<void> _playSidebarIntro() async {
     if (!mounted) return;
+    _buildItemAnimations(count: _tileCount);
+    setState(() {});
+
     _sidebarCtrl.duration = const Duration(milliseconds: 700);
     _sidebarCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
+
     _sidebarCtrl.duration = const Duration(milliseconds: 500);
     _sidebarCtrl.reverse();
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
+
     _sidebarCtrl.duration = const Duration(milliseconds: 450);
+    _itemAnimations = [];
     setState(() => _sidebarIntroPlayed = true);
   }
 
@@ -229,9 +253,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                         child: AnimatedBuilder(
                           animation: _sidebarCtrl,
                           builder: (context, _) {
-                            final width = _sidebarPinned
-                                ? _expandedWidth
-                                : _collapsedWidth + (_expandedWidth - _collapsedWidth) * _sidebarCtrl.value;
+                            final width = _sidebarIntroPlayed
+                                ? (_sidebarPinned
+                                    ? _expandedWidth
+                                    : _collapsedWidth + (_expandedWidth - _collapsedWidth) * _sidebarCtrl.value)
+                                : _expandedWidth;
                             return Container(
                               width: width,
                               color: ShellTokens.chromeBase,
@@ -245,7 +271,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                                   ),
                                   const SizedBox(height: 2),
                                   Opacity(
-                                    opacity: _sidebarPinned ? 1.0 : _sidebarCtrl.value.clamp(0.0, 1.0),
+                                    opacity: _sidebarIntroPlayed
+                                        ? (_sidebarPinned ? 1.0 : _sidebarCtrl.value.clamp(0.0, 1.0))
+                                        : 1.0,
                                     child: const Text(
                                       'EduManage',
                                       style: TextStyle(
@@ -320,7 +348,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
 
   List<Widget> _buildSectionedTiles(bool isRtl) {
     final l10n = AppLocalizations.of(context);
-    final expanded = _sidebarHovered || _sidebarPinned;
+    final expanded = _sidebarHovered || _sidebarPinned || !_sidebarIntroPlayed;
+    final showExpanded = expanded;
 
     final sections = [
       _SidebarSection(label: l10n.sidebarSectionCore, indices: [0, 1]),
@@ -330,10 +359,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     ];
 
     final widgets = <Widget>[];
+    int flatIndex = 0;
     for (final section in sections) {
       if (widgets.isNotEmpty) {
         widgets.add(const SizedBox(height: 2));
-        if (expanded) {
+        if (showExpanded) {
           widgets.add(Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
@@ -361,14 +391,25 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         if (i >= _items.length) continue;
         final item = _items[i];
         final selected = _selectedIndex == i;
-        widgets.add(_SidebarTile(
+
+        Widget tile = _SidebarTile(
           icon: item.icon,
           label: item.label,
           selected: selected,
-          expanded: expanded,
+          expanded: showExpanded,
           isRtl: isRtl,
           onTap: () => _navigateTo(i),
-        ));
+        );
+
+        if (!_sidebarIntroPlayed && flatIndex < _itemAnimations.length) {
+          tile = FadeTransition(
+            opacity: _itemAnimations[flatIndex],
+            child: tile,
+          );
+        }
+
+        widgets.add(tile);
+        flatIndex++;
       }
     }
     return widgets;
@@ -425,29 +466,33 @@ class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Center(
-        child: SlideTransition(
-          position: _slide,
-          child: FadeTransition(
-            opacity: _fade,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              decoration: BoxDecoration(
-                color: ShellTokens.chromeSurface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ShellTokens.chromeBorder),
-              ),
+      child: FadeTransition(
+        opacity: _fade,
+        child: Container(
+          color: Colors.black54,
+          child: Center(
+            child: SlideTransition(
+              position: _slide,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(PhosphorIcons.graduationCap, size: 36, color: ShellTokens.accent),
-                  const SizedBox(height: 10),
+                  const Icon(PhosphorIcons.graduationCap, size: 80, color: ShellTokens.accent),
+                  const SizedBox(height: 20),
                   Text(
                     'Welcome back, ${widget.displayName}',
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 24,
                       fontWeight: FontWeight.w600,
                       color: ShellTokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'EduManage',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: ShellTokens.textDisabled,
                     ),
                   ),
                 ],
