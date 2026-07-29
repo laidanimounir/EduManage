@@ -1142,7 +1142,7 @@ class AppDatabase extends _$AppDatabase {
     ).map((r) => {
       'id': r.read<String>('id'),
       'name': r.read<String>('name_ar'),
-      'capacity': r.read<int>('capacity'),
+      'capacity': r.read<int?>('capacity'),
       'sessionCount': r.read<int>('session_count'),
     }).get();
   }
@@ -1220,7 +1220,7 @@ class AppDatabase extends _$AppDatabase {
     ).map((r) => {
       'classroom_id': r.read<String>('classroom_id'),
       'classroom_name': r.read<String>('classroom_name'),
-      'capacity': r.read<int>('capacity'),
+      'capacity': r.read<int?>('capacity'),
       'floor': r.read<int?>('floor'),
       'session_id': r.read<String?>('session_id'),
       'group_name': r.read<String?>('group_name'),
