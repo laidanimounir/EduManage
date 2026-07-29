@@ -1490,6 +1490,7 @@ class _StudentCheckinDialogState extends State<_StudentCheckinDialog> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _loading = true;
+  String? _error;
   String? _scheduleInfo;
 
   static const _dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1508,8 +1509,12 @@ class _StudentCheckinDialogState extends State<_StudentCheckinDialog> {
   }
 
   Future<void> _loadStudents() async {
-    final all = await widget.studentRepo.fetchPage(limit: 2000, includeArchived: false);
-    if (mounted) setState(() { _all = all.students; _filtered = all.students; _loading = false; });
+    try {
+      final all = await widget.studentRepo.fetchPage(limit: 2000, includeArchived: false);
+      if (mounted) setState(() { _all = all.students; _filtered = all.students; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
   }
 
   void _filter(String query) {
@@ -1561,8 +1566,10 @@ class _StudentCheckinDialogState extends State<_StudentCheckinDialog> {
       maxHeight: 700,
       title: 'Student Check-in',
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Column(mainAxisSize: MainAxisSize.min, children: [SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: ShellTokens.accent)), SizedBox(height: 10), Text('Loading students...', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary))])))
+          : _error != null
+              ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(PhosphorIcons.warning, size: 24, color: SemanticTokens.error), const SizedBox(height: 8), Text(_error!, style: const TextStyle(fontSize: 11, color: SemanticTokens.error), textAlign: TextAlign.center), const SizedBox(height: 10), TextButton(onPressed: () { setState(() { _error = null; _loading = true; }); _loadStudents(); }, child: const Text('Retry', style: TextStyle(fontSize: 12)))])))
+              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
                 height: 34,
                 child: TextField(
@@ -1613,7 +1620,8 @@ class _StudentCheckinDialogState extends State<_StudentCheckinDialog> {
                 ),
               ],
               const SizedBox(height: 6),
-              Flexible(
+              SizedBox(
+                height: 350,
                 child: _filtered.isEmpty
                     ? const Center(child: Text('No students match', style: TextStyle(fontSize: 11, color: ShellTokens.textDisabled)))
                     : Scrollbar(
