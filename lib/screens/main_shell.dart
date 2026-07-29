@@ -435,15 +435,21 @@ class _WelcomeOverlay extends StatefulWidget {
 class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
+  late final Animation<Offset> _slideIn;
+  late final Animation<Offset> _slideOut;
+  bool _exiting = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(duration: const Duration(milliseconds: 600), vsync: this);
-    final curve = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(curve);
-    _slide = Tween<Offset>(begin: const Offset(0.0, 0.15), end: Offset.zero).animate(curve);
+
+    final inCurve = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(inCurve);
+    _slideIn = Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero).animate(inCurve);
+
+    final outCurve = CurvedAnimation(parent: _ctrl, curve: Curves.easeInCubic);
+    _slideOut = Tween<Offset>(begin: Offset.zero, end: const Offset(-1.0, 0.0)).animate(outCurve);
 
     _ctrl.forward();
     Timer(const Duration(milliseconds: 3000), _startExit);
@@ -452,7 +458,9 @@ class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProvi
   void _startExit() {
     if (!mounted) return;
     _ctrl.duration = const Duration(milliseconds: 400);
-    _ctrl.reverse().then((_) {
+    setState(() => _exiting = true);
+    _ctrl.reset();
+    _ctrl.forward().then((_) {
       if (mounted) widget.onComplete();
     });
   }
@@ -469,30 +477,30 @@ class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProvi
       child: FadeTransition(
         opacity: _fade,
         child: Container(
-          color: Colors.black54,
+          color: ShellTokens.chromeBase,
           child: Center(
             child: SlideTransition(
-              position: _slide,
+              position: _exiting ? _slideOut : _slideIn,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(PhosphorIcons.graduationCap, size: 80, color: ShellTokens.accent),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Welcome back, ${widget.displayName}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: ShellTokens.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
                   const Text(
-                    'EduManage',
+                    'Welcome back',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: ShellTokens.textDisabled,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.displayName,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: ShellTokens.textPrimary,
                     ),
                   ),
                 ],
