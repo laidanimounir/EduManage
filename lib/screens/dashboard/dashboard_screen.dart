@@ -209,47 +209,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return RefreshIndicator(
                         onRefresh: _loadStats,
                         child: ListView(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(16),
                           children: [
                             _buildTopBar(),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
+                            if (_alerts.isNotEmpty) ...[
+                              _buildAlertsSection(),
+                              const SizedBox(height: 12),
+                            ],
                             _buildTopKpiRow(wide),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             wide
-                                ? Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(flex: 2, child: _buildReservationsCard()),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 3, child: _buildCampaignOverviewCard()),
-                                    ],
+                                ? IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(flex: 2, child: _buildReservationsCard()),
+                                        const SizedBox(width: 12),
+                                        Expanded(flex: 3, child: _buildCampaignOverviewCard()),
+                                      ],
+                                    ),
                                   )
                                 : Column(children: [
                                     _buildReservationsCard(),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 12),
                                     _buildCampaignOverviewCard(),
                                   ]),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             wide
-                                ? Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(flex: 2, child: _buildRecentActivitiesCard()),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 2, child: _buildRevenueStatCard(revenue)),
-                                      const SizedBox(width: 16),
-                                      Expanded(flex: 2, child: _buildBookingsCard()),
-                                    ],
+                                ? IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(flex: 2, child: _buildBookingsCard()),
+                                        const SizedBox(width: 12),
+                                        Expanded(flex: 2, child: _buildRevenueStatCard(revenue)),
+                                        const SizedBox(width: 12),
+                                        Expanded(flex: 2, child: _buildRecentActivitiesCard()),
+                                      ],
+                                    ),
                                   )
                                 : Column(children: [
-                                    _buildRecentActivitiesCard(),
-                                    const SizedBox(height: 16),
-                                    _buildRevenueStatCard(revenue),
-                                    const SizedBox(height: 16),
                                     _buildBookingsCard(),
+                                    const SizedBox(height: 12),
+                                    _buildRevenueStatCard(revenue),
+                                    const SizedBox(height: 12),
+                                    _buildRecentActivitiesCard(),
                                   ]),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             _buildKeyRatios(revenue, outstanding, net),
+                            const SizedBox(height: 12),
+                            wide
+                                ? IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(child: _buildFinancialDetails(revenue, outstanding, net)),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: _buildBillingHealth()),
+                                      ],
+                                    ),
+                                  )
+                                : Column(children: [
+                                    _buildFinancialDetails(revenue, outstanding, net),
+                                    const SizedBox(height: 12),
+                                    _buildBillingHealth(),
+                                  ]),
+                            const SizedBox(height: 12),
+                            wide
+                                ? IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(child: _buildTeacherSummary()),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: _buildEnrollmentTrend()),
+                                      ],
+                                    ),
+                                  )
+                                : Column(children: [
+                                    _buildTeacherSummary(),
+                                    const SizedBox(height: 12),
+                                    _buildEnrollmentTrend(),
+                                  ]),
+                            const SizedBox(height: 12),
+                            _buildClassroomUtilization(),
+                            if (_liveSessions.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              _buildLiveSection(),
+                            ],
                             const SizedBox(height: 20),
                           ],
                         ),
@@ -266,25 +314,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Expanded(
           child: Container(
-            height: 42,
+            height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(10)),
             child: const Row(children: [
-              Icon(Icons.search, color: Colors.white38, size: 18),
+              Icon(Icons.search, color: Colors.white38, size: 17),
               SizedBox(width: 8),
               Text('Search...', style: TextStyle(color: Colors.white38, fontSize: 12)),
             ]),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         _dateChip('From', _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }),
         const SizedBox(width: 8),
         _dateChip('To', _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }),
         if (_dateFrom != null || _dateTo != null) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.close, size: 16, color: Colors.white38),
             onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
         ],
       ],
@@ -299,7 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (d != null) onPick(d);
       },
       child: Container(
-        height: 42,
+        height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(10)),
         child: Center(child: Text(value != null ? fmt(value) : label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
@@ -309,28 +359,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ================== Alerts (Needs Attention) ==================
   Widget _buildAlertsSection() {
-    if (_alerts.isEmpty) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(children: [
-            const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orangeAccent),
+            const Icon(Icons.warning_amber_rounded, size: 15, color: Colors.orangeAccent),
             const SizedBox(width: 6),
-            const Text('Needs Attention', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+            const Text('Needs Attention', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           ..._alerts.take(3).map((a) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
+                padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(children: [
-                  Icon(a['icon'] as IconData, size: 13, color: a['color'] as Color),
+                  Icon(a['icon'] as IconData, size: 12, color: a['color'] as Color),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(a['text'] as String, style: const TextStyle(fontSize: 12, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  const Icon(Icons.chevron_right, size: 12, color: Colors.white24),
+                  Expanded(child: Text(a['text'] as String, style: const TextStyle(fontSize: 11, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.chevron_right, size: 11, color: Colors.white24),
                 ]),
               )),
           if (_alerts.length > 3)
@@ -347,16 +395,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTopKpiRow(bool wide) {
     final cards = [
       _gradientKpiCard(
-        icon: Icons.account_balance_wallet_outlined,
-        label: 'Outstanding',
-        value: '${(_metrics['outstanding'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-        gradient: const [Color(0xFF8A5A1A), Color(0xFFC2823A)],
-      ),
-      _gradientKpiCard(
-        icon: Icons.trending_up,
-        label: 'Revenue',
-        value: '${(_metrics['revenue'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-        gradient: const [Color(0xFF6E2E8C), Color(0xFF8C3FB0)],
+        icon: Icons.groups_outlined,
+        label: 'Total Students',
+        value: _totalStudents.toString(),
+        gradient: const [Color(0xFF0F3D3E), Color(0xFF145C5C)],
       ),
       _gradientKpiCard(
         icon: Icons.school_outlined,
@@ -365,51 +407,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gradient: const [Color(0xFF7A2A5C), Color(0xFF9B3A78)],
       ),
       _gradientKpiCard(
-        icon: Icons.groups_outlined,
-        label: 'Total Students',
-        value: _totalStudents.toString(),
-        gradient: const [Color(0xFF0F3D3E), Color(0xFF145C5C)],
+        icon: Icons.trending_up,
+        label: 'Revenue',
+        value: '${(_metrics['revenue'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+        gradient: const [Color(0xFF6E2E8C), Color(0xFF8C3FB0)],
+      ),
+      _gradientKpiCard(
+        icon: Icons.account_balance_wallet_outlined,
+        label: 'Outstanding',
+        value: '${(_metrics['outstanding'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+        gradient: const [Color(0xFF8A5A1A), Color(0xFFC2823A)],
       ),
     ];
 
     if (!wide) {
       return Column(
         children: [
-          Row(children: [Expanded(child: cards[0]), const SizedBox(width: 12), Expanded(child: cards[1])]),
-          const SizedBox(height: 12),
-          Row(children: [Expanded(child: cards[2]), const SizedBox(width: 12), Expanded(child: cards[3])]),
+          IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Expanded(child: cards[0]), const SizedBox(width: 10), Expanded(child: cards[1])])),
+          const SizedBox(height: 10),
+          IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Expanded(child: cards[2]), const SizedBox(width: 10), Expanded(child: cards[3])])),
         ],
       );
     }
-    return Row(
-      children: cards
-          .map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: c)))
-          .toList(),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: cards
+            .map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 5), child: c)))
+            .toList(),
+      ),
     );
   }
 
   Widget _gradientKpiCard({required IconData icon, required String label, required String value, required List<Color> gradient}) {
     return Container(
-      height: 110,
-      padding: const EdgeInsets.all(14),
+      height: 92,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: Colors.white70, size: 18),
-              const Icon(Icons.more_horiz, color: Colors.white38, size: 16),
+              Icon(icon, color: Colors.white70, size: 17),
+              const Icon(Icons.more_horiz, color: Colors.white38, size: 15),
             ],
           ),
           const Spacer(),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 1),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
         ],
       ),
     );
@@ -421,36 +473,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final capacityPct = _totalStudents > 0 ? (_activeStudentCount / _totalStudents).clamp(0.0, 1.0) : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Active Students', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+          const Text('Active Students', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
           SizedBox(
-            height: 140,
+            height: 110,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 CustomPaint(
-                  size: const Size(140, 140),
+                  size: const Size(110, 110),
                   painter: _CircularPercentPainter(percent: capacityPct, color: const Color(0xFF7C4DFF), trackColor: Colors.white12),
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('$_activeStudentCount', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
-                    const Text('Active', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                    Text('$_activeStudentCount', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700)),
+                    const Text('Active', style: TextStyle(color: Colors.white38, fontSize: 9)),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text('${revenue.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-          const Text('Total Revenue This Period', style: TextStyle(color: Colors.white38, fontSize: 10)),
+              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+          const Text('Total Revenue This Period', style: TextStyle(color: Colors.white38, fontSize: 9.5)),
         ],
       ),
     );
@@ -459,24 +512,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ================== Campaign / Revenue Trend (Line Chart) ==================
   Widget _buildCampaignOverviewCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Revenue Trend', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text('Revenue Trend', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
-                child: const Text('This Period', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                child: const Text('This Period', style: TextStyle(color: Colors.white70, fontSize: 9.5)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(height: 160, child: DashboardLineChart(database: widget.database)),
+          const SizedBox(height: 8),
+          SizedBox(height: 190, child: ClipRect(child: DashboardLineChart(database: widget.database))),
         ],
       ),
     );
@@ -485,40 +539,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ================== Recent Activities (from alerts) ==================
   Widget _buildRecentActivitiesCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Recent Activities', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text('Recent Activities', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
               const Text('View All', style: TextStyle(color: Colors.white38, fontSize: 10)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (_alerts.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
+              padding: EdgeInsets.symmetric(vertical: 10),
               child: Text('No recent activity', style: TextStyle(color: Colors.white24, fontSize: 11)),
-            ),
-          ..._alerts.take(5).map((a) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundColor: (a['color'] as Color).withOpacity(0.2),
-                      child: Icon(a['icon'] as IconData, size: 14, color: a['color'] as Color),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(a['text'] as String, style: const TextStyle(color: Colors.white70, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              )),
+            )
+          else
+            ..._alerts.take(5).map((a) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 13,
+                        backgroundColor: (a['color'] as Color).withOpacity(0.2),
+                        child: Icon(a['icon'] as IconData, size: 13, color: a['color'] as Color),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(a['text'] as String, style: const TextStyle(color: Colors.white70, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                )),
         ],
       ),
     );
@@ -527,17 +583,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ================== Revenue Stat (Bar Chart) ==================
   Widget _buildRevenueStatCard(double revenue) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Revenue Stat', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
+          const Text('Revenue Stat', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 3),
           Text('${revenue.toStringAsFixed(2)} ${AppConstants.currencySymbol}',
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          SizedBox(height: 100, child: DashboardBarChart(database: widget.database)),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          SizedBox(height: 150, child: ClipRect(child: DashboardBarChart(database: widget.database))),
         ],
       ),
     );
@@ -551,26 +608,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final pct = total > 0 ? newE / total : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Enrollments', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('$total', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-          const Text('Total This Period', style: TextStyle(color: Colors.white38, fontSize: 10)),
-          const SizedBox(height: 12),
+          const Text('Enrollments', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 3),
+          Text('$total', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          const Text('Total This Period', style: TextStyle(color: Colors.white38, fontSize: 9.5)),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(value: pct, minHeight: 8, backgroundColor: Colors.red.withOpacity(0.3), color: Colors.green),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('dropped $dropped', style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
               Text('new $newE', style: const TextStyle(color: Colors.green, fontSize: 11)),
+              Text('dropped $dropped', style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
             ],
           ),
         ],
@@ -583,13 +641,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final avgRevenue = _activeStudentCount > 0 ? (revenue / _activeStudentCount) : 0.0;
     final netAfterDiscounts = net - _familyDiscount;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Financial Details', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
+          const Text('Financial Details', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
           _finRow('Collection Rate', _collectionRateLabel),
           _finRow('Family Discounts', '${_familyDiscount.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
           _finRow('Net After Discounts', '${netAfterDiscounts.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
@@ -602,12 +661,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _finRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.white60)),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+          Text(label, style: const TextStyle(fontSize: 11.5, color: Colors.white60)),
+          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white)),
         ],
       ),
     );
@@ -619,13 +678,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final closed = _billingHealth['closedCycles'] ?? 0;
     final mid = _billingHealth['midCycleStudents'] ?? 0;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Billing Cycle Health', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
+          const Text('Billing Cycle Health', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
           Row(children: [
             _healthStat('Open Cycles', '$open', Colors.orangeAccent),
             _healthStat('Closed Cycles', '$closed', Colors.greenAccent),
@@ -639,14 +699,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _healthStat(String label, String value, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
-        child: Column(children: [
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.white60), textAlign: TextAlign.center),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color)),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 9.5, color: Colors.white60), textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }
@@ -655,19 +718,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTeacherSummary() {
     final topTeachers = _teacherSummary['topOverdueTeachers'] as List? ?? [];
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Teacher Payouts', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+          const Text('Teacher Payouts', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
           Text('Total Payouts: ${(_teacherSummary['totalPayouts'] as double?)?.toStringAsFixed(0) ?? '0'} ${AppConstants.currencySymbol}',
-              style: const TextStyle(fontSize: 12, color: Colors.white60)),
+              style: const TextStyle(fontSize: 11.5, color: Colors.white60)),
           if (topTeachers.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            const Text('Nearest to Overdue:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white38)),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
+            const Text('Nearest to Overdue:', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.white38)),
+            const SizedBox(height: 3),
             ...topTeachers.take(5).map((t) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text('${t['name']} (${t['code']})', style: const TextStyle(fontSize: 11, color: Colors.white60)),
@@ -683,13 +747,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final newE = _enrollmentTrend['newEnrollments'] ?? 0;
     final dropped = _enrollmentTrend['dropped'] ?? 0;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Enrollment Trend', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
+          const Text('Enrollment Trend', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
           Row(children: [
             _healthStat('New', '$newE', Colors.greenAccent),
             _healthStat('Dropped', '$dropped', Colors.redAccent),
@@ -703,38 +768,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ================== Classroom Utilization ==================
   Widget _buildClassroomUtilization() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Classroom Utilization', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
-          ..._classrooms.take(8).map((c) {
-            final capacity = (c['capacity'] as int?) ?? 1;
-            final sessions = (c['sessionCount'] as int?) ?? 0;
-            final pct = capacity > 0 ? (sessions * 100 ~/ capacity).clamp(0, 100).toDouble() / 100 : 0.0;
-            final isLow = pct < 0.2;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(children: [
-                SizedBox(width: 80, child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white60), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                const SizedBox(width: 8),
-                Expanded(child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(value: pct, minHeight: 7, backgroundColor: Colors.white12, color: isLow ? Colors.orangeAccent : Colors.greenAccent),
-                )),
-                const SizedBox(width: 8),
-                Text('$sessions/$capacity', style: const TextStyle(fontSize: 10, color: Colors.white38)),
-                if (isLow) Container(
-                  margin: const EdgeInsets.only(left: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.orangeAccent.withOpacity(0.15), borderRadius: BorderRadius.circular(3)),
-                  child: const Text('low', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: Colors.orangeAccent)),
-                ),
-              ]),
-            );
-          }),
+          const Text('Classroom Utilization', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          if (_classrooms.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('No classroom data', style: TextStyle(color: Colors.white24, fontSize: 11)),
+            )
+          else
+            ..._classrooms.take(8).map((c) {
+              final capacity = (c['capacity'] as int?) ?? 1;
+              final sessions = (c['sessionCount'] as int?) ?? 0;
+              final pct = capacity > 0 ? (sessions * 100 ~/ capacity).clamp(0, 100).toDouble() / 100 : 0.0;
+              final isLow = pct < 0.2;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(children: [
+                  SizedBox(width: 78, child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 10.5, color: Colors.white60), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 8),
+                  Expanded(child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(value: pct, minHeight: 7, backgroundColor: Colors.white12, color: isLow ? Colors.orangeAccent : Colors.greenAccent),
+                  )),
+                  const SizedBox(width: 8),
+                  Text('$sessions/$capacity', style: const TextStyle(fontSize: 9.5, color: Colors.white38)),
+                  if (isLow) Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.orangeAccent.withOpacity(0.15), borderRadius: BorderRadius.circular(3)),
+                    child: const Text('low', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: Colors.orangeAccent)),
+                  ),
+                ]),
+              );
+            }),
         ],
       ),
     );
@@ -742,14 +814,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ================== Live Sessions ==================
   Widget _buildLiveSection() {
-    if (_liveSessions.isEmpty) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
@@ -758,18 +828,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ]),
           const SizedBox(height: 8),
           SizedBox(
-            height: 60,
+            height: 58,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _liveSessions.length,
               itemBuilder: (_, i) {
                 final s = _liveSessions[i];
                 return Container(
-                  width: 200,
+                  width: 190,
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.greenAccent.withOpacity(0.3))),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
                     Row(children: [
                       Expanded(child: Text(s['groupName'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis)),
                       const SizedBox(width: 4),
@@ -795,21 +865,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activeRatio = _totalStudents > 0 ? (_activeStudentCount / _totalStudents).clamp(0, 1).toDouble() : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(14)),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Key Ratios', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+          const Text('Key Ratios', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
           SizedBox(
-            height: 160,
+            height: 130,
             child: Row(children: [
-              Expanded(child: _AnimatedCircularPercent(label: 'Collection Rate', percent: collectionRate, color: Colors.greenAccent)),
-              const SizedBox(width: 8),
-              Expanded(child: _AnimatedCircularPercent(label: 'Net Margin', percent: netMargin.abs(), color: net >= 0 ? Colors.greenAccent : Colors.redAccent, negative: net < 0)),
-              const SizedBox(width: 8),
               Expanded(child: _AnimatedCircularPercent(label: 'Active Students', percent: activeRatio, color: const Color(0xFF7C4DFF))),
+              const SizedBox(width: 6),
+              Expanded(child: _AnimatedCircularPercent(label: 'Net Margin', percent: netMargin.abs(), color: net >= 0 ? Colors.greenAccent : Colors.redAccent, negative: net < 0)),
+              const SizedBox(width: 6),
+              Expanded(child: _AnimatedCircularPercent(label: 'Collection Rate', percent: collectionRate, color: Colors.greenAccent)),
             ]),
           ),
         ],
@@ -908,10 +979,10 @@ class _AnimatedCircularPercentState extends State<_AnimatedCircularPercent> with
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      const maxDiameter = 130.0;
-      final rawSize = min(constraints.maxWidth, constraints.maxHeight - 24) * 0.85;
-      final size = rawSize.clamp(70.0, maxDiameter);
-      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const maxDiameter = 105.0;
+      final rawSize = min(constraints.maxWidth, constraints.maxHeight - 20) * 0.85;
+      final size = rawSize.clamp(60.0, maxDiameter);
+      return Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
         SizedBox(
           width: size, height: size,
           child: AnimatedBuilder(
@@ -921,14 +992,14 @@ class _AnimatedCircularPercentState extends State<_AnimatedCircularPercent> with
               child: Center(
                 child: Text(
                   '${widget.negative ? '-' : ''}${(_anim.value * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(fontSize: size * 0.16, fontWeight: FontWeight.w700, color: widget.color),
+                  style: TextStyle(fontSize: size * 0.18, fontWeight: FontWeight.w700, color: widget.color),
                 ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(widget.label, style: const TextStyle(fontSize: 11, color: Colors.white70), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 5),
+        Text(widget.label, style: const TextStyle(fontSize: 10.5, color: Colors.white70), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
       ]);
     });
   }
