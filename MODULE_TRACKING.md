@@ -1027,9 +1027,14 @@ for (final s in sessions) {
 - **Phase 4 — Check-in flow:** `_processTeacherByName` reuses the same duplicate-check, attendance-creation, and payout logic from the old `_processTeacher` barcode method, but accepts a `Teacher` object directly. Added `getTodayTeacherCheckinCount()` database query for the badge. Removed unused `_mode` field, barcode-based teacher check-in, and `_auditRepo` / `AuditLogRepository` / `_manualSearch` imports.
 
 #### Feature 3: Student name search
-- **Phase 1 — Inline search bar:** Replaced the old dialog-based `_manualSearch` with a debounced inline search bar that toggles via the magnifying-glass icon in the barcode bar. The icon turns accent-colored when search is active.
-- **Phase 2 — Live results:** `StudentRepository.search()` is called on every keystroke with a 300ms debounce. Results appear in a scrollable list below the search field with avatar initials, name, and code.
-- **Phase 3 — Check-in flow:** Tapping a result calls `_studentSearchCheckin(Student)`, which delegates to the same `_completeStudentCheckin` / `_showSessionPicker` flow used by barcode scanning.
+- **Phase 1 — Dialog-based check-in:** The magnifying-glass icon in the barcode bar now opens a `ShellDialog` showing a browsable table of ALL non-archived students (loaded via `fetchPage(limit: 2000)`). A search field at the top filters the list live, letter by letter (no debounce — client-side filtering on `firstNameAr`, `lastNameAr`, `firstNameFr`, `lastNameFr`, `code`).
+- **Phase 2 — Check-in flow:** Tapping a student row checks `getActiveSessionsForStudent()`. If a session is active right now, the row delegates to the existing `_completeStudentCheckin` / `_showSessionPicker` barcode flow, then closes the dialog and refreshes the board. The barcode input is completely untouched.
+- **Phase 3 — No-session schedule display:** When a student has no active session, the dialog fetches `getStudentSessionSchedule()` (a new query joining enrollments, sessions, and subject groups) and shows an amber warning banner listing the student's actual enrolled groups with day-of-week and times, so staff can see when the student's session actually is instead of getting a generic rejection.
+- **Phase 4 — Replacement:** This replaces the inline debounced search bar from the initial Round 11 Feature 3 implementation. The old `_studentSearchCtrl`, `_studentDebounce`, `_studentResults`, `_showingStudentSearch`, `_onStudentSearchChanged`, `_studentSearchCheckin`, and `_buildStudentSearchBar` were all removed.
+
+#### Hotfix — Nullable capacity cast
+- **Root cause:** The `classrooms.capacity` column is `integer().nullable()` (null means unlimited), but `getTodayRoomGrid()` and `getClassroomUtilization()` read it with `.read<int>('capacity')` (non-nullable), causing a "Null is not a subtype of int" crash on any classroom with null capacity.
+- **Fix:** Both reads changed to `r.read<int?>('capacity')`. The downstream `_buildRoomCard` already guards with `if (room['capacity'] != null)`.
 
 #### Feature 4: Room-based grid view
 - **Phase 1 — Database query:** Added `getTodayRoomGrid()` in `app_database.dart` — a single LEFT-JOIN query across classrooms, today's active sessions, subject groups, teachers, enrollments, students, and today's attendance. Returns flat rows that are grouped by classroom/session in Dart.
