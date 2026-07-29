@@ -268,15 +268,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               const SizedBox(height: 4),
                               SizedBox(
                                 height: 48,
-                                child: ElevatedButton(
-                                  onPressed: formDisabled ? null : _login,
-                                  child: _loading
-                                      ? const SizedBox(
-                                          width: 22,
-                                          height: 22,
-                                          child: CircularProgressIndicator(strokeWidth: 2.5, color: ShellTokens.chromeBase),
-                                        )
-                                      : Text(l10n.login),
+                                child: _GradientLoginButton(
+                                  loading: _loading,
+                                  disabled: formDisabled,
+                                  onPressed: _login,
+                                  label: l10n.login,
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF0F3D3E), Color(0xFF145C5C)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                 ),
                               ),
                             ],
@@ -294,7 +295,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 child: FadeTransition(
                   opacity: _fade,
                   child: Container(
-                    color: ShellTokens.chromeSurface,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [ShellTokens.chromeSurface, Color(0xFF0A2A1E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
                     child: Center(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(48),
@@ -339,5 +346,87 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _controller.dispose();
     _lockoutTimer?.cancel();
     super.dispose();
+  }
+}
+
+class _GradientLoginButton extends StatefulWidget {
+  final bool loading;
+  final bool disabled;
+  final VoidCallback onPressed;
+  final String label;
+  final LinearGradient gradient;
+
+  const _GradientLoginButton({
+    required this.loading,
+    required this.disabled,
+    required this.onPressed,
+    required this.label,
+    required this.gradient,
+  });
+
+  @override
+  State<_GradientLoginButton> createState() => _GradientLoginButtonState();
+}
+
+class _GradientLoginButtonState extends State<_GradientLoginButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  Color _brighten(Color c, double factor) {
+    return Color.fromARGB(
+      (c.a * 255).round(),
+      (c.r * 255 + (255 - c.r * 255) * factor).round().clamp(0, 255),
+      (c.g * 255 + (255 - c.g * 255) * factor).round().clamp(0, 255),
+      (c.b * 255 + (255 - c.b * 255) * factor).round().clamp(0, 255),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _pressed
+        ? [widget.gradient.colors[0], _brighten(widget.gradient.colors[1], 0.08)]
+        : _hovered
+            ? [_brighten(widget.gradient.colors[0], 0.06), _brighten(widget.gradient.colors[1], 0.1)]
+            : widget.gradient.colors;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() { _hovered = false; _pressed = false; }),
+      child: GestureDetector(
+        onTapDown: widget.disabled ? null : (_) => setState(() => _pressed = true),
+        onTapUp: widget.disabled ? null : (_) { setState(() => _pressed = false); widget.onPressed(); },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [colors[0], colors[1]],
+              begin: widget.gradient.begin,
+              end: widget.gradient.end,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: widget.loading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      ),
+    );
   }
 }

@@ -181,7 +181,7 @@ class _LanguageSwitch extends StatelessWidget {
   }
 }
 
-class _UserBlock extends StatelessWidget {
+class _UserBlock extends StatefulWidget {
   final String userName;
   final String userRole;
   final String? displayName;
@@ -189,25 +189,50 @@ class _UserBlock extends StatelessWidget {
   const _UserBlock({required this.userName, required this.userRole, this.displayName});
 
   @override
+  State<_UserBlock> createState() => _UserBlockState();
+}
+
+class _UserBlockState extends State<_UserBlock> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final name = (displayName != null && displayName!.isNotEmpty) ? displayName! : userName;
+    final name = (widget.displayName != null && widget.displayName!.isNotEmpty) ? widget.displayName! : widget.userName;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final roleLabel = userRole.isNotEmpty
-        ? '${userRole[0].toUpperCase()}${userRole.substring(1)}'
+    final roleLabel = widget.userRole.isNotEmpty
+        ? '${widget.userRole[0].toUpperCase()}${widget.userRole.substring(1)}'
         : '';
+
+    const gradient = LinearGradient(
+      colors: [Color(0xFF6E2E8C), Color(0xFF9B3A78)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: ShellTokens.accentMuted,
-          child: Text(
-            initial,
-            style: const TextStyle(
-              color: ShellTokens.textPrimary,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+        MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              shape: BoxShape.circle,
+              boxShadow: _hovered
+                  ? [BoxShadow(color: const Color(0xFF9B3A78).withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 1)]
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: ShellTokens.textPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
