@@ -180,71 +180,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${rate.toStringAsFixed(0)}%';
   }
 
+  // ================== BUILD ==================
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final revenue = _metrics['revenue'] ?? 0;
     final expenses = _metrics['expenses'] ?? 0;
     final outstanding = _metrics['outstanding'] ?? 0;
     final net = revenue - expenses;
-    final prevRevenue = _prevMetrics['revenue'] ?? 0;
-    final prevExpenses = _prevMetrics['expenses'] ?? 0;
-    final prevOutstanding = _prevMetrics['outstanding'] ?? 0;
-    final prevNet = prevRevenue - prevExpenses;
 
     return Scaffold(
-      backgroundColor: ContentTokens.background,
+      backgroundColor: const Color(0xFF0E0E10),
       body: _loading
           ? const AppLoading()
           : _error != null
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(PhosphorIcons.warning, size: 32, color: SemanticTokens.warning),
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: ShellTokens.textSecondary)),
-                  const SizedBox(height: 12),
-                  TextButton(onPressed: _loadStats, child: const Text('Retry')),
-                ]))
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.warning_amber_rounded, size: 32, color: Colors.orange),
+                    const SizedBox(height: 8),
+                    Text(_error!, style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 12),
+                    TextButton(onPressed: _loadStats, child: const Text('Retry')),
+                  ]),
+                )
               : SafeArea(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final kpiCols = width >= 1400 ? 4 : (width >= 1024 ? 3 : 2);
-                      final chartCols = width >= 1024 ? 2 : 1;
-
-                      return ListView(
-                        padding: const EdgeInsets.all(12),
-                        children: [
-                          _buildTopBar(l10n, width),
-                          if (_alerts.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            _buildAlertsSection(),
+                      final wide = constraints.maxWidth >= 1000;
+                      return RefreshIndicator(
+                        onRefresh: _loadStats,
+                        child: ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: [
+                            _buildTopBar(),
+                            const SizedBox(height: 16),
+                            _buildTopKpiRow(wide),
+                            const SizedBox(height: 16),
+                            wide
+                                ? Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(flex: 2, child: _buildReservationsCard()),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 3, child: _buildCampaignOverviewCard()),
+                                    ],
+                                  )
+                                : Column(children: [
+                                    _buildReservationsCard(),
+                                    const SizedBox(height: 16),
+                                    _buildCampaignOverviewCard(),
+                                  ]),
+                            const SizedBox(height: 16),
+                            wide
+                                ? Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(flex: 2, child: _buildRecentActivitiesCard()),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 2, child: _buildRevenueStatCard(revenue)),
+                                      const SizedBox(width: 16),
+                                      Expanded(flex: 2, child: _buildBookingsCard()),
+                                    ],
+                                  )
+                                : Column(children: [
+                                    _buildRecentActivitiesCard(),
+                                    const SizedBox(height: 16),
+                                    _buildRevenueStatCard(revenue),
+                                    const SizedBox(height: 16),
+                                    _buildBookingsCard(),
+                                  ]),
+                            const SizedBox(height: 16),
+                            _buildKeyRatios(revenue, outstanding, net),
+                            const SizedBox(height: 20),
                           ],
-                          const SizedBox(height: 12),
-                          _buildKpiGrid(l10n, kpiCols, revenue, prevRevenue, expenses, prevExpenses, net, prevNet, outstanding, prevOutstanding),
-                          const SizedBox(height: 12),
-                          _buildChartsGrid(chartCols),
-                          const SizedBox(height: 12),
-                          _buildFinancialDetails(revenue, outstanding, net),
-                          const SizedBox(height: 10),
-                          _buildBillingHealth(),
-                          const SizedBox(height: 10),
-                          _buildTeacherSummary(),
-                          const SizedBox(height: 10),
-                          _buildEnrollmentTrend(),
-                          const SizedBox(height: 10),
-                          _buildClassroomUtilization(),
-                          const SizedBox(height: 10),
-                          _buildKeyRatios(revenue, outstanding, net),
-                          if (_liveSessions.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            _buildLiveSection(),
-                          ],
-                          const SizedBox(height: 10),
-                          _buildChartCard('Debt Aging', DashboardDonutChart(database: widget.database, type: 'debt_aging')),
-                          const SizedBox(height: 10),
-                          Card(color: ShellTokens.chromeSurface, child: Padding(padding: const EdgeInsets.all(12), child: DashboardHeatmap(database: widget.database))),
-                          const SizedBox(height: 20),
-                        ],
+                        ),
                       );
                     },
                   ),
@@ -252,334 +260,505 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTopBar(AppLocalizations l10n, double width) {
-    final stacked = width < 1100;
-    final dateFilter = _buildDateFilter(l10n);
-    final quickActions = _buildQuickActions(l10n);
-    if (stacked) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        dateFilter,
-        const SizedBox(height: 8),
-        quickActions,
-      ]);
-    }
-    return Row(children: [
-      dateFilter,
-      const SizedBox(width: 16),
-      Expanded(child: quickActions),
-    ]);
-  }
-
-  Widget _buildDateFilter(AppLocalizations l10n) {
-    String fmtDt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      _buildDateBtn(l10n.from, _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }, fmtDt),
-      const SizedBox(width: 8),
-      _buildDateBtn(l10n.to, _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }, fmtDt),
-      if (_dateFrom != null || _dateTo != null) ...[
-        const SizedBox(width: 4),
-        IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary),
-          onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
-          padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 24, minHeight: 24)),
-      ],
-    ]);
-  }
-
-  Widget _buildDateBtn(String label, DateTime? value, ValueChanged<DateTime> onPick, String Function(DateTime) fmt) {
-    return GestureDetector(
-      onTap: () async {
-        final d = await showDatePicker(context: context, initialDate: value ?? DateTime.now(),
-            firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
-        if (d != null) onPick(d);
-      },
-      child: Container(
-        height: 34, padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(color: ShellTokens.chromeSurface, borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: value != null ? ShellTokens.accent : ShellTokens.chromeBorder)),
-        child: Center(child: Text(
-          value != null ? fmt(value) : label,
-          style: TextStyle(fontSize: 11, color: value != null ? ShellTokens.textPrimary : ShellTokens.textDisabled))),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(AppLocalizations l10n) {
-    return SizedBox(
-      height: 44,
-      child: ListView(scrollDirection: Axis.horizontal, children: [
-        _actionBtn(PhosphorIcons.currencyCircleDollar, 'Record Payment', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => UnifiedPaymentScreen(database: widget.database)));
-        }),
-        _actionBtn(PhosphorIcons.checkCircle, l10n.checkIn, () {}),
-        _actionBtn(PhosphorIcons.chalkboardTeacher, 'Pay Teacher', () {}),
-        _actionBtn(PhosphorIcons.plus, 'New Student', () {}),
-        _actionBtn(PhosphorIcons.calendar, 'Today', () {}),
-      ]),
-    );
-  }
-
-  Widget _actionBtn(IconData icon, String label, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 6),
-      child: Material(
-        color: ShellTokens.chromeSurface,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(borderRadius: BorderRadius.circular(8), onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, size: 16, color: ShellTokens.accent),
-              const SizedBox(width: 6),
-              Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+  // ================== Top Bar (search + date filter) ==================
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(10)),
+            child: const Row(children: [
+              Icon(Icons.search, color: Colors.white38, size: 18),
+              SizedBox(width: 8),
+              Text('Search...', style: TextStyle(color: Colors.white38, fontSize: 12)),
             ]),
           ),
         ),
+        const SizedBox(width: 12),
+        _dateChip('From', _dateFrom, (d) { setState(() => _dateFrom = d); _loadStats(); }),
+        const SizedBox(width: 8),
+        _dateChip('To', _dateTo, (d) { setState(() => _dateTo = d); _loadStats(); }),
+        if (_dateFrom != null || _dateTo != null) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Colors.white38),
+            onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadStats(); },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _dateChip(String label, DateTime? value, ValueChanged<DateTime> onPick) {
+    String fmt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    return GestureDetector(
+      onTap: () async {
+        final d = await showDatePicker(context: context, initialDate: value ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
+        if (d != null) onPick(d);
+      },
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(10)),
+        child: Center(child: Text(value != null ? fmt(value) : label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
       ),
     );
   }
 
+  // ================== Alerts (Needs Attention) ==================
   Widget _buildAlertsSection() {
-    return Card(
-      color: ShellTokens.chromeSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+    if (_alerts.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Row(children: [
-            const Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.warning),
+            const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orangeAccent),
             const SizedBox(width: 6),
-            const Text('Needs Attention', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            const Text('Needs Attention', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
           ]),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           ..._alerts.take(3).map((a) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(children: [
-              Icon(a['icon'] as IconData, size: 12, color: a['color'] as Color),
-              const SizedBox(width: 6),
-              Expanded(child: Text(a['text'] as String, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              const Icon(PhosphorIcons.caretRight, size: 10, color: ShellTokens.textDisabled),
-            ]),
-          )),
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(children: [
+                  Icon(a['icon'] as IconData, size: 13, color: a['color'] as Color),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(a['text'] as String, style: const TextStyle(fontSize: 12, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.chevron_right, size: 12, color: Colors.white24),
+                ]),
+              )),
           if (_alerts.length > 3)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text('+${_alerts.length - 3} more', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+              child: Text('+${_alerts.length - 3} more', style: const TextStyle(fontSize: 10, color: Colors.white38)),
             ),
-        ]),
+        ],
       ),
     );
   }
 
-  Widget _buildKpiGrid(AppLocalizations l10n, int columns, double revenue, double prevRevenue, double expenses, double prevExpenses, double net, double prevNet, double outstanding, double prevOutstanding) {
+  // ================== Top KPI Cards ==================
+  Widget _buildTopKpiRow(bool wide) {
     final cards = [
-      _kpiCard(l10n.totalStudents, _totalStudents.toDouble(), PhosphorIcons.users, ShellTokens.accent),
-      _kpiCard(l10n.totalTeachers, _totalTeachers.toDouble(), PhosphorIcons.chalkboardTeacher, const Color(0xFF5B8C5A)),
-      _kpiCard('Revenue', revenue, PhosphorIcons.trendUp, SemanticTokens.success, prevValue: prevRevenue, suffix: AppConstants.currencySymbol),
-      _kpiCard('Expenses', expenses, PhosphorIcons.currencyCircleDollar, SemanticTokens.error, prevValue: prevExpenses, suffix: AppConstants.currencySymbol),
-      _kpiCard('Net', net, PhosphorIcons.chartBar, net >= 0 ? SemanticTokens.success : SemanticTokens.error, prevValue: prevNet, suffix: AppConstants.currencySymbol),
-      _kpiCard(l10n.outstandingDebts, outstanding, PhosphorIcons.wallet, outstanding > 0 ? const Color(0xFFC2483D) : SemanticTokens.success, prevValue: prevOutstanding, suffix: AppConstants.currencySymbol),
+      _gradientKpiCard(
+        icon: Icons.account_balance_wallet_outlined,
+        label: 'Outstanding',
+        value: '${(_metrics['outstanding'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+        gradient: const [Color(0xFF8A5A1A), Color(0xFFC2823A)],
+      ),
+      _gradientKpiCard(
+        icon: Icons.trending_up,
+        label: 'Revenue',
+        value: '${(_metrics['revenue'] ?? 0).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+        gradient: const [Color(0xFF6E2E8C), Color(0xFF8C3FB0)],
+      ),
+      _gradientKpiCard(
+        icon: Icons.school_outlined,
+        label: 'Total Teachers',
+        value: _totalTeachers.toString(),
+        gradient: const [Color(0xFF7A2A5C), Color(0xFF9B3A78)],
+      ),
+      _gradientKpiCard(
+        icon: Icons.groups_outlined,
+        label: 'Total Students',
+        value: _totalStudents.toString(),
+        gradient: const [Color(0xFF0F3D3E), Color(0xFF145C5C)],
+      ),
     ];
 
-    final grid = <Widget>[];
-    for (var i = 0; i < cards.length; i += columns) {
-      final row = <Widget>[];
-      for (var j = i; j < i + columns && j < cards.length; j++) {
-        row.add(Expanded(child: cards[j]));
-        if (j < i + columns - 1) row.add(const SizedBox(width: 8));
-      }
-      grid.add(Row(children: row));
-      if (i + columns < cards.length) grid.add(const SizedBox(height: 8));
+    if (!wide) {
+      return Column(
+        children: [
+          Row(children: [Expanded(child: cards[0]), const SizedBox(width: 12), Expanded(child: cards[1])]),
+          const SizedBox(height: 12),
+          Row(children: [Expanded(child: cards[2]), const SizedBox(width: 12), Expanded(child: cards[3])]),
+        ],
+      );
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: grid);
+    return Row(
+      children: cards
+          .map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: c)))
+          .toList(),
+    );
   }
 
-  Widget _kpiCard(String label, double value, IconData icon, Color color, {double prevValue = 0, String suffix = ''}) {
-    final trendLabel = prevValue != 0 ? _trendLabel(value, prevValue) : '';
-    final trendColor = prevValue != 0 ? _trendColor(value, prevValue) : ChartTokens.trendNeutral;
-    final trendIcon = prevValue != 0 ? _trendIcon(value, prevValue) : null;
-
-    return SizedBox(
-      height: 96,
-      child: Card(
-        color: ShellTokens.chromeSurface,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(height: 3),
-            _AnimatedNumber(value: value, suffix: suffix, color: color, fontSize: 16),
-            const SizedBox(height: 1),
-            Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (trendLabel.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                if (trendIcon != null) Icon(trendIcon, size: 10, color: trendColor),
-                if (trendIcon != null) const SizedBox(width: 2),
-                Text(trendLabel.startsWith('-') ? trendLabel.substring(1) : trendLabel, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: trendColor)),
-              ]),
+  Widget _gradientKpiCard({required IconData icon, required String label, required String value, required List<Color> gradient}) {
+    return Container(
+      height: 110,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: Colors.white70, size: 18),
+              const Icon(Icons.more_horiz, color: Colors.white38, size: 16),
             ],
-          ]),
-        ),
+          ),
+          const Spacer(),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        ],
       ),
     );
   }
 
-  Widget _buildChartsGrid(int columns) {
-    final charts = [
-      _buildChartCard('Monthly Revenue vs Expenses', DashboardBarChart(database: widget.database)),
-      _buildChartCard('Revenue Trend', DashboardLineChart(database: widget.database)),
-      _buildChartCard('Payment Methods', DashboardDonutChart(database: widget.database, type: 'payment_method')),
-      _buildChartCard('Students by Level', DashboardDonutChart(database: widget.database, type: 'student_level')),
-    ];
+  // ================== Reservations / Active Students (Circular) ==================
+  Widget _buildReservationsCard() {
+    final revenue = _metrics['revenue'] ?? 0;
+    final capacityPct = _totalStudents > 0 ? (_activeStudentCount / _totalStudents).clamp(0.0, 1.0) : 0.0;
 
-    if (columns == 1) {
-      return Column(children: charts.map((c) => Padding(padding: const EdgeInsets.only(bottom: 10), child: c)).toList());
-    }
-    return Column(children: [
-      Row(children: [Expanded(child: charts[0]), const SizedBox(width: 10), Expanded(child: charts[1])]),
-      const SizedBox(height: 10),
-      Row(children: [Expanded(child: charts[2]), const SizedBox(width: 10), Expanded(child: charts[3])]),
-    ]);
-  }
-
-  Widget _buildChartCard(String title, Widget chart) {
-    return Card(
-      color: ShellTokens.chromeSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 6),
-          SizedBox(height: 200, child: ClipRect(child: chart)),
-        ]),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Active Students', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 140,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(140, 140),
+                  painter: _CircularPercentPainter(percent: capacityPct, color: const Color(0xFF7C4DFF), trackColor: Colors.white12),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$_activeStudentCount', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                    const Text('Active', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text('${revenue.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+          const Text('Total Revenue This Period', style: TextStyle(color: Colors.white38, fontSize: 10)),
+        ],
       ),
     );
   }
 
+  // ================== Campaign / Revenue Trend (Line Chart) ==================
+  Widget _buildCampaignOverviewCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Revenue Trend', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
+                child: const Text('This Period', style: TextStyle(color: Colors.white70, fontSize: 10)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(height: 160, child: DashboardLineChart(database: widget.database)),
+        ],
+      ),
+    );
+  }
+
+  // ================== Recent Activities (from alerts) ==================
+  Widget _buildRecentActivitiesCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Recent Activities', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text('View All', style: TextStyle(color: Colors.white38, fontSize: 10)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_alerts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('No recent activity', style: TextStyle(color: Colors.white24, fontSize: 11)),
+            ),
+          ..._alerts.take(5).map((a) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: (a['color'] as Color).withOpacity(0.2),
+                      child: Icon(a['icon'] as IconData, size: 14, color: a['color'] as Color),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(a['text'] as String, style: const TextStyle(color: Colors.white70, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  // ================== Revenue Stat (Bar Chart) ==================
+  Widget _buildRevenueStatCard(double revenue) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Revenue Stat', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text('${revenue.toStringAsFixed(2)} ${AppConstants.currencySymbol}',
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          SizedBox(height: 100, child: DashboardBarChart(database: widget.database)),
+        ],
+      ),
+    );
+  }
+
+  // ================== Enrollments (Bookings-style bar) ==================
+  Widget _buildBookingsCard() {
+    final newE = _enrollmentTrend['newEnrollments'] ?? 0;
+    final dropped = _enrollmentTrend['dropped'] ?? 0;
+    final total = newE + dropped;
+    final pct = total > 0 ? newE / total : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Enrollments', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text('$total', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+          const Text('Total This Period', style: TextStyle(color: Colors.white38, fontSize: 10)),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(value: pct, minHeight: 8, backgroundColor: Colors.red.withOpacity(0.3), color: Colors.green),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('dropped $dropped', style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
+              Text('new $newE', style: const TextStyle(color: Colors.green, fontSize: 11)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================== Financial Details ==================
   Widget _buildFinancialDetails(double revenue, double outstanding, double net) {
     final avgRevenue = _activeStudentCount > 0 ? (revenue / _activeStudentCount) : 0.0;
     final netAfterDiscounts = net - _familyDiscount;
-    return _sectionCard('Financial Details', [
-      _finRow('Collection Rate', _collectionRateLabel),
-      _finRow('Family Discounts', '${_familyDiscount.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
-      _finRow('Net After Discounts', '${netAfterDiscounts.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
-      _finRow('Avg Revenue / Student', '${avgRevenue.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
-      _finRow('Active Students', '$_activeStudentCount'),
-    ]);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Financial Details', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          _finRow('Collection Rate', _collectionRateLabel),
+          _finRow('Family Discounts', '${_familyDiscount.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Net After Discounts', '${netAfterDiscounts.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Avg Revenue / Student', '${avgRevenue.toStringAsFixed(0)} ${AppConstants.currencySymbol}'),
+          _finRow('Active Students', '$_activeStudentCount'),
+        ],
+      ),
+    );
   }
 
+  Widget _finRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  // ================== Billing Cycle Health ==================
   Widget _buildBillingHealth() {
     final open = _billingHealth['openCycles'] ?? 0;
     final closed = _billingHealth['closedCycles'] ?? 0;
     final mid = _billingHealth['midCycleStudents'] ?? 0;
-    return _sectionCard('Billing Cycle Health', [
-      Row(children: [
-        _healthStat('Open Cycles', '$open', SemanticTokens.warning),
-        _healthStat('Closed Cycles', '$closed', SemanticTokens.success),
-        _healthStat('Mid-Cycle', '$mid', ShellTokens.accent),
-      ]),
-    ]);
-  }
-
-  Widget _buildTeacherSummary() {
-    final topTeachers = _teacherSummary['topOverdueTeachers'] as List? ?? [];
-    return _sectionCard('Teacher Payouts', [
-      Text('Total Payouts: ${(_teacherSummary['totalPayouts'] as double?)?.toStringAsFixed(0) ?? '0'} ${AppConstants.currencySymbol}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-      if (topTeachers.isNotEmpty) ...[
-        const SizedBox(height: 4),
-        const Text('Nearest to Overdue:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ShellTokens.textDisabled)),
-        const SizedBox(height: 2),
-        ...topTeachers.take(5).map((t) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 1),
-          child: Text('${t['name']} (${t['code']})', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
-        )),
-      ],
-    ]);
-  }
-
-  Widget _buildEnrollmentTrend() {
-    final newE = _enrollmentTrend['newEnrollments'] ?? 0;
-    final dropped = _enrollmentTrend['dropped'] ?? 0;
-    return _sectionCard('Enrollment Trend', [
-      Row(children: [
-        _healthStat('New', '$newE', SemanticTokens.success),
-        _healthStat('Dropped', '$dropped', SemanticTokens.error),
-        _healthStat('Net', '${newE - dropped}', newE - dropped >= 0 ? SemanticTokens.success : SemanticTokens.error),
-      ]),
-    ]);
-  }
-
-  Widget _buildClassroomUtilization() {
-    return _sectionCard('Classroom Utilization', [
-      ..._classrooms.take(8).map((c) {
-        final capacity = (c['capacity'] as int?) ?? 1;
-        final sessions = (c['sessionCount'] as int?) ?? 0;
-        final pct = capacity > 0 ? (sessions * 100 ~/ capacity).clamp(0, 100).toDouble() / 100 : 0.0;
-        final isLow = pct < 0.2;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Row(children: [
-            SizedBox(width: 80, child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 6),
-            Expanded(child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(value: pct, minHeight: 6, backgroundColor: ShellTokens.chromeBorder, color: isLow ? SemanticTokens.warning : SemanticTokens.success),
-            )),
-            const SizedBox(width: 6),
-            Text('$sessions/$capacity', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
-            if (isLow) Container(
-              margin: const EdgeInsetsDirectional.only(start: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-              decoration: BoxDecoration(color: SemanticTokens.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2)),
-              child: const Text('low', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: SemanticTokens.warning)),
-            ),
-          ]),
-        );
-      }),
-    ]);
-  }
-
-  Widget _buildKeyRatios(double revenue, double outstanding, double net) {
-    final collectionRate = revenue > 0 ? ((revenue - outstanding) / revenue).clamp(0, 1).toDouble() : 0.0;
-    final netMargin = revenue > 0 ? (net / revenue).clamp(-1, 1).toDouble() : 0.0;
-    final activeRatio = _totalStudents > 0 ? (_activeStudentCount / _totalStudents).clamp(0, 1).toDouble() : 0.0;
-
-    return Card(
-      color: ShellTokens.chromeSurface,
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Key Ratios', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Billing Cycle Health', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 160,
-            child: Row(children: [
-              Expanded(child: _AnimatedCircularPercent(label: 'Collection Rate', percent: collectionRate, color: SemanticTokens.success)),
-              const SizedBox(width: 8),
-              Expanded(child: _AnimatedCircularPercent(label: 'Net Margin', percent: netMargin.abs(), color: net >= 0 ? SemanticTokens.success : SemanticTokens.error, negative: net < 0)),
-              const SizedBox(width: 8),
-              Expanded(child: _AnimatedCircularPercent(label: 'Active Students', percent: activeRatio, color: ShellTokens.accent)),
-            ]),
-          ),
+          Row(children: [
+            _healthStat('Open Cycles', '$open', Colors.orangeAccent),
+            _healthStat('Closed Cycles', '$closed', Colors.greenAccent),
+            _healthStat('Mid-Cycle', '$mid', const Color(0xFF7C4DFF)),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _healthStat(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+        child: Column(children: [
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.white60), textAlign: TextAlign.center),
         ]),
       ),
     );
   }
 
-  Widget _buildLiveSection() {
-    return Card(
-      color: ShellTokens.chromeSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+  // ================== Teacher Payout Summary ==================
+  Widget _buildTeacherSummary() {
+    final topTeachers = _teacherSummary['topOverdueTeachers'] as List? ?? [];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Teacher Payouts', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text('Total Payouts: ${(_teacherSummary['totalPayouts'] as double?)?.toStringAsFixed(0) ?? '0'} ${AppConstants.currencySymbol}',
+              style: const TextStyle(fontSize: 12, color: Colors.white60)),
+          if (topTeachers.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text('Nearest to Overdue:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white38)),
+            const SizedBox(height: 4),
+            ...topTeachers.take(5).map((t) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text('${t['name']} (${t['code']})', style: const TextStyle(fontSize: 11, color: Colors.white60)),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ================== Enrollment Trend ==================
+  Widget _buildEnrollmentTrend() {
+    final newE = _enrollmentTrend['newEnrollments'] ?? 0;
+    final dropped = _enrollmentTrend['dropped'] ?? 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Enrollment Trend', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
           Row(children: [
-            Container(width: 8, height: 8, decoration: const BoxDecoration(color: SemanticTokens.success, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            const Text('Live Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            _healthStat('New', '$newE', Colors.greenAccent),
+            _healthStat('Dropped', '$dropped', Colors.redAccent),
+            _healthStat('Net', '${newE - dropped}', newE - dropped >= 0 ? Colors.greenAccent : Colors.redAccent),
           ]),
-          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
+
+  // ================== Classroom Utilization ==================
+  Widget _buildClassroomUtilization() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Classroom Utilization', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          ..._classrooms.take(8).map((c) {
+            final capacity = (c['capacity'] as int?) ?? 1;
+            final sessions = (c['sessionCount'] as int?) ?? 0;
+            final pct = capacity > 0 ? (sessions * 100 ~/ capacity).clamp(0, 100).toDouble() / 100 : 0.0;
+            final isLow = pct < 0.2;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(children: [
+                SizedBox(width: 80, child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white60), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                Expanded(child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(value: pct, minHeight: 7, backgroundColor: Colors.white12, color: isLow ? Colors.orangeAccent : Colors.greenAccent),
+                )),
+                const SizedBox(width: 8),
+                Text('$sessions/$capacity', style: const TextStyle(fontSize: 10, color: Colors.white38)),
+                if (isLow) Container(
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.orangeAccent.withOpacity(0.15), borderRadius: BorderRadius.circular(3)),
+                  child: const Text('low', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: Colors.orangeAccent)),
+                ),
+              ]),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ================== Live Sessions ==================
+  Widget _buildLiveSection() {
+    if (_liveSessions.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [
+            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            const Text('Live Now', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+          ]),
+          const SizedBox(height: 8),
           SizedBox(
-            height: 58,
+            height: 60,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _liveSessions.length,
@@ -587,68 +766,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final s = _liveSessions[i];
                 return Container(
                   width: 200,
-                  margin: const EdgeInsetsDirectional.only(end: 8),
+                  margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: ShellTokens.chromeBase.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(6), border: Border.all(color: SemanticTokens.success.withValues(alpha: 0.3))),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.greenAccent.withOpacity(0.3))),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
                     Row(children: [
-                      Expanded(child: Text(s['groupName'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text(s['groupName'] ?? '', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis)),
                       const SizedBox(width: 4),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: SemanticTokens.success.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)), child: const Text('Live', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: SemanticTokens.success))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(3)), child: const Text('Live', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.greenAccent))),
                     ]),
                     const SizedBox(height: 2),
-                    Text('${s['time'] ?? ''} · ${s['teacherName'] ?? ''}', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('${s['attendance']} present', style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary)),
+                    Text('${s['time'] ?? ''} · ${s['teacherName'] ?? ''}', style: const TextStyle(fontSize: 9, color: Colors.white38), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('${s['attendance']} present', style: const TextStyle(fontSize: 9, color: Colors.white60)),
                   ]),
                 );
               },
             ),
           ),
-        ]),
+        ],
       ),
     );
   }
 
-  Widget _sectionCard(String title, List<Widget> children) {
-    return Card(
-      color: ShellTokens.chromeSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-          const SizedBox(height: 6),
-          ...children,
-        ]),
-      ),
-    );
-  }
+  // ================== Key Ratios ==================
+  Widget _buildKeyRatios(double revenue, double outstanding, double net) {
+    final collectionRate = revenue > 0 ? ((revenue - outstanding) / revenue).clamp(0, 1).toDouble() : 0.0;
+    final netMargin = revenue > 0 ? (net / revenue).clamp(-1, 1).toDouble() : 0.0;
+    final activeRatio = _totalStudents > 0 ? (_activeStudentCount / _totalStudents).clamp(0, 1).toDouble() : 0.0;
 
-  Widget _finRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-      ]),
-    );
-  }
-
-  Widget _healthStat(String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-        child: Column(children: [
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 9, color: ShellTokens.textSecondary), textAlign: TextAlign.center),
-        ]),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF17171A), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Key Ratios', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 160,
+            child: Row(children: [
+              Expanded(child: _AnimatedCircularPercent(label: 'Collection Rate', percent: collectionRate, color: Colors.greenAccent)),
+              const SizedBox(width: 8),
+              Expanded(child: _AnimatedCircularPercent(label: 'Net Margin', percent: netMargin.abs(), color: net >= 0 ? Colors.greenAccent : Colors.redAccent, negative: net < 0)),
+              const SizedBox(width: 8),
+              Expanded(child: _AnimatedCircularPercent(label: 'Active Students', percent: activeRatio, color: const Color(0xFF7C4DFF))),
+            ]),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ================== Animated Number ==================
 class _AnimatedNumber extends StatefulWidget {
   final double value;
   final String suffix;
@@ -699,6 +869,7 @@ class _AnimatedCounterState extends State<_AnimatedNumber> with TickerProviderSt
   }
 }
 
+// ================== Animated Circular Percent ==================
 class _AnimatedCircularPercent extends StatefulWidget {
   final String label;
   final double percent;
@@ -746,7 +917,7 @@ class _AnimatedCircularPercentState extends State<_AnimatedCircularPercent> with
           child: AnimatedBuilder(
             animation: _anim,
             builder: (_, __) => CustomPaint(
-              painter: _CircularPercentPainter(percent: _anim.value, color: widget.color, trackColor: ShellTokens.chromeBorder),
+              painter: _CircularPercentPainter(percent: _anim.value, color: widget.color, trackColor: Colors.white12),
               child: Center(
                 child: Text(
                   '${widget.negative ? '-' : ''}${(_anim.value * 100).toStringAsFixed(0)}%',
@@ -757,12 +928,13 @@ class _AnimatedCircularPercentState extends State<_AnimatedCircularPercent> with
           ),
         ),
         const SizedBox(height: 6),
-        Text(widget.label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(widget.label, style: const TextStyle(fontSize: 11, color: Colors.white70), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
       ]);
     });
   }
 }
 
+// ================== Circular Percent Painter ==================
 class _CircularPercentPainter extends CustomPainter {
   final double percent;
   final Color color;
