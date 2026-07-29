@@ -1013,3 +1013,32 @@ for (final s in sessions) {
 - **Fix:** Error message now includes the actual exception text (`'Failed to load board: $e'`). Query `.map()` now uses `r.read<String?>(...) ?? ''` for LEFT JOIN nullable columns. `getClassroomUtilization()` now wrapped in its own try/catch to prevent one failing query from blocking the entire board. Added `debugPrint` of the full stack trace for console diagnostics.
 - **If the error recurs:** The visible exception text will reveal the exact cause (e.g., missing column, type mismatch, null reference). If the migration from v11 to v12 didn't run (column `attendance.status` not found in existing DB), the error will say so explicitly. The fix for that case is a clean rebuild or verifying the schema version in the generated `.g.dart` file.
 - **Impact scope:** Same class of null-safety bug also checked in `getSessionRoster()`, `getLiveAttendanceCounts()`, and `getRepeatedAbsenceStudents()` — those already used nullable reads correctly.
+
+### Round 11 — Live Attendance Board Enhancements
+
+#### Fix 1: Section visibility
+- **Root cause:** `_buildBoard()` used `isNotEmpty` guards on Live/Upcoming/Completed section headers, so empty sections were never rendered. Additionally, when all sessions share the same time block (common in schools), every session classifies as "live" and the other two sections perpetually show nothing.
+- **Fix:** Sections always render with an italic empty-state placeholder ("No sessions in progress right now", "No upcoming sessions remaining today", "No sessions completed yet today"). The 5-second periodic timer now also re-runs the full time-based session classification via `_reclassifySessions()`, so sessions correctly transition from Upcoming to Live to Completed as clock time crosses start/end boundaries without needing a manual refresh.
+
+#### Feature 2: Separate teacher check-in section
+- **Phase 1 — Remove mode toggle:** Removed the student/teacher mode toggle button from the barcode bar. The barcode input now always handles student check-in.
+- **Phase 2 — Dedicated section:** Added a collapsed-by-default `ExpansionTile` titled "Teacher check-in" below the top bar with a live count badge showing how many teachers have checked in today.
+- **Phase 3 — Debounced name search:** A `TextField` inside the tile calls `TeacherRepository.search()` with a 300ms debounce, showing live results as `ListTile`s (name, code). Tapping a result triggers the new `_processTeacherByName(Teacher)` method.
+- **Phase 4 — Check-in flow:** `_processTeacherByName` reuses the same duplicate-check, attendance-creation, and payout logic from the old `_processTeacher` barcode method, but accepts a `Teacher` object directly. Added `getTodayTeacherCheckinCount()` database query for the badge. Removed unused `_mode` field, barcode-based teacher check-in, and `_auditRepo` / `AuditLogRepository` / `_manualSearch` imports.
+
+#### Feature 3: Student name search
+- **Phase 1 — Inline search bar:** Replaced the old dialog-based `_manualSearch` with a debounced inline search bar that toggles via the magnifying-glass icon in the barcode bar. The icon turns accent-colored when search is active.
+- **Phase 2 — Live results:** `StudentRepository.search()` is called on every keystroke with a 300ms debounce. Results appear in a scrollable list below the search field with avatar initials, name, and code.
+- **Phase 3 — Check-in flow:** Tapping a result calls `_studentSearchCheckin(Student)`, which delegates to the same `_completeStudentCheckin` / `_showSessionPicker` flow used by barcode scanning.
+
+#### Feature 4: Room-based grid view
+- **Phase 1 — Database query:** Added `getTodayRoomGrid()` in `app_database.dart` — a single LEFT-JOIN query across classrooms, today's active sessions, subject groups, teachers, enrollments, students, and today's attendance. Returns flat rows that are grouped by classroom/session in Dart.
+- **Phase 2 — Tab toggle:** A "By time" / "By room" `SegmentedButton`-style toggle above the board content switches between the existing chronological view and the new room grid.
+- **Phase 3 — Room card UI:** Each classroom renders as a `Card` (280px wide, max 320px tall) showing: classroom name, capacity badge, current session group/teacher/time (or "Next at HH:MM" for upcoming rooms, or "No sessions today" for idle rooms). Active rooms show two internally-scrollable lists: Present (green) and Absent (red) with student names.
+- **Phase 4 — Amber low-attendance tint:** When a session has elapsed past its halfway point and attendance is below 50%, the room card background tints amber.
+- **Phase 5 — Floor filter:** If more than one floor exists in the classrooms table, filter chips ("All floors", "Floor 1", "Floor 2", ...) appear above the grid.
+- **Phase 6 — Live refresh:** The 5-second timer refreshes room grid data via `getTodayRoomGrid()` when the room tab is active, so present/absent counts update in near-real-time.
+
+### Cleanup
+- Removed unused imports: `chart_tokens.dart`, `classroom_repository.dart`, `audit_log_repository.dart`, `app_localizations.dart`.
+- Removed unused field `_auditRepo` and method `_manualSearch`.
