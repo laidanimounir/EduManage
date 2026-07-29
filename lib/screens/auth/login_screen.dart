@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/user_repository.dart';
 import '../../widgets/language_switcher.dart';
+import '../../constants/theme_tokens.dart';
 
 class LoginScreen extends StatefulWidget {
   final AppDatabase database;
@@ -25,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _usernameFocus = FocusNode();
   bool _loading = false;
   String? _errorMessage;
   Locale? _locale;
@@ -36,13 +39,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   bool _exiting = false;
   User? _pendingUser;
 
+  bool _obscurePassword = true;
+
+  int _failedAttempts = 0;
+  DateTime? _lockoutUntil;
+  Timer? _lockoutTimer;
+  int _lockoutSeconds = 0;
+
   @override
   void initState() {
     super.initState();
     _userRepo = UserRepository(widget.database);
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
 
@@ -64,7 +74,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       }
     });
 
-    _controller.forward();
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override
@@ -73,9 +85,44 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _locale = Localizations.localeOf(context);
   }
 
+  bool get _isLockedOut {
+    if (_lockoutUntil == null) return false;
+    if (DateTime.now().isAfter(_lockoutUntil!)) {
+      _clearLockout();
+      return false;
+    }
+    return true;
+  }
+
+  void _startLockout() {
+    _lockoutUntil = DateTime.now().add(const Duration(seconds: 45));
+    _lockoutSeconds = 45;
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_lockoutUntil == null) return;
+      final remaining = _lockoutUntil!.difference(DateTime.now()).inSeconds;
+      if (remaining <= 0) {
+        _clearLockout();
+        if (mounted) setState(() {});
+        return;
+      }
+      setState(() => _lockoutSeconds = remaining);
+    });
+    if (mounted) setState(() => _lockoutSeconds = 45);
+  }
+
+  void _clearLockout() {
+    _lockoutUntil = null;
+    _lockoutTimer?.cancel();
+    _lockoutTimer = null;
+    _lockoutSeconds = 0;
+  }
+
   Future<void> _login() async {
     final l10n = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
+    if (_isLockedOut) return;
 
     setState(() {
       _loading = true;
@@ -91,11 +138,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       if (!mounted) return;
 
       if (user != null) {
+        _failedAttempts = 0;
+        _clearLockout();
         _pendingUser = user;
+        _usernameFocus.unfocus();
         setState(() => _exiting = true);
         _controller.reverse();
       } else {
-        setState(() => _errorMessage = l10n.invalidCredentials);
+        _failedAttempts++;
+        if (_failedAttempts >= 5) {
+          _startLockout();
+          setState(() => _errorMessage = l10n.invalidCredentials);
+        } else {
+          setState(() => _errorMessage = l10n.invalidCredentials);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -109,6 +165,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final formDisabled = _loading || _exiting || _isLockedOut;
 
     return Scaffold(
       appBar: AppBar(
@@ -121,97 +178,155 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SlideTransition(
-                      position: _rightSlide,
-                      child: FadeTransition(
-                        opacity: _fade,
-                        child: Column(children: [
-                          Icon(Icons.school, size: 80, color: Theme.of(context).primaryColor),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.appName,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return Row(children: [
+            Expanded(
+              child: SlideTransition(
+                position: _leftSlide,
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 48),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                controller: _usernameCtrl,
+                                focusNode: _usernameFocus,
+                                autofocus: true,
+                                enabled: !formDisabled,
+                                decoration: InputDecoration(
+                                  labelText: l10n.username,
+                                  prefixIcon: const Icon(Icons.person),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                textInputAction: TextInputAction.next,
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _passwordCtrl,
+                                enabled: !formDisabled,
+                                obscureText: _obscurePassword,
+                                decoration: InputDecoration(
+                                  labelText: l10n.password,
+                                  prefixIcon: const Icon(Icons.lock),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                      size: 20,
+                                      color: ShellTokens.textSecondary,
+                                    ),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: formDisabled ? null : (_) => _login(),
+                                validator: (v) =>
+                                    (v == null || v.isEmpty) ? l10n.fieldRequired : null,
+                              ),
+                              const SizedBox(height: 12),
+                              if (_isLockedOut)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFC2823A).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFC2823A).withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(children: [
+                                    const Icon(Icons.timer, size: 16, color: Color(0xFFC2823A)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(
+                                      'Too many attempts. Try again in ${_lockoutSeconds}s',
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFFC2823A), fontWeight: FontWeight.w500),
+                                    )),
+                                  ]),
+                                )
+                              else if (_errorMessage != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(children: [
+                                    const Icon(Icons.error_outline, size: 16, color: Colors.redAccent),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                                    )),
+                                  ]),
+                                ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: formDisabled ? null : _login,
+                                  child: _loading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2.5, color: ShellTokens.chromeBase),
+                                        )
+                                      : Text(l10n.login),
+                                ),
+                              ),
+                            ],
                           ),
-                        ]),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    SlideTransition(
-                      position: _leftSlide,
-                      child: FadeTransition(
-                        opacity: _fade,
-                        child: Column(children: [
-                          TextFormField(
-                            controller: _usernameCtrl,
-                            decoration: InputDecoration(
-                              labelText: l10n.username,
-                              prefixIcon: const Icon(Icons.person),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            textInputAction: TextInputAction.next,
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordCtrl,
-                            decoration: InputDecoration(
-                              labelText: l10n.password,
-                              prefixIcon: const Icon(Icons.lock),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            obscureText: true,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_loading || _exiting) ? null : (_) => _login(),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? l10n.fieldRequired : null,
-                          ),
-                          const SizedBox(height: 8),
-                          if (_errorMessage != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: SlideTransition(
+                position: _rightSlide,
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: Container(
+                    color: ShellTokens.chromeSurface,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(48),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.school, size: 120, color: ShellTokens.accent),
+                            const SizedBox(height: 24),
+                            Text(
+                              l10n.appName,
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: ShellTokens.textPrimary,
                               ),
                             ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: (_loading || _exiting) ? null : _login,
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : Text(l10n.login),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.login,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: ShellTokens.textDisabled,
+                              ),
                             ),
-                          ),
-                        ]),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
+          ]);
+        },
       ),
     );
   }
@@ -220,7 +335,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   void dispose() {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+    _usernameFocus.dispose();
     _controller.dispose();
+    _lockoutTimer?.cancel();
     super.dispose();
   }
 }

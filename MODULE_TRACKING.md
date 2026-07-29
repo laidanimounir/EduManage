@@ -1047,3 +1047,10 @@ for (final s in sessions) {
 ### Cleanup
 - Removed unused imports: `chart_tokens.dart`, `classroom_repository.dart`, `audit_log_repository.dart`, `app_localizations.dart`.
 - Removed unused field `_auditRepo` and method `_manualSearch`.
+
+### Login Screen Redesign — Split-screen with entrance/exit animation
+- **Phase 1 — Split-screen layout:** Restructured login body from vertically-stacked column to a full-height `Row` with two `Expanded` children. Left half: login form (username, password, error/lockout messages, button) on default scaffold background. Right half: branding panel (120px school icon, app name, subtitle) on `ShellTokens.chromeSurface` background for subtle visual separation. AppBar with language switcher unchanged.
+- **Phase 2 — Animation:** Entrance animation slowed to 900ms with `Curves.easeOutCubic` + 120ms `Future.delayed` before `_controller.forward()` for intentional timing. Left half slides in from left (`Offset(-0.3, 0)`), right half slides in from right (`Offset(0.3, 0)`), both with synchronized `FadeTransition`. Exit animation reverses symmetrically via `_controller.reverse()` with `onLoginSuccess` deferred to `addStatusListener(AnimationStatus.dismissed)`.
+- **Phase 3 — Password visibility toggle:** `_obscurePassword` boolean toggled by `suffixIcon` (`Icons.visibility` / `Icons.visibility_off`) on the password field, switching `obscureText`.
+- **Phase 4 — Autofocus:** `FocusNode` on username field with `autofocus: true`. `_usernameFocus.unfocus()` called during exit animation to prevent stray keyboard input.
+- **Phase 5 — Lockout mechanism (in-memory only):** After 5 consecutive failed attempts, a 45-second lockout activates (`_lockoutUntil` + `Timer.periodic(1s)` countdown). All form fields + button disable. Countdown message displayed as amber alert. Counter resets on successful login. Timer and state disposed in `dispose()`.
