@@ -134,7 +134,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
 
   void _buildItemAnimations({required int count}) {
     _itemAnimations = [];
-    const itemSpan = 0.35;
+    const itemSpan = 0.40;
     for (int i = 0; i < count; i++) {
       final begin = (i / count) * (1.0 - itemSpan);
       final end = (begin + itemSpan).clamp(0.0, 1.0);
@@ -152,16 +152,16 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     _buildItemAnimations(count: _tileCount);
     setState(() {});
 
-    _sidebarCtrl.duration = const Duration(milliseconds: 700);
+    _sidebarCtrl.duration = const Duration(milliseconds: 1500);
     _sidebarCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 700));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
-    _sidebarCtrl.duration = const Duration(milliseconds: 500);
+    _sidebarCtrl.duration = const Duration(milliseconds: 1100);
     _sidebarCtrl.reverse();
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
 
     _sidebarCtrl.duration = const Duration(milliseconds: 450);
