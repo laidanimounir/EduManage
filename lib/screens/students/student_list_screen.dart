@@ -1441,7 +1441,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -1616,6 +1616,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
           lastDate: DateTime.now(),
           locale: Localizations.localeOf(context),
         );
+        if (!mounted) return;
         if (d != null) setState(() => _birthDate = d);
       },
       child: Container(

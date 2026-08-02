@@ -528,7 +528,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
 
   Widget _timeField(TimeOfDay value, String label, ValueChanged<TimeOfDay> onChanged) {
     return GestureDetector(
-      onTap: () async { final t = await showTimePicker(context: context, initialTime: value); if (t != null) { onChanged(t); setState(() {}); } },
+      onTap: () async { final t = await showTimePicker(context: context, initialTime: value); if (!mounted) return; if (t != null) { onChanged(t); setState(() {}); } },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)),
