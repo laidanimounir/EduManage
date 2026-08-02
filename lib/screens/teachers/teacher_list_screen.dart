@@ -969,11 +969,10 @@ class _PayNowDialogState extends State<_PayNowDialog> {
         ]),
         const SizedBox(height: 8),
         ShellSectionHeader(text: widget.l10n.sessions, withBorder: true),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: widget.sessions.length,
-            itemBuilder: (_, i) {
+        ListView.builder(
+          shrinkWrap: true,
+          itemCount: widget.sessions.length,
+          itemBuilder: (_, i) {
               final s = widget.sessions[i];
               final selected = _selectedIds.contains(s.id);
               final count = _attendanceCounts[s.id] ?? 0;
@@ -995,7 +994,6 @@ class _PayNowDialogState extends State<_PayNowDialog> {
               );
             },
           ),
-        ),
         const Divider(color: ShellTokens.chromeBorder),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),

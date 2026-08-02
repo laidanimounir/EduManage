@@ -1214,10 +1214,9 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             activeColor: ShellTokens.accent,
           ),
           if (_showAllocation)
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true, itemCount: _charges.length,
-                itemBuilder: (_, i) {
+            ListView.builder(
+              shrinkWrap: true, itemCount: _charges.length,
+              itemBuilder: (_, i) {
                   final c = _charges[i];
                   final tx = c['transaction'] as Transaction;
                   final rem = c['remaining'] as double;
@@ -1237,8 +1236,7 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
                   style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
                 activeColor: ShellTokens.accent, checkColor: ShellTokens.chromeBase,
               );
-                },
-              ),
+              },
             ),
           if (_showAllocation)
             Padding(

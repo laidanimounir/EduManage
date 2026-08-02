@@ -74,29 +74,27 @@ class _StudentHistoryDialogState extends State<StudentHistoryDialog> {
         const SizedBox(height: 12),
         ShellSectionHeader(text: l10n.paymentHistory, withBorder: true),
         const SizedBox(height: 4),
-        Flexible(
-          child: _txs.isEmpty
-              ? Center(child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled)))
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _txs.length,
-                  itemBuilder: (_, i) {
-                    final t = _txs[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(children: [
-                        SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
-                        SizedBox(width: 90, child: _txBadge(t.type, l10n)),
-                        if (t.cycleNumber != null) SizedBox(width: 60, child: Text('Cycle ${t.cycleNumber}', style: TextStyle(fontSize: 9, color: ShellTokens.accent, fontWeight: FontWeight.w600))),
-                        Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                        Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                            color: t.type == 'student_payment' || t.type == 'discount' || t.type == 'reversal' ? SemanticTokens.success : SemanticTokens.error)),
-                      ]),
-                    );
-                  },
-                ),
-        ),
+        _txs.isEmpty
+            ? Center(child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled)))
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: _txs.length,
+                itemBuilder: (_, i) {
+                  final t = _txs[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(children: [
+                      SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+                      SizedBox(width: 90, child: _txBadge(t.type, l10n)),
+                      if (t.cycleNumber != null) SizedBox(width: 60, child: Text('Cycle ${t.cycleNumber}', style: TextStyle(fontSize: 9, color: ShellTokens.accent, fontWeight: FontWeight.w600))),
+                      Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                          color: t.type == 'student_payment' || t.type == 'discount' || t.type == 'reversal' ? SemanticTokens.success : SemanticTokens.error)),
+                    ]),
+                  );
+                },
+              ),
       ]),
     );
   }

@@ -694,10 +694,9 @@ class _BulkPaymentDialogState extends State<_BulkPaymentDialog> {
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
         const SizedBox(height: 12),
         ShellSectionHeader(text: '$total students selected � all with outstanding balance', withBorder: true),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true, itemCount: _studentData.length,
-            itemBuilder: (_, i) {
+        ListView.builder(
+          shrinkWrap: true, itemCount: _studentData.length,
+          itemBuilder: (_, i) {
               final entry = _studentData[i];
               final s = entry['student'] as Student;
               final bal = entry['balance'] as double;
@@ -713,7 +712,6 @@ class _BulkPaymentDialogState extends State<_BulkPaymentDialog> {
               );
             },
           ),
-        ),
         const SizedBox(height: 12),
         SizedBox(width: double.infinity, child: FilledButton(
           onPressed: _saving || _selectedStudents.isEmpty ? null : _save,
