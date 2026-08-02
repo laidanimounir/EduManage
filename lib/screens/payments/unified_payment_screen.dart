@@ -874,6 +874,7 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
                 if (results.length == 1) {
                   if (ctx.mounted) Navigator.pop(ctx, results.first);
                 } else if (results.isNotEmpty) {
+                  if (!ctx.mounted) return;
                   final picked = await showDialog<Student>(
                     context: ctx,
                     builder: (c2) => ShellDialog(
@@ -900,7 +901,7 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
     );
     ctrl.dispose();
     if (student != null && mounted) {
-      setState(() => _student = student);
+      setState(() { _student = student; _selectedCharges = {}; });
       try {
         await _loadCharges();
       } catch (_) {
@@ -969,8 +970,9 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
     final l10n = AppLocalizations.of(context);
     final allocTotal = _showAllocation
         ? _selectedCharges.fold<double>(0, (sum, id) {
-            final charge = _charges.firstWhere((c) => (c['transaction'] as Transaction).id == id);
-            return sum + (charge['remaining'] as double);
+            final matching = _charges.where((c) => (c['transaction'] as Transaction).id == id);
+            if (matching.isEmpty) return sum;
+            return sum + (matching.first['remaining'] as double);
           })
         : 0.0;
     if (_savedTxId != null) {
