@@ -68,6 +68,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     if (result != null && studentId != null && groupId != null) {
       if (result == 'waitlist') {
         await _enrollRepo.addToWaitlist(studentId!, groupId!);
+        if (!mounted) return;
         _load();
         return;
       }
@@ -93,13 +94,14 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
               actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
             ));
-            if (ok == true) { await groupRepo.update(groupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!))); _load(); }
+            if (ok == true) { await groupRepo.update(groupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!))); if (!mounted) return; _load(); }
           } else if (action == 'waitlist') {
-            await _enrollRepo.addToWaitlist(studentId!, groupId!); _load();
+            await _enrollRepo.addToWaitlist(studentId!, groupId!); if (!mounted) return; _load();
           }
         }
       } else {
         await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!)));
+        if (!mounted) return;
         _load();
       }
     }
@@ -141,11 +143,12 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
               actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
             ));
-            if (ok == true) { await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!); _load(); }
+            if (ok == true) { await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!); if (!mounted) return; _load(); }
           }
         }
       } else {
         await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!);
+        if (!mounted) return;
         _load();
       }
     }
