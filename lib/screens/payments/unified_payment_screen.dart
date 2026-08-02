@@ -1163,6 +1163,25 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           decoration: ShellInputDecoration.textField(hintText: '${l10n.amount} (${AppConstants.currencySymbol})'),
           style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
         ),
+        if (_student != null && _charges.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () {
+              final total = _charges.fold<double>(0, (s, c) => s + ((c['remaining'] as num?) ?? 0).toDouble());
+              if (total > 0) _amountCtrl.text = total.toStringAsFixed(0);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: ShellTokens.accentMuted, borderRadius: BorderRadius.circular(4)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(PhosphorIcons.currencyCircleDollar, size: 12, color: ShellTokens.accent),
+                const SizedBox(width: 4),
+                Text('Pay full balance: ${_charges.fold<double>(0, (s, c) => s + ((c['remaining'] as num?) ?? 0).toDouble()).toStringAsFixed(0)} DA',
+                    style: const TextStyle(fontSize: 11, color: ShellTokens.accent)),
+              ]),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         ShellSectionHeader(text: l10n.paymentMethod, withBorder: false),
         const SizedBox(height: 6),
