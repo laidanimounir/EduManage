@@ -108,12 +108,40 @@ class SessionRepository extends BaseRepository {
     var query = db.select(db.sessions)
       ..where((t) =>
           t.dayOfWeek.equals(dayOfWeek) &
+          t.isActive.equals(true) &
+          t.isArchived.equals(false) &
           t.startTime.isSmallerThanValue(endTime) &
           t.endTime.isBiggerThanValue(startTime));
     if (excludeId != null) {
       query = query..where((t) => t.id.isNotValue(excludeId));
     }
     return query.get();
+  }
+
+  Future<List<Session>> getConflictingSessions(
+    int dayOfWeek,
+    DateTime startTime,
+    DateTime endTime, {
+    String? teacherId,
+    String? classroomId,
+    String? excludeId,
+  }) async {
+    final overlaps = await getOverlappingSessions(dayOfWeek, startTime, endTime, excludeId: excludeId);
+    return overlaps
+        .where((s) =>
+            (teacherId != null && s.teacherId == teacherId) ||
+            (classroomId != null && s.classroomId == classroomId))
+        .toList();
+  }
+
+  Never _throwConflict(Session conflict, String? teacherId, String? classroomId) {
+    if (teacherId != null && conflict.teacherId == teacherId) {
+      throw StateError('CONFLICT_TEACHER');
+    }
+    if (classroomId != null && conflict.classroomId == classroomId) {
+      throw StateError('CONFLICT_CLASSROOM');
+    }
+    throw StateError('CONFLICT_TEACHER');
   }
 
   @override
@@ -128,17 +156,12 @@ class SessionRepository extends BaseRepository {
 
     if (dayOfWeek != null && start != null && end != null) {
       await db.transaction(() async {
-        final conflicts = await getOverlappingSessions(dayOfWeek, start, end);
         final teacherId = entry.teacherId.present ? entry.teacherId.value : null;
         final classroomId = entry.classroomId.present ? entry.classroomId.value : null;
+        final conflicts = await getConflictingSessions(dayOfWeek, start, end, teacherId: teacherId, classroomId: classroomId);
 
         for (final c in conflicts) {
-          if (teacherId != null && c.teacherId == teacherId) {
-            throw StateError('CONFLICT_TEACHER');
-          }
-          if (classroomId != null && c.classroomId == classroomId) {
-            throw StateError('CONFLICT_CLASSROOM');
-          }
+          _throwConflict(c, teacherId, classroomId);
         }
 
         await db.into(db.sessions).insert(completeEntry);
@@ -160,17 +183,12 @@ class SessionRepository extends BaseRepository {
 
     if (dayOfWeek != null && start != null && end != null) {
       await db.transaction(() async {
-        final conflicts = await getOverlappingSessions(dayOfWeek, start, end, excludeId: id);
         final teacherId = entry.teacherId.present ? entry.teacherId.value : null;
         final classroomId = entry.classroomId.present ? entry.classroomId.value : null;
+        final conflicts = await getConflictingSessions(dayOfWeek, start, end, teacherId: teacherId, classroomId: classroomId, excludeId: id);
 
         for (final c in conflicts) {
-          if (teacherId != null && c.teacherId == teacherId) {
-            throw StateError('CONFLICT_TEACHER');
-          }
-          if (classroomId != null && c.classroomId == classroomId) {
-            throw StateError('CONFLICT_CLASSROOM');
-          }
+          _throwConflict(c, teacherId, classroomId);
         }
 
         await (db.update(db.sessions)..where((t) => t.id.equals(id)))
