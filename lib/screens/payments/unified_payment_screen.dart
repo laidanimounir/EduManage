@@ -1139,6 +1139,24 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             Flexible(child: Text('${_student!.firstNameAr} ${_student!.lastNameAr} (${_student!.code})',
               style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary, fontWeight: FontWeight.w600))),
           ]),
+        if (_student != null) ...[
+          const SizedBox(height: 8),
+          if (_loadingContext)
+            SizedBox(
+              height: 28,
+              child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))),
+            )
+          else if (_studentBalance != null) ...[
+            Row(children: [
+              _finChip('Charged', AppConstants.currencySymbol, _studentTotalCharged ?? 0, ShellTokens.textSecondary),
+              const SizedBox(width: 6),
+              _finChip('Paid', AppConstants.currencySymbol, _studentTotalPaid ?? 0, ShellTokens.textSecondary),
+              const SizedBox(width: 6),
+              _finChip('Balance', AppConstants.currencySymbol, _studentBalance ?? 0,
+                  _studentBalance! > 0 ? SemanticTokens.error : SemanticTokens.success),
+            ]),
+          ],
+        ],
         const SizedBox(height: 12),
         TextField(
           controller: _amountCtrl, keyboardType: TextInputType.number,
@@ -1216,6 +1234,23 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : Text(l10n.save),
         )),
       ]),
+    );
+  }
+
+  Widget _finChip(String label, String currency, double value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: ShellTokens.chromeSurface,
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: ShellTokens.chromeBorder),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(value.toStringAsFixed(0), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          Text(label, style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+        ]),
+      ),
     );
   }
 
