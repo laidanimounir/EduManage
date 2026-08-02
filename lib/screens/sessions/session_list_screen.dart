@@ -4,6 +4,7 @@ import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
+import '../../repositories/session_availability_service.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/teacher_repository.dart';
 import '../../repositories/subject_group_repository.dart';
@@ -348,12 +349,15 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
   final _overrideFixedCtrl = TextEditingController();
   List<Session> _conflicts = [];
   Teacher? _selectedTeacher;
+  late final SessionAvailabilityService _availability;
+  Map<int, bool> _dayAvailability = {};
 
   @override
   void initState() {
     super.initState();
     _formKey = GlobalKey<FormState>();
     _repo = SessionRepository(widget.database);
+    _availability = SessionAvailabilityService(widget.database);
     _isEdit = widget.session != null;
     _loadData();
     if (_isEdit) _loadExisting();
@@ -383,13 +387,64 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
     if (s.teacherSharePct != null) _overridePctCtrl.text = s.teacherSharePct!.toString();
     if (s.teacherFixedAmount != null) _overrideFixedCtrl.text = s.teacherFixedAmount!.toString();
     _selectedTeacher = _teachers.cast<Teacher?>().firstWhere((t) => t?.id == s.teacherId, orElse: () => null);
-    _checkConflicts();
+    await _checkConflicts();
+    await _refreshAvailability();
   }
 
   Future<void> _onTeacherChanged(String? id) async {
     _teacherId = id;
     _selectedTeacher = _teachers.cast<Teacher?>().firstWhere((t) => t?.id == id, orElse: () => null);
-    _checkConflicts();
+    await _checkConflicts();
+    await _refreshAvailability();
+  }
+
+  Future<void> _onClassroomChanged(String? id) async {
+    setState(() => _classroomId = id);
+    await _refreshAvailability();
+  }
+
+  Future<void> _refreshAvailability() async {
+    if (_teacherId == null || _classroomId == null) {
+      _dayAvailability = {};
+      if (mounted) setState(() {});
+      return;
+    }
+    final days = await _availability.getAvailableDays(
+      teacherId: _teacherId!,
+      classroomId: _classroomId!,
+      excludeSessionId: widget.session?.id,
+    );
+    if (mounted) setState(() => _dayAvailability = days);
+  }
+
+  Widget _buildDayChip(int day) {
+    final hasSelection = _teacherId != null && _classroomId != null;
+    final available = _dayAvailability[day];
+    final dimmed = hasSelection && available == false;
+    final labelColor = _dayOfWeek == day
+        ? ShellTokens.chromeBase
+        : dimmed
+            ? ShellTokens.textDisabled
+            : ShellTokens.textPrimary;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 6),
+      child: ChoiceChip(
+        label: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(DateHelper.formatDayOfWeek(day, Localizations.localeOf(context).languageCode).substring(0, 4), style: TextStyle(fontSize: 11, color: labelColor)),
+          if (hasSelection && available == true) ...[
+            const SizedBox(width: 4),
+            Container(width: 6, height: 6, decoration: const BoxDecoration(color: SemanticTokens.success, shape: BoxShape.circle)),
+          ],
+        ]),
+        selected: _dayOfWeek == day,
+        onSelected: (_) { _dayOfWeek = day; _checkConflicts(); setState(() {}); },
+        selectedColor: ShellTokens.accent,
+        backgroundColor: dimmed ? ShellTokens.chromeBase.withValues(alpha: 0.45) : ShellTokens.chromeBase,
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
   }
 
   Future<void> _checkConflicts() async {
@@ -473,16 +528,12 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           value: _classroomId, items: _classrooms.map((r) => DropdownMenuItem(value: r.id, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(r.nameAr, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)), if (r.capacity != null) Text('Capacity: ${r.capacity}', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))]))).toList(),
-          onChanged: (v) => setState(() => _classroomId = v), decoration: ShellInputDecoration.dropdown(),
+          onChanged: _onClassroomChanged, decoration: ShellInputDecoration.dropdown(),
         ),
         const SizedBox(height: 12),
         ShellSectionHeader(text: l10n.dayOfWeek),
         const SizedBox(height: 6),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (i) => Padding(padding: const EdgeInsetsDirectional.only(end: 6), child: ChoiceChip(
-          label: Text(DateHelper.formatDayOfWeek(i + 1, Localizations.localeOf(context).languageCode).substring(0, 4), style: TextStyle(fontSize: 11, color: _dayOfWeek == i + 1 ? ShellTokens.chromeBase : ShellTokens.textPrimary)),
-          selected: _dayOfWeek == i + 1, onSelected: (_) { _dayOfWeek = i + 1; _checkConflicts(); setState(() {}); },
-          selectedColor: ShellTokens.accent, backgroundColor: ShellTokens.chromeBase, side: BorderSide.none, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ))))),
+        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (i) => _buildDayChip(i + 1)))),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: _timeField(_startTime, l10n.startTime, (t) { _startTime = t; _checkConflicts(); })),
