@@ -417,6 +417,49 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
     if (mounted) setState(() => _dayAvailability = days);
   }
 
+  Future<void> _openSuggestPicker() async {
+    final teacherId = _teacherId;
+    final classroomId = _classroomId;
+    if (teacherId == null || classroomId == null) return;
+    final suggestions = <_SuggestedSlot>[];
+    for (var day = 1; day <= 7; day++) {
+      final windows = await _availability.getFreeWindowsForDay(
+        day,
+        teacherId: teacherId,
+        classroomId: classroomId,
+        excludeSessionId: widget.session?.id,
+      );
+      if (windows.isEmpty) continue;
+      final daySessions = await _repo.getOverlappingSessions(
+        day, DateTime(2026), DateTime(2026, 1, 1, 23, 59),
+        excludeId: widget.session?.id,
+      );
+      for (final w in windows) {
+        final parallel = daySessions.any((s) =>
+            s.subjectGroupId == _groupId &&
+            s.startTime.hour * 60 + s.startTime.minute < w.endMinutes &&
+            s.endTime.hour * 60 + s.endTime.minute > w.startMinutes);
+        suggestions.add(_SuggestedSlot(day: day, window: w, groupParallel: parallel));
+      }
+    }
+    suggestions.sort((a, b) {
+      final d = a.day.compareTo(b.day);
+      return d != 0 ? d : a.window.startMinutes.compareTo(b.window.startMinutes);
+    });
+    if (!mounted) return;
+    final slot = await showDialog<_SuggestedSlot>(
+      context: context,
+      builder: (_) => _SuggestTimeDialog(suggestions: suggestions, l10n: widget.l10n),
+    );
+    if (slot == null || !mounted) return;
+    setState(() {
+      _dayOfWeek = slot.day;
+      _startTime = TimeOfDay(hour: slot.window.startMinutes ~/ 60, minute: slot.window.startMinutes % 60);
+      _endTime = TimeOfDay(hour: slot.window.endMinutes ~/ 60, minute: slot.window.endMinutes % 60);
+    });
+    await _checkConflicts();
+  }
+
   Widget _buildDayChip(int day) {
     final hasSelection = _teacherId != null && _classroomId != null;
     final available = _dayAvailability[day];
@@ -531,7 +574,15 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
           onChanged: _onClassroomChanged, decoration: ShellInputDecoration.dropdown(),
         ),
         const SizedBox(height: 12),
-        ShellSectionHeader(text: l10n.dayOfWeek),
+        Row(children: [
+          Expanded(child: ShellSectionHeader(text: l10n.dayOfWeek)),
+          TextButton.icon(
+            onPressed: (_teacherId != null && _classroomId != null) ? _openSuggestPicker : null,
+            icon: const Icon(PhosphorIcons.clock, size: 13),
+            label: const Text('Suggest a time', style: TextStyle(fontSize: 11)),
+            style: TextButton.styleFrom(foregroundColor: ShellTokens.accent, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4)),
+          ),
+        ]),
         const SizedBox(height: 6),
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (i) => _buildDayChip(i + 1)))),
         const SizedBox(height: 12),
@@ -590,6 +641,50 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
           const Icon(PhosphorIcons.clock, size: 14, color: ShellTokens.textSecondary),
         ]),
       ),
+    );
+  }
+}
+
+class _SuggestedSlot {
+  final int day;
+  final FreeTimeWindow window;
+  final bool groupParallel;
+
+  const _SuggestedSlot({required this.day, required this.window, required this.groupParallel});
+}
+
+class _SuggestTimeDialog extends StatelessWidget {
+  final List<_SuggestedSlot> suggestions;
+  final AppLocalizations l10n;
+
+  const _SuggestTimeDialog({required this.suggestions, required this.l10n});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShellDialog(
+      maxWidth: 460,
+      title: 'Suggest a time',
+      body: suggestions.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No free slots found for this teacher and classroom.', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+            )
+          : Column(children: [
+              for (final s in suggestions)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Row(children: [
+                    Expanded(child: Text('${DateHelper.formatDayOfWeek(s.day, Localizations.localeOf(context).languageCode)}  ${FreeTimeWindow.formatMinutes(s.window.startMinutes)}–${FreeTimeWindow.formatMinutes(s.window.endMinutes)}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
+                    if (s.groupParallel)
+                      ShellBadge(label: 'Parallel', color: SemanticTokens.warning, backgroundColor: SemanticTokens.warning.withValues(alpha: 0.12), borderColor: SemanticTokens.warning.withValues(alpha: 0.4)),
+                  ]),
+                  subtitle: s.groupParallel
+                      ? const Text('This group already has another session at this time.', style: TextStyle(fontSize: 10, color: SemanticTokens.warning))
+                      : null,
+                  onTap: () => Navigator.pop(context, s),
+                ),
+            ]),
     );
   }
 }
