@@ -1621,6 +1621,8 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
   final _reasonCtrl = TextEditingController();
   Student? _from, _to;
   bool _saving = false;
+  double? _fromBalance;
+  double? _toBalance;
 
   @override
   void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
@@ -1676,11 +1678,11 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ShellSectionHeader(text: 'From Student', withBorder: false),
         const SizedBox(height: 6),
-        _studentBtn(_from, 'From', (s) => setState(() => _from = s)),
+        _studentBtn(_from, 'From', (s) async { setState(() => _from = s); final b = await widget.database.getStudentBalance(s.id); if (mounted) setState(() => _fromBalance = b); }),
         const SizedBox(height: 8),
         ShellSectionHeader(text: 'To Student', withBorder: false),
         const SizedBox(height: 6),
-        _studentBtn(_to, 'To', (s) => setState(() => _to = s)),
+        _studentBtn(_to, 'To', (s) async { setState(() => _to = s); final b = await widget.database.getStudentBalance(s.id); if (mounted) setState(() => _toBalance = b); }),
         const SizedBox(height: 8),
         TextField(controller: _amountCtrl, keyboardType: TextInputType.number,
           decoration: ShellInputDecoration.textField(hintText: 'Amount (DA)')),
@@ -1698,10 +1700,17 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
   }
 
   Widget _studentBtn(Student? s, String hint, ValueChanged<Student> onPick) {
+    final balance = s == _from ? _fromBalance : s == _to ? _toBalance : null;
     return s != null
-        ? Row(children: [
-            Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-            const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
+              const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+              const Spacer(),
+              IconButton(icon: const Icon(PhosphorIcons.x, size: 14), onPressed: () => onPick(s), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 20, minHeight: 20)),
+            ]),
+            if (balance != null)
+              Text('Balance: ${balance.toStringAsFixed(0)} DA', style: TextStyle(fontSize: 10, color: balance > 0 ? SemanticTokens.error : SemanticTokens.success)),
           ])
         : OutlinedButton.icon(
             onPressed: () async { final p = await _pick(); if (p != null) onPick(p); },
@@ -1725,6 +1734,7 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
   Student? _student;
   String _mode = 'credit';
   bool _saving = false;
+  double? _studentBalance;
 
   @override
   void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
@@ -1784,7 +1794,7 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ShellSectionHeader(text: 'Student', withBorder: false),
         const SizedBox(height: 6),
-        _studentBtn(_student, (s) => setState(() => _student = s)),
+        _studentBtn(_student, (s) async { setState(() => _student = s); final b = await widget.database.getStudentBalance(s.id); if (mounted) setState(() => _studentBalance = b); }),
         const SizedBox(height: 12),
         ShellSectionHeader(text: 'Mode', withBorder: false),
         const SizedBox(height: 6),
@@ -1822,11 +1832,15 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
 
   Widget _studentBtn(Student? s, ValueChanged<Student> onPick) {
     return s != null
-        ? Row(children: [
-            Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-            const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-            const Spacer(),
-            IconButton(icon: const Icon(PhosphorIcons.x, size: 14), onPressed: () => onPick(s), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 20, minHeight: 20)),
+        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(child: Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
+              const SizedBox(width: 6), Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+              const Spacer(),
+              IconButton(icon: const Icon(PhosphorIcons.x, size: 14), onPressed: () => onPick(s), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 20, minHeight: 20)),
+            ]),
+            if (_studentBalance != null)
+              Text('Balance: ${_studentBalance!.toStringAsFixed(0)} DA', style: TextStyle(fontSize: 10, color: _studentBalance! > 0 ? SemanticTokens.error : SemanticTokens.success)),
           ])
         : OutlinedButton.icon(
             onPressed: () async { final p = await _pick(); if (p != null) onPick(p); },
