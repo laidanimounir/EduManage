@@ -896,10 +896,11 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
 
   Future<void> _pick() async {
     final l10n = AppLocalizations.of(context);
-    final ctrl = TextEditingController();
     final student = await showDialog<Student>(
       context: context,
-      builder: (ctx) => ShellDialog(
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        return ShellDialog(
         maxWidth: 400, title: l10n.selectStudent,
         body: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
@@ -935,9 +936,8 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             },
           ),
         ]),
-      ),
+      );},
     );
-    ctrl.dispose();
     if (student != null && mounted) {
       setState(() { _student = student; _selectedCharges = {}; });
       try {
@@ -1486,10 +1486,11 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
   }
 
   Future<Student?> _pick() async {
-    final ctrl = TextEditingController();
     final result = await showDialog<Student>(
       context: context,
-      builder: (ctx) => ShellDialog(
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        return ShellDialog(
         maxWidth: 400, title: 'Select Student',
         body: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
@@ -1503,9 +1504,8 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
             },
           ),
         ]),
-      ),
+      );},
     );
-    ctrl.dispose();
     return result;
   }
 
@@ -1570,10 +1570,11 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
   void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
 
   Future<Student?> _pick() async {
-    final ctrl = TextEditingController();
     final result = await showDialog<Student>(
       context: context,
-      builder: (ctx) => ShellDialog(
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        return ShellDialog(
         maxWidth: 400, title: 'Select Student',
         body: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
@@ -1587,9 +1588,8 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
             },
           ),
         ]),
-      ),
+      );},
     );
-    ctrl.dispose();
     return result;
   }
 
