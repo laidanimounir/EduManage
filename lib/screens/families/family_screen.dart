@@ -58,14 +58,14 @@ class _FamilyScreenState extends State<FamilyScreen> {
     showDialog(
       context: context,
       builder: (_) => _FamilyEditDialog(database: widget.database),
-    ).then((_) => _load());
+    ).then((_) { try { _load(); } catch (_) {} });
   }
 
   void _openEdit(Family f) {
     showDialog(
       context: context,
       builder: (_) => _FamilyEditDialog(database: widget.database, family: f),
-    ).then((_) => _load());
+    ).then((_) { try { _load(); } catch (_) {} });
   }
 
   Future<void> _deleteFamily(Family f) async {
@@ -104,7 +104,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
         preSelectedStudentIds: ids,
         title: 'Pay ${f.name}',
       ),
-    ).then((_) => _load());
+    ).then((_) { try { _load(); } catch (_) {} });
   }
 
   @override

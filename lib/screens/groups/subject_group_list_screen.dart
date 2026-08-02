@@ -69,7 +69,7 @@ class _SubjectGroupListScreenState extends State<SubjectGroupListScreen> {
   }
 
   void _openDetail(SubjectGroup g) {
-    showDialog(context: context, builder: (_) => _GroupDetailDialog(database: widget.database, group: g, l10n: AppLocalizations.of(context))).then((_) => _fetchPage());
+    showDialog(context: context, builder: (_) => _GroupDetailDialog(database: widget.database, group: g, l10n: AppLocalizations.of(context))).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   Future<void> _confirmArchive(SubjectGroup g) async {

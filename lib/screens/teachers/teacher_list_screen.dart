@@ -103,7 +103,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         teacher: t,
         l10n: AppLocalizations.of(context),
       ),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   void _openEdit(Teacher? t) async {
@@ -1129,7 +1129,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
       if (t.photoPath != null) _photo = File(t.photoPath!);
       _loadAssignments();
     } else {
-      _repo.generateCode().then((c) { if (mounted) _codeCtrl.text = c; });
+      _repo.generateCode().then((c) { try { if (mounted) _codeCtrl.text = c; } catch (_) {} });
     }
   }
 

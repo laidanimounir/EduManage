@@ -44,7 +44,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   void initState() {
     super.initState();
     _repo = StudentRepository(widget.database);
-    SubjectGroupRepository(widget.database).getAll().then((g) => setState(() => _groups = g));
+    SubjectGroupRepository(widget.database).getAll().then((g) { if (mounted) setState(() => _groups = g); }).catchError((_) {});
     if (widget.studentId != null) {
       _isEdit = true;
       _loadStudent();

@@ -173,14 +173,14 @@ class _StudentBalancesScreenState extends State<StudentBalancesScreen> {
         totalCharged: entry['totalCharged'] as double,
         totalPaid: entry['totalPaid'] as double,
       ),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   void _openBulkPayment() {
     showDialog(
       context: context,
       builder: (_) => BulkPaymentDialog(database: widget.database),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   @override

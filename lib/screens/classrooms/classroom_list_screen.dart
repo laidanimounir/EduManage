@@ -59,7 +59,7 @@ class _ClassroomListScreenState extends State<ClassroomListScreen> {
   }
 
   void _openDetail(Classroom r) {
-    showDialog(context: context, builder: (_) => _RoomDetailDialog(database: widget.database, room: r, l10n: AppLocalizations.of(context))).then((_) => _fetchPage());
+    showDialog(context: context, builder: (_) => _RoomDetailDialog(database: widget.database, room: r, l10n: AppLocalizations.of(context))).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   List<Classroom> get filtered => _rows.where((r) {

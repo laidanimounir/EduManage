@@ -171,9 +171,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
         l10n: AppLocalizations.of(context),
       ),
     ).then((_) {
-      _barcodePaused = false;
-      _restoreBarcodeFocus();
-      _fetchPage();
+      try {
+        _barcodePaused = false;
+        _restoreBarcodeFocus();
+        _fetchPage();
+      } catch (_) {}
     });
   }
 
@@ -1387,7 +1389,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         _photo = File(s.photoPath!);
       }
     } else {
-      _repo.generateCode().then((c) { if (mounted) _codeCtrl.text = c; });
+      _repo.generateCode().then((c) { try { if (mounted) _codeCtrl.text = c; } catch (_) {} });
     }
   }
 

@@ -161,28 +161,28 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     showDialog(
       context: context,
       builder: (_) => _TransactionDetailDialog(database: widget.database, transaction: tx),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   void _openRecordPayment() {
     showDialog<bool>(
       context: context,
       builder: (_) => _RecordPaymentDialog(database: widget.database),
-    ).then((v) { if (v == true) _fetchPage(); });
+    ).then((v) { try { if (v == true) _fetchPage(); } catch (_) {} });
   }
 
   void _openRecordExpense() {
     showDialog<bool>(
       context: context,
       builder: (_) => _RecordExpenseDialog(database: widget.database),
-    ).then((v) { if (v == true) _fetchPage(); });
+    ).then((v) { try { if (v == true) _fetchPage(); } catch (_) {} });
   }
 
   void _openVoidTransaction(Transaction tx) {
     showDialog<bool>(
       context: context,
       builder: (_) => _VoidTransactionDialog(database: widget.database, transaction: tx),
-    ).then((v) { if (v == true) _fetchPage(); });
+    ).then((v) { try { if (v == true) _fetchPage(); } catch (_) {} });
   }
 
   void _openStudentHistory() async {
@@ -202,21 +202,21 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     showDialog(
       context: context,
       builder: (_) => _ClosePeriodDialog(database: widget.database),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   void _openBalanceTransfer() {
     showDialog(
       context: context,
       builder: (_) => _BalanceTransferDialog(database: widget.database),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   void _openRefundCredit() {
     showDialog(
       context: context,
       builder: (_) => _RefundCreditDialog(database: widget.database),
-    ).then((_) => _fetchPage());
+    ).then((_) { try { _fetchPage(); } catch (_) {} });
   }
 
   @override
