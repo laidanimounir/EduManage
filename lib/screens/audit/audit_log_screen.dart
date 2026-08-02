@@ -63,6 +63,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     _entries = allEntries.take(_pageSize).toList();
     _hasMore = allEntries.length > _pageSize;
 
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
@@ -97,6 +98,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       _hasMore = start + _pageSize < allEntries.length;
     }
 
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 

@@ -542,7 +542,7 @@ class _StudentBalanceDetailDialogState extends State<_StudentBalanceDetailDialog
               }
               await TransactionService(widget.database).createStudentPayment(
                 studentId: widget.studentId, amount: amount, note: reasonCtrl.text);
-              Navigator.pop(ctx, true);
+              if (ctx.mounted) Navigator.pop(ctx, true);
             },
             child: Text(l10n.save)),
           ),

@@ -94,6 +94,7 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
 
     debtors.sort((a, b) => b.debt.compareTo(a.debt));
 
+    if (!mounted) return;
     setState(() {
       _loading = false;
       _studentPaymentIncome = studentPayment;
@@ -144,6 +145,7 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
       },
     );
     if (chosen != null) {
+      if (!mounted) return;
       setState(() {
         _selectedDate = DateTime(chosen, _selectedDate.month, 1);
       });

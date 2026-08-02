@@ -66,7 +66,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     } catch (e) {
       _showFeedback('${l10n.checkInFailed}: $e', Colors.red);
     } finally {
-      setState(() => _processing = false);
+      if (mounted) setState(() => _processing = false);
     }
   }
 
