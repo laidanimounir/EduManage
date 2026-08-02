@@ -886,6 +886,17 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
   Set<String> _selectedCharges = {};
   bool _showAllocation = false;
   String? _savedTxId;
+  bool _loadingContext = false;
+  double? _studentBalance;
+  double? _studentTotalCharged;
+  double? _studentTotalPaid;
+  bool? _regFeePaid;
+  String? _familyName;
+  double? _familyDiscountPercent;
+  double? _familyDiscountFixed;
+  DateTime? _oldestUnpaidDate;
+  double? _lastPaymentAmount;
+  DateTime? _lastPaymentDate;
 
   @override
   void dispose() {
@@ -939,12 +950,52 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
       );},
     );
     if (student != null && mounted) {
-      setState(() { _student = student; _selectedCharges = {}; });
+      setState(() { _student = student; _selectedCharges = {}; _loadingContext = true; });
       try {
-        await _loadCharges();
+        final results = await Future.wait([
+          _loadChargesInternal(student.id),
+          widget.database.getStudentBalance(student.id),
+          widget.database.getStudentTotalCharged(student.id),
+          widget.database.getStudentTotalPaid(student.id),
+          widget.database.isRegistrationFeePaid(student.id),
+          widget.database.getFamilyByMember(student.id),
+          widget.database.getOldestUnpaidChargeDate(student.id),
+          widget.database.getLastStudentPayment(student.id),
+        ]);
+        if (mounted) {
+          setState(() {
+            _charges = results[0] as List<Map<String, dynamic>>;
+            _studentBalance = results[1] as double;
+            _studentTotalCharged = results[2] as double;
+            _studentTotalPaid = results[3] as double;
+            _regFeePaid = results[4] as bool;
+            final family = results[5] as dynamic;
+            if (family != null) {
+              _familyName = (family as dynamic).name as String;
+              final pct = (family as dynamic).discountPercent as double?;
+              final fix = (family as dynamic).discountFixed as double?;
+              _familyDiscountPercent = pct != null && pct > 0 ? pct : null;
+              _familyDiscountFixed = fix != null && fix > 0 ? fix : null;
+            } else {
+              _familyName = null;
+              _familyDiscountPercent = null;
+              _familyDiscountFixed = null;
+            }
+            _oldestUnpaidDate = results[6] as DateTime?;
+            final lp = results[7] as Map<String, dynamic>?;
+            if (lp != null) {
+              _lastPaymentAmount = lp['amount'] as double;
+              _lastPaymentDate = lp['date'] as DateTime;
+            } else {
+              _lastPaymentAmount = null;
+              _lastPaymentDate = null;
+            }
+            _loadingContext = false;
+          });
+        }
       } catch (_) {
         if (mounted) {
-          setState(() => _student = null);
+          setState(() { _student = null; _loadingContext = false; });
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.errorOccurred)));
         }
       }
@@ -959,6 +1010,15 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
       if (mounted) setState(() => _charges = charges);
     } catch (_) {
       if (mounted) setState(() => _charges = []);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadChargesInternal(String studentId) async {
+    try {
+      final service = TransactionService(widget.database);
+      return await service.getUnpaidCharges(studentId);
+    } catch (_) {
+      return [];
     }
   }
 
