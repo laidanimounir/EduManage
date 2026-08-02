@@ -60,6 +60,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   String? _sortColumn;
   bool _sortAsc = false;
   Set<String> _selectedIds = {};
+  String _activeTab = 'overview';
 
   final _searchCtrl = TextEditingController();
   Timer? _searchDebounce;
@@ -107,6 +108,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
         dateTo: _dateTo,
         sortField: _sortColumn,
         sortAsc: _sortAsc,
+        personCategory: _activeTab,
       );
       if (mounted) {
         setState(() {
@@ -132,6 +134,11 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
 
   void _onTypeFilter(String f) {
     setState(() { _typeFilter = f; _page = 0; _selectedIds.clear(); });
+    _fetchPage();
+  }
+
+  void _onTabChanged(String tab) {
+    setState(() { _activeTab = tab; _typeFilter = 'all'; _page = 0; _selectedIds.clear(); });
     _fetchPage();
   }
 
@@ -265,6 +272,18 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 
   Widget _buildToolbar(AppLocalizations l10n, bool hasFilters) {
+    final studentChips = ['all', 'student_payment', 'session_charge', 'registration_fee', 'discount', 'session_cancellation_reversal', 'correction', 'reversal'];
+    final teacherChips = ['all', 'teacher_payout', 'correction', 'reversal'];
+    final overviewChips = ['all', 'student_payment', 'session_charge', 'registration_fee', 'teacher_payout', 'expense', 'discount', 'correction', 'reversal'];
+    final chips = _activeTab == 'students' ? studentChips : _activeTab == 'teachers' ? teacherChips : overviewChips;
+
+    final chipLabels = <String, String>{
+      'all': l10n.all, 'student_payment': l10n.payments, 'session_charge': l10n.sessionCharges,
+      'registration_fee': l10n.registrationFee, 'teacher_payout': l10n.teacherPayouts,
+      'expense': l10n.expenses, 'correction': l10n.correction, 'reversal': l10n.reversal,
+      'discount': 'Discount', 'session_cancellation_reversal': 'Cancellation',
+    };
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
       child: Column(
@@ -304,14 +323,11 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
           SizedBox(
             height: 28,
             child: Row(children: [
-              _buildFilterChip(l10n.all, 'all'),
-              _buildFilterChip(l10n.payments, 'student_payment'),
-              _buildFilterChip(l10n.sessionCharges, 'session_charge'),
-              _buildFilterChip(l10n.registrationFee, 'registration_fee'),
-              _buildFilterChip(l10n.teacherPayouts, 'teacher_payout'),
-              _buildFilterChip(l10n.expenses, 'expense'),
-              _buildFilterChip(l10n.correction, 'correction'),
-              _buildFilterChip(l10n.reversal, 'reversal'),
+              _buildTabChip('Students', 'students'),
+              _buildTabChip('Teachers', 'teachers'),
+              _buildTabChip('Overview', 'overview'),
+              const SizedBox(width: 8),
+              ...chips.map((v) => _buildFilterChip(chipLabels[v] ?? v, v)),
               const SizedBox(width: 8),
               _buildExportBtn(l10n.exportPdf, PhosphorIcons.file),
               const SizedBox(width: 4),
@@ -323,15 +339,17 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
               IconButton(icon: const Icon(PhosphorIcons.arrowsLeftRight, size: 16, color: ShellTokens.textSecondary),
                 onPressed: _openBalanceTransfer, tooltip: 'Transfer', padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
-              IconButton(icon: const Icon(PhosphorIcons.archive, size: 16, color: ShellTokens.textSecondary),
-                onPressed: _openClosePeriod, tooltip: 'Close Period', padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
-              IconButton(icon: const Icon(PhosphorIcons.arrowCounterClockwise, size: 16, color: ShellTokens.textSecondary),
-                onPressed: _openRefundCredit, tooltip: 'Refund/Credit', padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
-              IconButton(icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
-                onPressed: _openRecordPayment, tooltip: l10n.recordPayment, padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+              if (_activeTab != 'teachers') ...[
+                IconButton(icon: const Icon(PhosphorIcons.archive, size: 16, color: ShellTokens.textSecondary),
+                  onPressed: _openClosePeriod, tooltip: 'Close Period', padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+                IconButton(icon: const Icon(PhosphorIcons.arrowCounterClockwise, size: 16, color: ShellTokens.textSecondary),
+                  onPressed: _openRefundCredit, tooltip: 'Refund/Credit', padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+                IconButton(icon: const Icon(PhosphorIcons.plus, size: 18, color: ShellTokens.accent),
+                  onPressed: _openRecordPayment, tooltip: l10n.recordPayment, padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+              ],
             ]),
           ),
         ],
@@ -384,6 +402,26 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
             const SizedBox(width: 4),
             Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
           ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabChip(String label, String value) {
+    final selected = _activeTab == value;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 4),
+      child: Material(
+        color: selected ? ShellTokens.accent : ShellTokens.chromeSurface,
+        borderRadius: BorderRadius.circular(5),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(5),
+          onTap: () => _onTabChanged(value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: selected ? ShellTokens.chromeBase : ShellTokens.textSecondary)),
+          ),
         ),
       ),
     );

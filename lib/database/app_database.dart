@@ -706,6 +706,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? dateTo,
     String? sortField,
     bool sortAsc = false,
+    String? personCategory,
   }) async {
     final conditions = <String>[];
     final variables = <Variable>[];
@@ -734,6 +735,11 @@ class AppDatabase extends _$AppDatabase {
       for (int i = 0; i < 6; i++) {
         variables.add(Variable.withString(like));
       }
+    }
+    if (personCategory == 'students') {
+      conditions.add('t.student_id IS NOT NULL');
+    } else if (personCategory == 'teachers') {
+      conditions.add('t.teacher_id IS NOT NULL');
     }
 
     final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
