@@ -535,6 +535,53 @@ class AppDatabase extends _$AppDatabase {
     };
   }
 
+  Future<List<Map<String, dynamic>>> getStudentPickerList() async {
+    final studentRows = await customSelect(
+      'SELECT s.id, s.code, s.first_name_ar, s.last_name_ar, s.first_name_fr, s.last_name_fr, s.school_level, '
+      "COALESCE((SELECT SUM(CASE "
+      "WHEN t.type IN ('session_charge', 'correction', 'registration_fee') THEN t.amount "
+      "WHEN t.type IN ('student_payment', 'discount', 'reversal', 'registration_fee_payment') THEN -t.amount "
+      "ELSE 0 END) FROM transactions t WHERE t.student_id = s.id), 0) AS balance "
+      'FROM students s WHERE s.is_archived = 0',
+    ).get();
+
+    final enrollmentRows = await customSelect(
+      'SELECT e.student_id AS student_id, sg.name_ar AS group_name, sg.subject_ar AS subject_ar, '
+      'se.day_of_week AS day_of_week, se.start_time AS start_time '
+      'FROM enrollments e '
+      'JOIN subject_groups sg ON sg.id = e.subject_group_id '
+      'JOIN sessions se ON se.subject_group_id = sg.id AND se.is_active = 1 AND se.is_archived = 0 '
+      "WHERE e.status = 'active' "
+      'ORDER BY e.student_id, se.day_of_week, se.start_time',
+    ).get();
+
+    final groupsByStudent = <String, List<Map<String, dynamic>>>{};
+    for (final row in enrollmentRows) {
+      final sid = row.read<String>('student_id');
+      groupsByStudent.putIfAbsent(sid, () => []).add({
+        'name': row.read<String>('group_name'),
+        'subject': row.read<String>('subject_ar'),
+        'dayOfWeek': row.read<int>('day_of_week'),
+        'startTime': row.read<DateTime>('start_time'),
+      });
+    }
+
+    return studentRows.map((row) {
+      final id = row.read<String>('id');
+      return {
+        'id': id,
+        'code': row.read<String>('code'),
+        'firstNameAr': row.read<String>('first_name_ar'),
+        'lastNameAr': row.read<String>('last_name_ar'),
+        'firstNameFr': row.read<String?>('first_name_fr'),
+        'lastNameFr': row.read<String?>('last_name_fr'),
+        'schoolLevel': row.read<String?>('school_level'),
+        'balance': row.read<double>('balance'),
+        'groups': groupsByStudent[id] ?? const [],
+      };
+    }).toList();
+  }
+
   Future<double> getTeacherPayoutBalance(String teacherId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '
