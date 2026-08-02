@@ -129,7 +129,13 @@ class _StudentPickerDialogState extends State<StudentPickerDialog> {
           )
         else if (rows.isEmpty)
           SizedBox(height: 120, child: AppEmptyState(icon: PhosphorIcons.users, message: l10n.noData))
-        else
+        else ...[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text('${rows.length} ${l10n.students}',
+              style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+          ),
+          const SizedBox(height: 4),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 360),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -143,6 +149,7 @@ class _StudentPickerDialogState extends State<StudentPickerDialog> {
               ),
             ]),
           ),
+        ],
       ]),
     );
   }
