@@ -322,14 +322,14 @@ class _GroupEditDialog extends StatefulWidget {
   State<_GroupEditDialog> createState() => _GroupEditDialogState();
 }
 class _GroupEditDialogState extends State<_GroupEditDialog> {
-  final _formKey = GlobalKey<FormState>();
+  late final GlobalKey<FormState> _formKey;
   late final SubjectGroupRepository _repo; bool _saving = false; bool _isEdit = false;
   late TextEditingController _nameArCtrl, _nameFrCtrl, _subjectArCtrl, _subjectFrCtrl, _descCtrl, _capacityCtrl;
   String _schoolLevel = 'primary';
 
   @override
   void initState() {
-    super.initState(); _repo = SubjectGroupRepository(widget.database); _isEdit = widget.group != null;
+    super.initState(); _formKey = GlobalKey<FormState>(); _repo = SubjectGroupRepository(widget.database); _isEdit = widget.group != null;
     final g = widget.group;
     _nameArCtrl = TextEditingController(text: g?.nameAr ?? ''); _nameFrCtrl = TextEditingController(text: g?.nameFr ?? '');
     _subjectArCtrl = TextEditingController(text: g?.subjectAr ?? ''); _subjectFrCtrl = TextEditingController(text: g?.subjectFr ?? '');

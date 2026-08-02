@@ -243,13 +243,13 @@ class _RoomEditDialog extends StatefulWidget {
 }
 
 class _RoomEditDialogState extends State<_RoomEditDialog> {
-  final _formKey = GlobalKey<FormState>();
+  late final GlobalKey<FormState> _formKey;
   late final ClassroomRepository _repo; bool _saving = false; bool _isEdit = false;
   late TextEditingController _nameArCtrl, _nameFrCtrl, _floorCtrl, _capacityCtrl, _notesCtrl;
 
   @override
   void initState() {
-    super.initState(); _repo = ClassroomRepository(widget.database); _isEdit = widget.room != null;
+    super.initState(); _formKey = GlobalKey<FormState>(); _repo = ClassroomRepository(widget.database); _isEdit = widget.room != null;
     final r = widget.room;
     _nameArCtrl = TextEditingController(text: r?.nameAr ?? ''); _nameFrCtrl = TextEditingController(text: r?.nameFr ?? '');
     _floorCtrl = TextEditingController(text: r?.floor?.toString() ?? ''); _capacityCtrl = TextEditingController(text: r?.capacity?.toString() ?? '');

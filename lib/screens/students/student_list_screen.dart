@@ -1345,7 +1345,7 @@ class _StudentEditDialog extends StatefulWidget {
 }
 
 class _StudentEditDialogState extends State<_StudentEditDialog> {
-  final _formKey = GlobalKey<FormState>();
+  late final GlobalKey<FormState> _formKey;
   late final StudentRepository _repo;
   bool _saving = false;
 
@@ -1366,6 +1366,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   @override
   void initState() {
     super.initState();
+    _formKey = GlobalKey<FormState>();
     _repo = StudentRepository(widget.database);
     final s = widget.student;
     _isEdit = s != null;

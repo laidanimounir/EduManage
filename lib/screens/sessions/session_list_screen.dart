@@ -329,7 +329,7 @@ class _SessionEditDialog extends StatefulWidget {
 }
 
 class _SessionEditDialogState extends State<_SessionEditDialog> {
-  final _formKey = GlobalKey<FormState>();
+  late final GlobalKey<FormState> _formKey;
   late final SessionRepository _repo;
   bool _saving = false;
   bool _isEdit = false;
@@ -352,6 +352,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
   @override
   void initState() {
     super.initState();
+    _formKey = GlobalKey<FormState>();
     _repo = SessionRepository(widget.database);
     _isEdit = widget.session != null;
     _loadData();
