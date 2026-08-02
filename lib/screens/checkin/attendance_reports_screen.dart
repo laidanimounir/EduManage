@@ -58,7 +58,8 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
   Future<void> _exportPdf() async {
     if (_results.isEmpty) return;
     final pdf = pw.Document();
-    final groupName = _groups.firstWhere((g) => g['id'] == _selectedGroupId)['name'] as String;
+    final group = _groups.cast<Map<String, dynamic>>().where((g) => g['id'] == _selectedGroupId).firstOrNull;
+    final groupName = (group?['name'] as String?) ?? 'Report';
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       build: (_) => [
