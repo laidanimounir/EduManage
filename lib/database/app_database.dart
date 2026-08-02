@@ -521,6 +521,20 @@ class AppDatabase extends _$AppDatabase {
     return result.read<int>('paid') >= result.read<int>('charged');
   }
 
+  Future<Map<String, dynamic>?> getLastStudentPayment(String studentId) async {
+    final rows = await customSelect(
+      'SELECT amount, transaction_date FROM transactions '
+      'WHERE student_id = ? AND type = \'student_payment\' '
+      'ORDER BY transaction_date DESC LIMIT 1',
+      variables: [Variable.withString(studentId)],
+    ).get();
+    if (rows.isEmpty) return null;
+    return {
+      'amount': rows.first.read<double>('amount'),
+      'date': rows.first.read<DateTime>('transaction_date'),
+    };
+  }
+
   Future<double> getTeacherPayoutBalance(String teacherId) {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '
