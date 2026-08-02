@@ -6,6 +6,7 @@ import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/session_availability_service.dart';
 import '../../repositories/session_repository.dart';
+import '../../repositories/settings_repository.dart';
 import '../../repositories/teacher_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/classroom_repository.dart';
@@ -351,6 +352,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
   Teacher? _selectedTeacher;
   late final SessionAvailabilityService _availability;
   Map<int, bool> _dayAvailability = {};
+  bool _outOfHours = false;
 
   @override
   void initState() {
@@ -389,6 +391,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
     _selectedTeacher = _teachers.cast<Teacher?>().firstWhere((t) => t?.id == s.teacherId, orElse: () => null);
     await _checkConflicts();
     await _refreshAvailability();
+    await _checkOperatingHours();
   }
 
   Future<void> _onTeacherChanged(String? id) async {
@@ -458,6 +461,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
       _endTime = TimeOfDay(hour: slot.window.endMinutes ~/ 60, minute: slot.window.endMinutes % 60);
     });
     await _checkConflicts();
+    await _checkOperatingHours();
   }
 
   Widget _buildDayChip(int day) {
@@ -480,7 +484,7 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
           ],
         ]),
         selected: _dayOfWeek == day,
-        onSelected: (_) { _dayOfWeek = day; _checkConflicts(); setState(() {}); },
+        onSelected: (_) { _dayOfWeek = day; _checkConflicts(); _checkOperatingHours(); setState(() {}); },
         selectedColor: ShellTokens.accent,
         backgroundColor: dimmed ? ShellTokens.chromeBase.withValues(alpha: 0.45) : ShellTokens.chromeBase,
         side: BorderSide.none,
@@ -497,6 +501,14 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
     final conflicts = await _repo.getOverlappingSessions(_dayOfWeek, startDt, endDt, excludeId: widget.session?.id);
     _conflicts = conflicts;
     if (mounted) setState(() {});
+  }
+
+  Future<void> _checkOperatingHours() async {
+    final hours = (await SettingsRepository(widget.database).getOperatingHours())[_dayOfWeek];
+    final start = _startTime.hour * 60 + _startTime.minute;
+    final end = _endTime.hour * 60 + _endTime.minute;
+    final out = hours == null || hours.closed || start < hours.openMinutes || end > hours.closeMinutes;
+    if (mounted && out != _outOfHours) setState(() => _outOfHours = out);
   }
 
   Future<void> _save() async {
@@ -587,10 +599,22 @@ class _SessionEditDialogState extends State<_SessionEditDialog> {
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (i) => _buildDayChip(i + 1)))),
         const SizedBox(height: 12),
         Row(children: [
-          Expanded(child: _timeField(_startTime, l10n.startTime, (t) { _startTime = t; _checkConflicts(); })),
+          Expanded(child: _timeField(_startTime, l10n.startTime, (t) { _startTime = t; _checkConflicts(); _checkOperatingHours(); })),
           const SizedBox(width: 12),
-          Expanded(child: _timeField(_endTime, l10n.endTime, (t) { _endTime = t; _checkConflicts(); })),
+          Expanded(child: _timeField(_endTime, l10n.endTime, (t) { _endTime = t; _checkConflicts(); _checkOperatingHours(); })),
         ]),
+        if (_outOfHours) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: SemanticTokens.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: SemanticTokens.warning.withValues(alpha: 0.3))),
+            child: const Row(children: [
+              Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.warning),
+              SizedBox(width: 6),
+              Expanded(child: Text("This time falls outside the school's operating hours and will be saved anyway.", style: TextStyle(fontSize: 11, color: SemanticTokens.warning))),
+            ]),
+          ),
+        ],
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: TextFormField(controller: _monthlyPriceCtrl, decoration: ShellInputDecoration.textField(hintText: l10n.monthlyPrice), keyboardType: TextInputType.number, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
