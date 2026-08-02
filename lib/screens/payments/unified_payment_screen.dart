@@ -1322,7 +1322,7 @@ class _StudentSearchDialogState extends State<_StudentSearchDialog> {
               return ListTile(
                 title: Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
                 subtitle: Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                onTap: () => Navigator.pop(context, s),
+                onTap: () { if (mounted) Navigator.pop(context, s); },
               );
             },
           )),
