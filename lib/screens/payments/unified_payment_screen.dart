@@ -1141,6 +1141,16 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
           ]),
         if (_student != null) ...[
           const SizedBox(height: 8),
+          if (!_loadingContext && _regFeePaid == false)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: SemanticTokens.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: SemanticTokens.warning.withValues(alpha: 0.3)),
+              ),
+              child: Text('Registration fee unpaid', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: SemanticTokens.warning)),
+            ),
           if (_loadingContext)
             SizedBox(
               height: 28,
