@@ -21,6 +21,7 @@ import '../../widgets/shell_section_header.dart';
 import '../../widgets/shell_filter_chip.dart';
 import '../../widgets/shell_pagination_bar.dart';
 import '../../widgets/shell_input_decoration.dart';
+import '../../widgets/student_picker_dialog.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
 import '../../constants/app_constants.dart';
@@ -195,7 +196,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   void _openStudentHistory() async {
     final student = await showDialog<Student>(
       context: context,
-      builder: (ctx) => _StudentSearchDialog(database: widget.database),
+      builder: (ctx) => StudentPickerDialog(database: widget.database),
     );
     if (student != null && mounted) {
       showDialog(
@@ -906,48 +907,9 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
   }
 
   Future<void> _pick() async {
-    final l10n = AppLocalizations.of(context);
     final student = await showDialog<Student>(
       context: context,
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        return ShellDialog(
-        maxWidth: 400, title: l10n.selectStudent,
-        body: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: ctrl, autofocus: true,
-            decoration: ShellInputDecoration.textField(hintText: '${l10n.code} أو ${l10n.name}'),
-            onSubmitted: (q) async {
-              try {
-                final repo = StudentRepository(widget.database);
-                final results = await repo.search(q);
-                if (results.length == 1) {
-                  if (ctx.mounted) Navigator.pop(ctx, results.first);
-                } else if (results.isNotEmpty) {
-                  if (!ctx.mounted) return;
-                  final picked = await showDialog<Student>(
-                    context: ctx,
-                    builder: (c2) => ShellDialog(
-                      maxWidth: 350, title: l10n.selectStudent,
-                      body: Column(mainAxisSize: MainAxisSize.min, children: results.map((s) => ListTile(
-                        title: Text('${s.firstNameAr} ${s.lastNameAr}',
-                          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-                        subtitle: Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                        onTap: () => Navigator.pop(c2, s),
-                      )).toList()),
-                    ),
-                  );
-                  if (picked != null && ctx.mounted) Navigator.pop(ctx, picked);
-                } else {
-                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(l10n.studentNotFound)));
-                }
-              } catch (e) {
-                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('${l10n.errorOccurred}: $e')));
-              }
-            },
-          ),
-        ]),
-      );},
+      builder: (ctx) => StudentPickerDialog(database: widget.database),
     );
     if (student != null && mounted) {
       setState(() { _student = student; _selectedCharges = {}; _loadingContext = true; });
@@ -996,7 +958,7 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
       } catch (_) {
         if (mounted) {
           setState(() { _student = null; _loadingContext = false; });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.errorOccurred)));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error')));
         }
       }
     }
@@ -1476,60 +1438,6 @@ class _VoidTransactionDialogState extends State<_VoidTransactionDialog> {
   }
 }
 
-class _StudentSearchDialog extends StatefulWidget {
-  final AppDatabase database;
-  const _StudentSearchDialog({required this.database});
-  @override
-  State<_StudentSearchDialog> createState() => _StudentSearchDialogState();
-}
-
-class _StudentSearchDialogState extends State<_StudentSearchDialog> {
-  final _ctrl = TextEditingController();
-  List<Student> _results = [];
-
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ShellDialog(
-      maxWidth: 400, title: l10n.selectStudent,
-      body: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(
-          controller: _ctrl, autofocus: true,
-          decoration: ShellInputDecoration.textField(hintText: '${l10n.code} أو ${l10n.name}'),
-          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
-          onChanged: (q) async {
-            if (q.trim().isEmpty) { setState(() => _results = []); return; }
-            try {
-              final repo = StudentRepository(widget.database);
-              final r = await repo.search(q);
-              if (mounted) setState(() => _results = r);
-            } catch (_) {
-              if (mounted) setState(() => _results = []);
-            }
-          },
-        ),
-        const SizedBox(height: 8),
-        if (_results.isNotEmpty)
-          Flexible(child: ListView.builder(
-            shrinkWrap: true, itemCount: _results.length,
-            itemBuilder: (_, i) {
-              final s = _results[i];
-              return ListTile(
-                title: Text('${s.firstNameAr} ${s.lastNameAr}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-                subtitle: Text(s.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                onTap: () { if (mounted) Navigator.pop(context, s); },
-              );
-            },
-          )),
-      ]),
-    );
-  }
-}
-
-
 
 class _ClosePeriodDialog extends StatefulWidget {
   final AppDatabase database;
@@ -1648,27 +1556,10 @@ class _BalanceTransferDialogState extends State<_BalanceTransferDialog> {
   }
 
   Future<Student?> _pick() async {
-    final result = await showDialog<Student>(
+    return showDialog<Student>(
       context: context,
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        return ShellDialog(
-        maxWidth: 400, title: 'Select Student',
-        body: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: ctrl, autofocus: true,
-            decoration: ShellInputDecoration.textField(hintText: 'Code or Name'),
-            onSubmitted: (q) async {
-              try {
-                final r = await StudentRepository(widget.database).search(q);
-                if (r.isNotEmpty && ctx.mounted) Navigator.pop(ctx, r.first);
-              } catch (_) {}
-            },
-          ),
-        ]),
-      );},
+      builder: (ctx) => StudentPickerDialog(database: widget.database),
     );
-    return result;
   }
 
   @override
@@ -1740,27 +1631,10 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
   void dispose() { _amountCtrl.dispose(); _reasonCtrl.dispose(); super.dispose(); }
 
   Future<Student?> _pick() async {
-    final result = await showDialog<Student>(
+    return showDialog<Student>(
       context: context,
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        return ShellDialog(
-        maxWidth: 400, title: 'Select Student',
-        body: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: ctrl, autofocus: true,
-            decoration: ShellInputDecoration.textField(hintText: 'Code or Name'),
-            onSubmitted: (q) async {
-              try {
-                final r = await StudentRepository(widget.database).search(q);
-                if (r.isNotEmpty && ctx.mounted) Navigator.pop(ctx, r.first);
-              } catch (_) {}
-            },
-          ),
-        ]),
-      );},
+      builder: (ctx) => StudentPickerDialog(database: widget.database),
     );
-    return result;
   }
 
   Future<void> _save() async {
