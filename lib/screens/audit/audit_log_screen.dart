@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/audit_log_repository.dart';
@@ -24,6 +25,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
   String? _filterUserId;
+  String _entityFilter = 'all';
 
   @override
   void initState() {
@@ -108,6 +110,51 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     return userId;
   }
 
+  Color _entityColor(String entityType) {
+    switch (entityType) {
+      case 'student': return const Color(0xFF4A90D9);
+      case 'teacher': return const Color(0xFF9B59B6);
+      case 'session': return const Color(0xFF5B8C5A);
+      case 'payment': return const Color(0xFFE67E22);
+      case 'enrollment': return const Color(0xFF1ABC9C);
+      case 'group': return const Color(0xFFA78B4A);
+      case 'classroom': return const Color(0xFF7C4DFF);
+      case 'user': return const Color(0xFFF1C40F);
+      case 'family': return const Color(0xFFE74C3C);
+      default: return ShellTokens.textSecondary;
+    }
+  }
+
+  Color _actionColor(String action) {
+    if (action.contains('created') || action.contains('charged')) return SemanticTokens.success;
+    if (action.contains('deleted') || action.contains('reversal') || action.contains('reversed') || action.contains('cancellation')) return SemanticTokens.error;
+    if (action.contains('updated') || action.contains('edited') || action.contains('changed')) return const Color(0xFF4A90D9);
+    if (action.contains('archived')) return const Color(0xFFD1943C);
+    if (action.contains('restored') || action.contains('unarchived')) return ShellTokens.accent;
+    if (action.contains('payment') || action.contains('payout') || action.contains('refund') || action.contains('fee') || action.contains('discount') || action.contains('transfer')) return const Color(0xFFE67E22);
+    return ShellTokens.textSecondary;
+  }
+
+  List<AuditLogData> get _filteredEntries {
+    if (_entityFilter == 'all') return _entries;
+    return _entries.where((e) => _entityGroup(e.entityType) == _entityFilter).toList();
+  }
+
+  String _entityGroup(String entityType) {
+    switch (entityType) {
+      case 'student': return 'student';
+      case 'teacher': return 'teacher';
+      case 'session': return 'session';
+      case 'payment': case 'transaction': return 'financial';
+      case 'enrollment': return 'enrollment';
+      case 'group': return 'group';
+      case 'classroom': return 'classroom';
+      case 'user': return 'user';
+      case 'family': return 'family';
+      default: return 'other';
+    }
+  }
+
   String _formatTimestamp(DateTime ts) {
     return '${ts.year}/${ts.month.toString().padLeft(2, '0')}/${ts.day.toString().padLeft(2, '0')} '
         '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
@@ -183,9 +230,23 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final entities = ['all', 'student', 'teacher', 'session', 'financial', 'enrollment', 'group', 'classroom', 'user', 'family', 'other'];
+    final entityLabels = <String, String>{
+      'all': l10n.all, 'student': l10n.student, 'teacher': l10n.teacher, 'session': 'Session',
+      'financial': 'Financial', 'enrollment': 'Enrollment', 'group': 'Group',
+      'classroom': 'Classroom', 'user': 'User', 'family': 'Family', 'other': 'Other',
+    };
     return Scaffold(
       body: Column(
         children: [
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              children: entities.map((v) => _buildFilterChip(entityLabels[v] ?? v, v, _entityFilter == v)).toList(),
+            ),
+          ),
           if (_filterStartDate != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -229,15 +290,29 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                 ],
               ),
             ),
+          Row(children: [
+            TextButton.icon(
+              onPressed: _pickDateRange,
+              icon: const Icon(Icons.calendar_today, size: 14),
+              label: Text(l10n.filterByDate, style: const TextStyle(fontSize: 11)),
+              style: TextButton.styleFrom(foregroundColor: ShellTokens.textSecondary),
+            ),
+            TextButton.icon(
+              onPressed: _showFilterSheet,
+              icon: const Icon(Icons.person, size: 14),
+              label: Text(l10n.filterByUser, style: const TextStyle(fontSize: 11)),
+              style: TextButton.styleFrom(foregroundColor: ShellTokens.textSecondary),
+            ),
+          ]),
           Expanded(
             child: _loading && _entries.isEmpty
                 ? const Center(child: CircularProgressIndicator())
-                : _entries.isEmpty
+                : _filteredEntries.isEmpty
                     ? Center(child: Text(l10n.noAuditEntries))
                     : ListView.builder(
-                        itemCount: _entries.length + (_hasMore ? 1 : 0),
+                        itemCount: _filteredEntries.length + (_hasMore ? 1 : 0),
                         itemBuilder: (_, i) {
-                          if (i >= _entries.length) {
+                          if (i >= _filteredEntries.length) {
                             if (_loading) {
                               return const Padding(
                                 padding: EdgeInsets.all(16),
@@ -250,21 +325,39 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                               child: Text(l10n.next),
                             );
                           }
-                          final entry = _entries[i];
+                          final entry = _filteredEntries[i];
                           return Card(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             child: ListTile(
                               dense: true,
-                              title: Text(
-                                entry.action,
-                                style: const TextStyle(fontSize: 13),
+                              leading: Container(
+                                width: 4,
+                                decoration: BoxDecoration(
+                                  color: _actionColor(entry.action),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
+                              title: Row(children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: _entityColor(entry.entityType).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: Text(entry.entityType, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: _entityColor(entry.entityType))),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text(
+                                  entry.action,
+                                  style: const TextStyle(fontSize: 13),
+                                )),
+                              ]),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${l10n.user}: ${_userName(entry.userId)}  |  ${l10n.entity}: ${entry.entityType}${entry.entityId != null ? " (${entry.entityId})" : ""}',
+                                    '${l10n.user}: ${_userName(entry.userId)}${entry.entityId != null ? "  |  ID: ${entry.entityId}" : ""}',
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                   if (entry.details != null)
@@ -288,6 +381,25 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                       ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, bool selected) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 6),
+      child: Material(
+        color: selected ? ShellTokens.accentMuted : ShellTokens.chromeSurface,
+        borderRadius: BorderRadius.circular(5),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(5),
+          onTap: () => setState(() => _entityFilter = selected ? 'all' : value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                color: selected ? ShellTokens.textPrimary : ShellTokens.textSecondary)),
+          ),
+        ),
       ),
     );
   }
