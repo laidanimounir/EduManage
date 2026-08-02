@@ -55,48 +55,76 @@ class _StudentHistoryDialogState extends State<StudentHistoryDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final balance = _charged - _paid;
     return ShellDialog(
       maxWidth: 700,
       maxHeight: 650,
       title: _studentName,
-      body: _loading
-          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _statCard(l10n.totalCharged, _charged, const Color(0xFF4A90D9)),
-          const SizedBox(width: 8),
-          _statCard(l10n.totalPaid, _paid, SemanticTokens.success),
-          const SizedBox(width: 8),
-          _statCard(l10n.remaining, balance, balance > 0 ? SemanticTokens.error : SemanticTokens.success),
-        ]),
-        const SizedBox(height: 12),
-        ShellSectionHeader(text: l10n.paymentHistory, withBorder: true),
-        const SizedBox(height: 4),
-        _txs.isEmpty
-            ? Center(child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled)))
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: _txs.length,
-                itemBuilder: (_, i) {
-                  final t = _txs[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(children: [
-                      SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
-                      SizedBox(width: 90, child: _txBadge(t.type, l10n)),
-                      if (t.cycleNumber != null) SizedBox(width: 60, child: Text('Cycle ${t.cycleNumber}', style: TextStyle(fontSize: 9, color: ShellTokens.accent, fontWeight: FontWeight.w600))),
-                      Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                          color: t.type == 'student_payment' || t.type == 'discount' || t.type == 'reversal' ? SemanticTokens.success : SemanticTokens.error)),
-                    ]),
-                  );
-                },
-              ),
-      ]),
+      body: StudentHistoryContent(
+        charged: _charged,
+        paid: _paid,
+        txs: _txs,
+        loading: _loading,
+      ),
     );
+  }
+}
+
+class StudentHistoryContent extends StatelessWidget {
+  final double charged;
+  final double paid;
+  final List<Transaction> txs;
+  final bool loading;
+
+  const StudentHistoryContent({
+    super.key,
+    required this.charged,
+    required this.paid,
+    required this.txs,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (loading) {
+      return const Center(
+        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)),
+      );
+    }
+    final balance = charged - paid;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        _statCard(l10n.totalCharged, charged, const Color(0xFF4A90D9)),
+        const SizedBox(width: 8),
+        _statCard(l10n.totalPaid, paid, SemanticTokens.success),
+        const SizedBox(width: 8),
+        _statCard(l10n.remaining, balance, balance > 0 ? SemanticTokens.error : SemanticTokens.success),
+      ]),
+      const SizedBox(height: 12),
+      ShellSectionHeader(text: l10n.paymentHistory, withBorder: true),
+      const SizedBox(height: 4),
+      txs.isEmpty
+          ? Center(child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled)))
+          : ListView.builder(
+              shrinkWrap: true,
+              itemCount: txs.length,
+              itemBuilder: (_, i) {
+                final t = txs[i];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(children: [
+                    SizedBox(width: 80, child: Text(_formatDate(t.transactionDate), style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+                    SizedBox(width: 90, child: _txBadge(t.type, l10n)),
+                    if (t.cycleNumber != null) SizedBox(width: 60, child: Text('Cycle ${t.cycleNumber}', style: TextStyle(fontSize: 9, color: ShellTokens.accent, fontWeight: FontWeight.w600))),
+                    Expanded(child: Text(t.note ?? '', style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Text('${t.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                        color: t.type == 'student_payment' || t.type == 'discount' || t.type == 'reversal' ? SemanticTokens.success : SemanticTokens.error)),
+                  ]),
+                );
+              },
+            ),
+    ]);
   }
 
   Widget _statCard(String label, double value, Color color) {
