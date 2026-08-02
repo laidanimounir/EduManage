@@ -1151,6 +1151,21 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
               ),
               child: Text('Registration fee unpaid', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: SemanticTokens.warning)),
             ),
+          if (!_loadingContext && _familyName != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90D9).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Builder(builder: (_) {
+                final parts = <String>['Family: $_familyName'];
+                if (_familyDiscountPercent != null) parts.add('${_familyDiscountPercent!.toStringAsFixed(0)}% discount');
+                if (_familyDiscountFixed != null) parts.add('${_familyDiscountFixed!.toStringAsFixed(0)} DA discount');
+                return Text(parts.join(' \u2022 '), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFF4A90D9)));
+              }),
+            ),
           if (_loadingContext)
             SizedBox(
               height: 28,
@@ -1165,6 +1180,21 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
               _finChip('Balance', AppConstants.currencySymbol, _studentBalance ?? 0,
                   _studentBalance! > 0 ? SemanticTokens.error : SemanticTokens.success),
             ]),
+            if (_oldestUnpaidDate != null) ...[
+              const SizedBox(height: 4),
+              Builder(builder: (_) {
+                final days = DateTime.now().difference(_oldestUnpaidDate!).inDays;
+                if (days <= 0) return const SizedBox.shrink();
+                final color = days > 90 ? SemanticTokens.error :
+                    days > 60 ? const Color(0xFFE67E22) :
+                    days > 30 ? SemanticTokens.warning : ShellTokens.textSecondary;
+                return Row(children: [
+                  Icon(Icons.history, size: 12, color: color),
+                  const SizedBox(width: 4),
+                  Text('$days days overdue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: color)),
+                ]);
+              }),
+            ],
           ],
         ],
         const SizedBox(height: 12),
@@ -1257,6 +1287,12 @@ class _RecordPaymentDialogState extends State<_RecordPaymentDialog> {
             ),
         ],
         const SizedBox(height: 16),
+        if (_lastPaymentAmount != null && _lastPaymentDate != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Last payment: ${_lastPaymentAmount!.toStringAsFixed(0)} DA on ${_fmtDate(_lastPaymentDate!)}',
+                style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+          ),
         SizedBox(width: double.infinity, child: FilledButton(
           onPressed: _saving ? null : _save,
           style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
