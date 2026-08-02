@@ -1,9 +1,9 @@
+import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import '../utils/date_helper.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
 import 'base_repository.dart';
-import 'package:drift/drift.dart';
 
 class SessionRepository extends BaseRepository {
   SessionRepository(super.db);
@@ -29,6 +29,29 @@ class SessionRepository extends BaseRepository {
     return (db.select(db.sessions)
       ..where((t) => t.classroomId.equals(classroomId)))
         .get();
+  }
+
+  Future<Map<int, ({int openMinutes, int closeMinutes})>> suggestOperatingHours() async {
+    final rows = await (db.select(db.sessions)
+      ..where((t) => t.isArchived.equals(false) & t.isActive.equals(true)))
+        .get();
+    final byDay = <int, List<Session>>{};
+    for (final s in rows) {
+      byDay.putIfAbsent(s.dayOfWeek, () => []).add(s);
+    }
+    final result = <int, ({int openMinutes, int closeMinutes})>{};
+    for (final entry in byDay.entries) {
+      var minStart = 24 * 60;
+      var maxEnd = 0;
+      for (final s in entry.value) {
+        final start = s.startTime.hour * 60 + s.startTime.minute;
+        final end = s.endTime.hour * 60 + s.endTime.minute;
+        if (start < minStart) minStart = start;
+        if (end > maxEnd) maxEnd = end;
+      }
+      result[entry.key] = (openMinutes: minStart, closeMinutes: maxEnd);
+    }
+    return result;
   }
 
   Future<List<Session>> getActiveAtTime(DateTime time) async {
