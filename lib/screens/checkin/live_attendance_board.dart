@@ -347,7 +347,12 @@ class _LiveAttendanceBoardState extends State<LiveAttendanceBoard> {
       ),
     );
     if (picked != null && mounted) {
-      final session = sessions.firstWhere((s) => s.id == picked['sessionId']);
+      final matching = sessions.where((s) => s.id == picked['sessionId']);
+      if (matching.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Session not found for this student')));
+        return;
+      }
+      final session = matching.first;
       await _completeStudentCheckin(student, session);
     }
   }
@@ -1157,7 +1162,7 @@ class _SessionRosterDialogState extends State<_SessionRosterDialog> {
         enrollmentId: enrollment?.id ?? '', createdByUserId: widget.currentUserId, date: date,
       );
       widget.onChanged?.call();
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
@@ -1171,7 +1176,7 @@ class _SessionRosterDialogState extends State<_SessionRosterDialog> {
       if (reason != null && mounted) {
         await AttendanceRepository(widget.database).markAbsent(sessionId: sessionId, studentId: studentId, date: DateTime.now(), reason: reason, userId: widget.currentUserId);
         widget.onChanged?.call();
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
@@ -1200,7 +1205,7 @@ class _SessionRosterDialogState extends State<_SessionRosterDialog> {
         createdByUserId: widget.currentUserId,
       );
       widget.onChanged?.call();
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Undo failed: $e')));
     }
