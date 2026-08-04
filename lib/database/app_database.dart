@@ -124,6 +124,7 @@ class Sessions extends Table {
 class Enrollments extends Table {
   TextColumn get id => text()();
   TextColumn get studentId => text().references(Students, #id)();
+  TextColumn get sessionId => text().references(Sessions, #id)();
   TextColumn get subjectGroupId => text().references(SubjectGroups, #id)();
   DateTimeColumn get enrollmentDate => dateTime().withDefault(currentDateAndTime)();
   RealColumn get customPriceOverride => real().nullable()();
@@ -393,7 +394,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -497,6 +498,14 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 13) {
         await m.createTable(specialCases);
+      }
+      if (from < 14) {
+        await customStatement('DELETE FROM enrollments');
+        await m.alterTable(TableMigration(enrollments,
+          newColumns: [
+            enrollments.sessionId,
+          ],
+        ));
       }
     },
   );
@@ -700,7 +709,7 @@ class AppDatabase extends _$AppDatabase {
       't.teacher_share_pct AS teacher_default_pct, '
       't.teacher_fixed_amount AS teacher_default_fixed, '
       't.salary_type AS teacher_salary_type, '
-      '(SELECT COUNT(*) FROM enrollments e WHERE e.subject_group_id = sg.id AND e.status = \'active\' AND e.is_transferred = 0) AS enrolled '
+      '(SELECT COUNT(*) FROM enrollments e WHERE e.session_id = s.id AND e.status = \'active\' AND e.is_transferred = 0) AS enrolled '
       'FROM sessions s '
       'JOIN subject_groups sg ON s.subject_group_id = sg.id '
       'JOIN teachers t ON t.id = ? '
@@ -1470,17 +1479,15 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Map<String, dynamic>>> getSessionRoster(String sessionId, DateTime date) async {
     final dateStart = DateTime(date.year, date.month, date.day);
     final dateEnd = dateStart.add(const Duration(days: 1));
-    final session = await (select(sessions)..where((t) => t.id.equals(sessionId))).getSingleOrNull();
-    if (session == null) return [];
     return await customSelect(
       'SELECT s.id, s.first_name_ar, s.last_name_ar, s.code, s.photo_path, '
       'a.id AS attendance_id, a.status, a.check_in_time, a.minutes_late, a.absence_reason, a.is_backdated '
       'FROM students s '
       'JOIN enrollments e ON s.id = e.student_id '
       'LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id = ? AND a.attendance_date >= ? AND a.attendance_date < ? '
-      'WHERE e.subject_group_id = ? AND e.status = \'active\' AND e.is_transferred = 0 AND s.is_archived = 0 '
+      'WHERE e.session_id = ? AND e.status = \'active\' AND e.is_transferred = 0 AND s.is_archived = 0 '
       'ORDER BY s.first_name_ar',
-      variables: [Variable.withString(sessionId), Variable.withDateTime(dateStart), Variable.withDateTime(dateEnd), Variable.withString(session.subjectGroupId)],
+      variables: [Variable.withString(sessionId), Variable.withDateTime(dateStart), Variable.withDateTime(dateEnd), Variable.withString(sessionId)],
     ).map((r) => {
       'id': r.read<String>('id'),
       'first_name_ar': r.read<String>('first_name_ar'),

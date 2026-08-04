@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/enrollment_repository.dart';
+import '../../repositories/session_repository.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class StudentFormScreen extends StatefulWidget {
@@ -37,14 +38,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   DateTime _registrationDate = DateTime.now();
   bool _isEdit = false;
   bool _saving = false;
-  List<SubjectGroup> _groups = [];
-  String? _selectedGroupId;
+  List<Session> _sessions = [];
+  String? _selectedSessionId;
 
   @override
   void initState() {
     super.initState();
     _repo = StudentRepository(widget.database);
-    SubjectGroupRepository(widget.database).getAll().then((g) { if (mounted) setState(() => _groups = g); }).catchError((_) {});
+    SessionRepository(widget.database).getAllActive().then((g) { if (mounted) setState(() => _sessions = g); }).catchError((_) {});
     if (widget.studentId != null) {
       _isEdit = true;
       _loadStudent();
@@ -104,12 +105,17 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         await _repo.update(widget.studentId!, companion);
       } else {
         final studentId = await _repo.create(companion);
-        if (_selectedGroupId != null) {
-          await EnrollmentRepository(widget.database).create(EnrollmentsCompanion(
-            studentId: Value(studentId),
-            subjectGroupId: Value(_selectedGroupId!),
-            status: const Value('active'),
-          ));
+        if (_selectedSessionId != null) {
+          final sessionRepo = SessionRepository(widget.database);
+          final session = await sessionRepo.getById(_selectedSessionId!);
+          if (session != null) {
+            await EnrollmentRepository(widget.database).create(EnrollmentsCompanion(
+              studentId: Value(studentId),
+              sessionId: Value(_selectedSessionId!),
+              subjectGroupId: Value(session.subjectGroupId),
+              status: const Value('active'),
+            ));
+          }
         }
       }
 
@@ -224,16 +230,16 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedGroupId,
+              value: _selectedSessionId,
               decoration: InputDecoration(
-                labelText: l10n.groups,
-                helperText: _selectedGroupId == null ? l10n.enrollStudent : null,
+                labelText: 'تسجيل في حصة',
+                helperText: _selectedSessionId == null ? l10n.enrollStudent : null,
               ),
-              items: _groups.map((g) => DropdownMenuItem(
-                value: g.id,
-                child: Text(g.nameAr),
+              items: _sessions.map((s) => DropdownMenuItem(
+                value: s.id,
+                child: Text(s.subjectGroupId, maxLines: 1, overflow: TextOverflow.ellipsis),
               )).toList(),
-              onChanged: (v) => setState(() => _selectedGroupId = v),
+              onChanged: (v) => setState(() => _selectedSessionId = v),
             ),
             const SizedBox(height: 24),
             ElevatedButton(

@@ -13,6 +13,12 @@ class SessionRepository extends BaseRepository {
   Future<Session?> getById(String id) =>
       (db.select(db.sessions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  Future<List<Session>> getAllActive() {
+    return (db.select(db.sessions)
+      ..where((t) => t.isActive.equals(true) & t.isArchived.equals(false)))
+        .get();
+  }
+
   Future<List<Session>> getByDay(int dayOfWeek) {
     return (db.select(db.sessions)
       ..where((t) => t.dayOfWeek.equals(dayOfWeek) & t.isActive.equals(true)))

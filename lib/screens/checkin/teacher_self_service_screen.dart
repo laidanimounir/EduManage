@@ -50,7 +50,7 @@ class _TeacherSelfServiceScreenState extends State<TeacherSelfServiceScreen> {
     final rows = await widget.database.customSelect(
       'SELECT s.id, s.subject_group_id, s.classroom_id, s.start_time, s.end_time, sg.name_ar AS group_name, c.name_ar AS classroom_name, '
       '(SELECT COUNT(*) FROM attendance a WHERE a.session_id = s.id AND a.attendance_date >= ? AND a.attendance_date < ? AND a.student_id IS NOT NULL AND a.status = \'present\') AS checked_in, '
-      '(SELECT COUNT(*) FROM enrollments e WHERE e.subject_group_id = s.subject_group_id AND e.status = \'active\' AND e.is_transferred = 0) AS total_enrolled '
+      '(SELECT COUNT(*) FROM enrollments e WHERE e.session_id = s.id AND e.status = \'active\' AND e.is_transferred = 0) AS total_enrolled '
       'FROM sessions s JOIN subject_groups sg ON s.subject_group_id = sg.id LEFT JOIN classrooms c ON s.classroom_id = c.id '
       'WHERE s.teacher_id = ? AND s.day_of_week = ? AND s.is_active = 1 AND s.is_archived = 0 ORDER BY s.start_time',
       variables: [Variable.withDateTime(DateTime(now.year, now.month, now.day)), Variable.withDateTime(DateTime(now.year, now.month, now.day + 1)), Variable.withString(teacherId), Variable.withInt(today)],

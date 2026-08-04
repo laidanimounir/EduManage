@@ -146,27 +146,36 @@ class SampleDataSeeder {
       ));
     }
 
+    final t1Sessions = await sessionRepo.getByTeacher(t1Id);
+    final t2Sessions = await sessionRepo.getByTeacher(t2Id);
+    final t1SessId = t1Sessions.isNotEmpty ? t1Sessions.first.id : '';
+    final t2SessId = t2Sessions.isNotEmpty ? t2Sessions.first.id : '';
+
     final enrollingRepo = EnrollmentRepository(db);
     await enrollingRepo.create(EnrollmentsCompanion(
       studentId: Value(s1Id),
+      sessionId: Value(t1SessId),
       subjectGroupId: Value(g1Id),
       status: const Value('active'),
     ));
 
     await enrollingRepo.create(EnrollmentsCompanion(
       studentId: Value(s2Id),
+      sessionId: Value(t1SessId),
       subjectGroupId: Value(g1Id),
       status: const Value('active'),
     ));
 
     await enrollingRepo.create(EnrollmentsCompanion(
       studentId: Value(s1Id),
+      sessionId: Value(t2SessId),
       subjectGroupId: Value(g2Id),
       status: const Value('active'),
     ));
 
     await enrollingRepo.create(EnrollmentsCompanion(
       studentId: Value(s3Id),
+      sessionId: Value(t2SessId),
       subjectGroupId: Value(g2Id),
       status: const Value('active'),
     ));
@@ -180,7 +189,6 @@ class SampleDataSeeder {
 
     final teachers = await TeacherRepository(db).getAll();
     final sessionRepo = SessionRepository(db);
-    final enrollingRepo = EnrollmentRepository(db);
     final deviceId = await DeviceId.get();
 
     for (final teacher in teachers.where((t) => !t.isArchived)) {
@@ -188,8 +196,10 @@ class SampleDataSeeder {
       if (sessions.isEmpty) continue;
 
       for (final sess in sessions.take(3)) {
-        final enrollments = await enrollingRepo.getBySubjectGroup(sess.subjectGroupId);
-        final active = enrollments.where((e) => e.status == 'active' && !e.isTransferred).take(2).toList();
+        final enrollments = await (db.select(db.enrollments)
+          ..where((t) => t.sessionId.equals(sess.id) & t.status.equals('active') & t.isTransferred.equals(false)))
+            .get();
+        final active = enrollments.take(2).toList();
 
         for (int dateOffset = 1; dateOffset <= 3; dateOffset++) {
           final attDate = DateTime(2026, 8, dateOffset);

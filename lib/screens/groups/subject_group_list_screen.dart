@@ -289,7 +289,12 @@ class _WaitlistWidgetState extends State<_WaitlistWidget> {
       final g3 = await groupRepo.getById(widget.groupId);
       if (g3?.capacity != null && newCount2 >= g3!.capacity!) return;
     }
-    await enrollRepo.create(EnrollmentsCompanion(studentId: Value(w.studentId), subjectGroupId: Value(widget.groupId)));
+    final firstSession = await (widget.database.select(widget.database.sessions)
+      ..where((t) => t.subjectGroupId.equals(widget.groupId) & t.isActive.equals(true) & t.isArchived.equals(false))
+      ..orderBy([(t) => OrderingTerm.asc(t.startTime)]))
+        .getSingleOrNull();
+    final sessId = firstSession?.id ?? '';
+    await enrollRepo.create(EnrollmentsCompanion(studentId: Value(w.studentId), sessionId: Value(sessId), subjectGroupId: Value(widget.groupId)));
     await enrollRepo.removeFromWaitlist(w.id);
     _load();
   }

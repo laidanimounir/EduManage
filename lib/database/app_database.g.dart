@@ -4676,6 +4676,20 @@ class $EnrollmentsTable extends Enrollments
       'REFERENCES students (id)',
     ),
   );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sessions (id)',
+    ),
+  );
   static const VerificationMeta _subjectGroupIdMeta = const VerificationMeta(
     'subjectGroupId',
   );
@@ -4798,6 +4812,7 @@ class $EnrollmentsTable extends Enrollments
   List<GeneratedColumn> get $columns => [
     id,
     studentId,
+    sessionId,
     subjectGroupId,
     enrollmentDate,
     customPriceOverride,
@@ -4833,6 +4848,14 @@ class $EnrollmentsTable extends Enrollments
       );
     } else if (isInserting) {
       context.missing(_studentIdMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
     }
     if (data.containsKey('subject_group_id')) {
       context.handle(
@@ -4930,6 +4953,10 @@ class $EnrollmentsTable extends Enrollments
         DriftSqlType.string,
         data['${effectivePrefix}student_id'],
       )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
       subjectGroupId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}subject_group_id'],
@@ -4982,6 +5009,7 @@ class $EnrollmentsTable extends Enrollments
 class Enrollment extends DataClass implements Insertable<Enrollment> {
   final String id;
   final String studentId;
+  final String sessionId;
   final String subjectGroupId;
   final DateTime enrollmentDate;
   final double? customPriceOverride;
@@ -4995,6 +5023,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   const Enrollment({
     required this.id,
     required this.studentId,
+    required this.sessionId,
     required this.subjectGroupId,
     required this.enrollmentDate,
     this.customPriceOverride,
@@ -5011,6 +5040,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['student_id'] = Variable<String>(studentId);
+    map['session_id'] = Variable<String>(sessionId);
     map['subject_group_id'] = Variable<String>(subjectGroupId);
     map['enrollment_date'] = Variable<DateTime>(enrollmentDate);
     if (!nullToAbsent || customPriceOverride != null) {
@@ -5034,6 +5064,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return EnrollmentsCompanion(
       id: Value(id),
       studentId: Value(studentId),
+      sessionId: Value(sessionId),
       subjectGroupId: Value(subjectGroupId),
       enrollmentDate: Value(enrollmentDate),
       customPriceOverride: customPriceOverride == null && nullToAbsent
@@ -5061,6 +5092,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return Enrollment(
       id: serializer.fromJson<String>(json['id']),
       studentId: serializer.fromJson<String>(json['studentId']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
       subjectGroupId: serializer.fromJson<String>(json['subjectGroupId']),
       enrollmentDate: serializer.fromJson<DateTime>(json['enrollmentDate']),
       customPriceOverride: serializer.fromJson<double?>(
@@ -5081,6 +5113,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'studentId': serializer.toJson<String>(studentId),
+      'sessionId': serializer.toJson<String>(sessionId),
       'subjectGroupId': serializer.toJson<String>(subjectGroupId),
       'enrollmentDate': serializer.toJson<DateTime>(enrollmentDate),
       'customPriceOverride': serializer.toJson<double?>(customPriceOverride),
@@ -5097,6 +5130,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   Enrollment copyWith({
     String? id,
     String? studentId,
+    String? sessionId,
     String? subjectGroupId,
     DateTime? enrollmentDate,
     Value<double?> customPriceOverride = const Value.absent(),
@@ -5110,6 +5144,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   }) => Enrollment(
     id: id ?? this.id,
     studentId: studentId ?? this.studentId,
+    sessionId: sessionId ?? this.sessionId,
     subjectGroupId: subjectGroupId ?? this.subjectGroupId,
     enrollmentDate: enrollmentDate ?? this.enrollmentDate,
     customPriceOverride: customPriceOverride.present
@@ -5129,6 +5164,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return Enrollment(
       id: data.id.present ? data.id.value : this.id,
       studentId: data.studentId.present ? data.studentId.value : this.studentId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
       subjectGroupId: data.subjectGroupId.present
           ? data.subjectGroupId.value
           : this.subjectGroupId,
@@ -5157,6 +5193,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
     return (StringBuffer('Enrollment(')
           ..write('id: $id, ')
           ..write('studentId: $studentId, ')
+          ..write('sessionId: $sessionId, ')
           ..write('subjectGroupId: $subjectGroupId, ')
           ..write('enrollmentDate: $enrollmentDate, ')
           ..write('customPriceOverride: $customPriceOverride, ')
@@ -5175,6 +5212,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
   int get hashCode => Object.hash(
     id,
     studentId,
+    sessionId,
     subjectGroupId,
     enrollmentDate,
     customPriceOverride,
@@ -5192,6 +5230,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
       (other is Enrollment &&
           other.id == this.id &&
           other.studentId == this.studentId &&
+          other.sessionId == this.sessionId &&
           other.subjectGroupId == this.subjectGroupId &&
           other.enrollmentDate == this.enrollmentDate &&
           other.customPriceOverride == this.customPriceOverride &&
@@ -5207,6 +5246,7 @@ class Enrollment extends DataClass implements Insertable<Enrollment> {
 class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   final Value<String> id;
   final Value<String> studentId;
+  final Value<String> sessionId;
   final Value<String> subjectGroupId;
   final Value<DateTime> enrollmentDate;
   final Value<double?> customPriceOverride;
@@ -5221,6 +5261,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   const EnrollmentsCompanion({
     this.id = const Value.absent(),
     this.studentId = const Value.absent(),
+    this.sessionId = const Value.absent(),
     this.subjectGroupId = const Value.absent(),
     this.enrollmentDate = const Value.absent(),
     this.customPriceOverride = const Value.absent(),
@@ -5236,6 +5277,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   EnrollmentsCompanion.insert({
     required String id,
     required String studentId,
+    required String sessionId,
     required String subjectGroupId,
     this.enrollmentDate = const Value.absent(),
     this.customPriceOverride = const Value.absent(),
@@ -5249,11 +5291,13 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        studentId = Value(studentId),
+       sessionId = Value(sessionId),
        subjectGroupId = Value(subjectGroupId),
        deviceId = Value(deviceId);
   static Insertable<Enrollment> custom({
     Expression<String>? id,
     Expression<String>? studentId,
+    Expression<String>? sessionId,
     Expression<String>? subjectGroupId,
     Expression<DateTime>? enrollmentDate,
     Expression<double>? customPriceOverride,
@@ -5269,6 +5313,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (studentId != null) 'student_id': studentId,
+      if (sessionId != null) 'session_id': sessionId,
       if (subjectGroupId != null) 'subject_group_id': subjectGroupId,
       if (enrollmentDate != null) 'enrollment_date': enrollmentDate,
       if (customPriceOverride != null)
@@ -5287,6 +5332,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
   EnrollmentsCompanion copyWith({
     Value<String>? id,
     Value<String>? studentId,
+    Value<String>? sessionId,
     Value<String>? subjectGroupId,
     Value<DateTime>? enrollmentDate,
     Value<double?>? customPriceOverride,
@@ -5302,6 +5348,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return EnrollmentsCompanion(
       id: id ?? this.id,
       studentId: studentId ?? this.studentId,
+      sessionId: sessionId ?? this.sessionId,
       subjectGroupId: subjectGroupId ?? this.subjectGroupId,
       enrollmentDate: enrollmentDate ?? this.enrollmentDate,
       customPriceOverride: customPriceOverride ?? this.customPriceOverride,
@@ -5324,6 +5371,9 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     }
     if (studentId.present) {
       map['student_id'] = Variable<String>(studentId.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
     }
     if (subjectGroupId.present) {
       map['subject_group_id'] = Variable<String>(subjectGroupId.value);
@@ -5368,6 +5418,7 @@ class EnrollmentsCompanion extends UpdateCompanion<Enrollment> {
     return (StringBuffer('EnrollmentsCompanion(')
           ..write('id: $id, ')
           ..write('studentId: $studentId, ')
+          ..write('sessionId: $sessionId, ')
           ..write('subjectGroupId: $subjectGroupId, ')
           ..write('enrollmentDate: $enrollmentDate, ')
           ..write('customPriceOverride: $customPriceOverride, ')
@@ -17128,6 +17179,24 @@ final class $$SessionsTableReferences
     );
   }
 
+  static MultiTypedResultKey<$EnrollmentsTable, List<Enrollment>>
+  _enrollmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.enrollments,
+    aliasName: 'sessions__id__enrollments__session_id',
+  );
+
+  $$EnrollmentsTableProcessedTableManager get enrollmentsRefs {
+    final manager = $$EnrollmentsTableTableManager(
+      $_db,
+      $_db.enrollments,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_enrollmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$CancellationsTable, List<Cancellation>>
   _cancellationsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.cancellations,
@@ -17347,6 +17416,31 @@ class $$SessionsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> enrollmentsRefs(
+    Expression<bool> Function($$EnrollmentsTableFilterComposer f) f,
+  ) {
+    final $$EnrollmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.enrollments,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EnrollmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.enrollments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 
   Expression<bool> cancellationsRefs(
@@ -17742,6 +17836,31 @@ class $$SessionsTableAnnotationComposer
     return composer;
   }
 
+  Expression<T> enrollmentsRefs<T extends Object>(
+    Expression<T> Function($$EnrollmentsTableAnnotationComposer a) f,
+  ) {
+    final $$EnrollmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.enrollments,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EnrollmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.enrollments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> cancellationsRefs<T extends Object>(
     Expression<T> Function($$CancellationsTableAnnotationComposer a) f,
   ) {
@@ -17836,6 +17955,7 @@ class $$SessionsTableTableManager
             bool teacherId,
             bool classroomId,
             bool makeupForSessionId,
+            bool enrollmentsRefs,
             bool cancellationsRefs,
             bool transactionsRefs,
             bool attendanceRefs,
@@ -17946,6 +18066,7 @@ class $$SessionsTableTableManager
                 teacherId = false,
                 classroomId = false,
                 makeupForSessionId = false,
+                enrollmentsRefs = false,
                 cancellationsRefs = false,
                 transactionsRefs = false,
                 attendanceRefs = false,
@@ -17953,6 +18074,7 @@ class $$SessionsTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (enrollmentsRefs) db.enrollments,
                     if (cancellationsRefs) db.cancellations,
                     if (transactionsRefs) db.transactions,
                     if (attendanceRefs) db.attendance,
@@ -18030,6 +18152,27 @@ class $$SessionsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (enrollmentsRefs)
+                        await $_getPrefetchedData<
+                          Session,
+                          $SessionsTable,
+                          Enrollment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._enrollmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).enrollmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (cancellationsRefs)
                         await $_getPrefetchedData<
                           Session,
@@ -18118,6 +18261,7 @@ typedef $$SessionsTableProcessedTableManager =
         bool teacherId,
         bool classroomId,
         bool makeupForSessionId,
+        bool enrollmentsRefs,
         bool cancellationsRefs,
         bool transactionsRefs,
         bool attendanceRefs,
@@ -18127,6 +18271,7 @@ typedef $$EnrollmentsTableCreateCompanionBuilder =
     EnrollmentsCompanion Function({
       required String id,
       required String studentId,
+      required String sessionId,
       required String subjectGroupId,
       Value<DateTime> enrollmentDate,
       Value<double?> customPriceOverride,
@@ -18143,6 +18288,7 @@ typedef $$EnrollmentsTableUpdateCompanionBuilder =
     EnrollmentsCompanion Function({
       Value<String> id,
       Value<String> studentId,
+      Value<String> sessionId,
       Value<String> subjectGroupId,
       Value<DateTime> enrollmentDate,
       Value<double?> customPriceOverride,
@@ -18171,6 +18317,23 @@ final class $$EnrollmentsTableReferences
       $_db.students,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_studentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SessionsTable _sessionIdTable(_$AppDatabase db) =>
+      db.sessions.createAlias('enrollments__session_id__sessions__id');
+
+  $$SessionsTableProcessedTableManager get sessionId {
+    final $_column = $_itemColumn<String>('session_id')!;
+
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -18287,6 +18450,29 @@ class $$EnrollmentsTableFilterComposer
           }) => $$StudentsTableFilterComposer(
             $db: $db,
             $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SessionsTableFilterComposer get sessionId {
+    final $$SessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -18427,6 +18613,29 @@ class $$EnrollmentsTableOrderingComposer
     return composer;
   }
 
+  $$SessionsTableOrderingComposer get sessionId {
+    final $$SessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$SubjectGroupsTableOrderingComposer get subjectGroupId {
     final $$SubjectGroupsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -18521,6 +18730,29 @@ class $$EnrollmentsTableAnnotationComposer
     return composer;
   }
 
+  $$SessionsTableAnnotationComposer get sessionId {
+    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$SubjectGroupsTableAnnotationComposer get subjectGroupId {
     final $$SubjectGroupsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -18585,6 +18817,7 @@ class $$EnrollmentsTableTableManager
           Enrollment,
           PrefetchHooks Function({
             bool studentId,
+            bool sessionId,
             bool subjectGroupId,
             bool transactionsRefs,
           })
@@ -18604,6 +18837,7 @@ class $$EnrollmentsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> studentId = const Value.absent(),
+                Value<String> sessionId = const Value.absent(),
                 Value<String> subjectGroupId = const Value.absent(),
                 Value<DateTime> enrollmentDate = const Value.absent(),
                 Value<double?> customPriceOverride = const Value.absent(),
@@ -18618,6 +18852,7 @@ class $$EnrollmentsTableTableManager
               }) => EnrollmentsCompanion(
                 id: id,
                 studentId: studentId,
+                sessionId: sessionId,
                 subjectGroupId: subjectGroupId,
                 enrollmentDate: enrollmentDate,
                 customPriceOverride: customPriceOverride,
@@ -18634,6 +18869,7 @@ class $$EnrollmentsTableTableManager
               ({
                 required String id,
                 required String studentId,
+                required String sessionId,
                 required String subjectGroupId,
                 Value<DateTime> enrollmentDate = const Value.absent(),
                 Value<double?> customPriceOverride = const Value.absent(),
@@ -18648,6 +18884,7 @@ class $$EnrollmentsTableTableManager
               }) => EnrollmentsCompanion.insert(
                 id: id,
                 studentId: studentId,
+                sessionId: sessionId,
                 subjectGroupId: subjectGroupId,
                 enrollmentDate: enrollmentDate,
                 customPriceOverride: customPriceOverride,
@@ -18671,6 +18908,7 @@ class $$EnrollmentsTableTableManager
           prefetchHooksCallback:
               ({
                 studentId = false,
+                sessionId = false,
                 subjectGroupId = false,
                 transactionsRefs = false,
               }) {
@@ -18706,6 +18944,21 @@ class $$EnrollmentsTableTableManager
                                     referencedColumn:
                                         $$EnrollmentsTableReferences
                                             ._studentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (sessionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sessionId,
+                                    referencedTable:
+                                        $$EnrollmentsTableReferences
+                                            ._sessionIdTable(db),
+                                    referencedColumn:
+                                        $$EnrollmentsTableReferences
+                                            ._sessionIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -18773,6 +19026,7 @@ typedef $$EnrollmentsTableProcessedTableManager =
       Enrollment,
       PrefetchHooks Function({
         bool studentId,
+        bool sessionId,
         bool subjectGroupId,
         bool transactionsRefs,
       })

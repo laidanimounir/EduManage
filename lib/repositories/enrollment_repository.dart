@@ -62,13 +62,16 @@ class EnrollmentRepository extends BaseRepository {
 
   Future<void> transferEnrollment({
     required String studentId,
-    required String fromGroupId,
-    required String toGroupId,
+    required String fromSessionId,
+    required String toSessionId,
   }) async {
     final existing = await (db.select(db.enrollments)
-      ..where((t) => t.studentId.equals(studentId) & t.subjectGroupId.equals(fromGroupId) & t.status.equals('active')))
+      ..where((t) => t.studentId.equals(studentId) & t.sessionId.equals(fromSessionId) & t.status.equals('active')))
         .getSingleOrNull();
-    if (existing == null) throw StateError('No active enrollment found in source group');
+    if (existing == null) throw StateError('No active enrollment found in source session');
+
+    final toSession = await (db.select(db.sessions)..where((t) => t.id.equals(toSessionId))).getSingleOrNull();
+    if (toSession == null) throw StateError('Target session not found');
 
     final deviceId = await DeviceId.get();
     await db.transaction(() async {
@@ -78,7 +81,8 @@ class EnrollmentRepository extends BaseRepository {
       await db.into(db.enrollments).insert(EnrollmentsCompanion(
         id: Value(UuidHelper.generate()),
         studentId: Value(studentId),
-        subjectGroupId: Value(toGroupId),
+        sessionId: Value(toSessionId),
+        subjectGroupId: Value(toSession.subjectGroupId),
         status: const Value('active'),
         deviceId: Value(deviceId),
       ));

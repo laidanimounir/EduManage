@@ -5,6 +5,7 @@ import '../constants/theme_tokens.dart';
 import '../database/app_database.dart';
 import '../l10n/app_localizations.dart';
 import '../repositories/enrollment_repository.dart';
+import '../repositories/session_repository.dart';
 import '../repositories/subject_group_repository.dart';
 import '../utils/device_id.dart';
 import '../utils/uuid_helper.dart';
@@ -26,10 +27,10 @@ class GroupAssignmentDialog extends StatefulWidget {
 }
 
 class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
-  late final SubjectGroupRepository _groupRepo;
   late final EnrollmentRepository _enrollRepo;
-  List<SubjectGroup> _groups = [];
-  Set<String> _selectedGroupIds = {};
+  List<Session> _sessions = [];
+  Map<String, SubjectGroup> _groupMap = {};
+  Set<String> _selectedSessionIds = {};
   Set<String> _alreadyEnrolledIds = {};
   bool _loading = true;
   bool _saving = false;
@@ -37,20 +38,31 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
   @override
   void initState() {
     super.initState();
-    _groupRepo = SubjectGroupRepository(widget.database);
     _enrollRepo = EnrollmentRepository(widget.database);
     _load();
   }
 
   Future<void> _load() async {
-    final groups = await _groupRepo.getAll();
+    final allSessions = await (widget.database.select(widget.database.sessions)
+      ..where((t) => t.isActive.equals(true) & t.isArchived.equals(false)))
+        .get();
+    final groupRepo = SubjectGroupRepository(widget.database);
+    for (final s in allSessions) {
+      if (!_groupMap.containsKey(s.subjectGroupId)) {
+        final g = await groupRepo.getById(s.subjectGroupId);
+        if (g != null && !g.isArchived) _groupMap[s.subjectGroupId] = g;
+      }
+    }
+    final activeSessions = allSessions.where((s) => _groupMap.containsKey(s.subjectGroupId)).toList();
+
     final enrollments = await _enrollRepo.getActiveEnrollments(widget.studentId);
-    final enrolledIds = enrollments.map((e) => e.subjectGroupId).toSet();
+    final enrolledIds = enrollments.map((e) => e.sessionId).toSet();
+
     if (mounted) {
       setState(() {
-        _groups = groups;
+        _sessions = activeSessions;
         _alreadyEnrolledIds = enrolledIds;
-        _selectedGroupIds = Set.from(enrolledIds);
+        _selectedSessionIds = Set.from(enrolledIds);
         _loading = false;
       });
     }
@@ -60,24 +72,24 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
     setState(() => _saving = true);
     final deviceId = await DeviceId.get();
 
-    for (final gid in _selectedGroupIds) {
-      if (!_alreadyEnrolledIds.contains(gid)) {
-        final id = UuidHelper.generate();
+    for (final sid in _selectedSessionIds) {
+      if (!_alreadyEnrolledIds.contains(sid)) {
+        final sess = _sessions.firstWhere((s) => s.id == sid);
         await _enrollRepo.create(EnrollmentsCompanion(
-          id: Value(id),
           studentId: Value(widget.studentId),
-          subjectGroupId: Value(gid),
+          sessionId: Value(sid),
+          subjectGroupId: Value(sess.subjectGroupId),
           status: const Value('active'),
           deviceId: Value(deviceId),
         ));
       }
     }
 
-    final toDrop = _alreadyEnrolledIds.difference(_selectedGroupIds);
-    for (final gid in toDrop) {
+    final toDrop = _alreadyEnrolledIds.difference(_selectedSessionIds);
+    for (final sid in toDrop) {
       final existing = await _enrollRepo.getByStudent(widget.studentId);
       for (final e in existing) {
-        if (e.subjectGroupId == gid && e.status == 'active') {
+        if (e.sessionId == sid && e.status == 'active') {
           await _enrollRepo.updateStatus(e.id, 'dropped');
         }
       }
@@ -86,13 +98,15 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
     if (mounted) Navigator.pop(context, true);
   }
 
+  static const _days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: ShellTokens.chromeSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 560),
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 600),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -103,8 +117,8 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
               ),
               child: Row(
                 children: [
-                  Text(widget.l10n.enrollInGroups,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                  const Text('تسجيل في الحصص',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary),
@@ -123,35 +137,37 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)),
                       ),
                     )
-                  : _groups.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(40),
+                  : _sessions.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.all(40),
                           child: Center(
-                            child: Text(widget.l10n.noGroupsAvailable,
-                              style: const TextStyle(color: ShellTokens.textDisabled, fontSize: 13)),
+                            child: Text('لا توجد حصص متاحة',
+                              style: TextStyle(color: ShellTokens.textDisabled, fontSize: 13)),
                           ),
                         )
                       : ListView(
                           padding: const EdgeInsets.all(8),
-                          children: _groups.map((g) {
-                            final checked = _selectedGroupIds.contains(g.id);
-                            final alreadyEnrolled = _alreadyEnrolledIds.contains(g.id);
+                          children: _sessions.map((s) {
+                            final checked = _selectedSessionIds.contains(s.id);
+                            final alreadyEnrolled = _alreadyEnrolledIds.contains(s.id);
+                            final group = _groupMap[s.subjectGroupId];
+                            final day = _days[s.dayOfWeek];
                             return CheckboxListTile(
                               value: checked,
                               onChanged: (v) {
                                 setState(() {
                                   if (v == true) {
-                                    _selectedGroupIds.add(g.id);
+                                    _selectedSessionIds.add(s.id);
                                   } else {
-                                    _selectedGroupIds.remove(g.id);
+                                    _selectedSessionIds.remove(s.id);
                                   }
                                 });
                               },
                               activeColor: ShellTokens.accent,
                               checkColor: ShellTokens.chromeBase,
-                              title: Text(g.nameAr,
+                              title: Text(group?.nameAr ?? '',
                                 style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary)),
-                              subtitle: Text(g.schoolLevel,
+                              subtitle: Text('$day ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}–${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}',
                                 style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
                               secondary: alreadyEnrolled
                                   ? const Icon(PhosphorIcons.checkCircle, size: 16, color: SemanticTokens.success)
@@ -168,10 +184,8 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
               child: Row(
                 children: [
                   const SizedBox(width: 8),
-                  Text(
-                    '${_selectedGroupIds.length} ${widget.l10n.groups.toLowerCase()}',
-                    style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary),
-                  ),
+                  Text('${_selectedSessionIds.length} مختار',
+                    style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
                   const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.pop(context),

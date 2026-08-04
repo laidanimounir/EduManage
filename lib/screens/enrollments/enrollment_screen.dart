@@ -178,29 +178,32 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
   void _showAddDialog() async {
     final l10n = AppLocalizations.of(context);
-    String? studentId, groupId;
+    final sessions = await SessionRepository(widget.database).getAllActive();
+    String? studentId, sessId;
     final result = await showDialog<String>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
       maxWidth: 450, title: l10n.enrollStudent,
       body: Column(children: [
         DropdownButtonFormField<String>(value: studentId, decoration: ShellInputDecoration.dropdown(hintText: l10n.students), items: _students.map((s) => DropdownMenuItem(value: s.id, child: Text('${s.firstNameAr} ${s.lastNameAr} (${s.code})', style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => studentId = v)),
         const SizedBox(height: 10),
-        DropdownButtonFormField<String>(value: groupId, decoration: ShellInputDecoration.dropdown(hintText: l10n.groups), items: _groups.where((g) => !g.isArchived).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => groupId = v)),
+        DropdownButtonFormField<String>(value: sessId, decoration: ShellInputDecoration.dropdown(hintText: 'Session'), items: sessions.map((s) => DropdownMenuItem(value: s.id, child: Text(_sessionLabel(s), style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => sessId = v)),
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, 'enroll'), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: Text(l10n.enrollStudent))),
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), style: OutlinedButton.styleFrom(foregroundColor: ShellTokens.accent, side: const BorderSide(color: ShellTokens.accent), padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Add to Waitlist', style: TextStyle(fontSize: 12)))),
       ]),
     )));
-    if (result != null && studentId != null && groupId != null) {
+    if (result != null && studentId != null && sessId != null) {
+      final session = sessions.firstWhere((s) => s.id == sessId);
+      final groupId = session.subjectGroupId;
       if (result == 'waitlist') {
-        await _enrollRepo.addToWaitlist(studentId!, groupId!);
+        await _enrollRepo.addToWaitlist(studentId!, groupId);
         if (!mounted) return;
         _load();
         return;
       }
       final groupRepo = SubjectGroupRepository(widget.database);
-      final g = await groupRepo.getById(groupId!);
-      final count = await groupRepo.activeEnrollmentCount(groupId!);
+      final g = await groupRepo.getById(groupId);
+      final count = await groupRepo.activeEnrollmentCount(groupId);
       if (g?.capacity != null && count >= g!.capacity!) {
         if (context.mounted) {
           final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
@@ -220,13 +223,13 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
               actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
             ));
-            if (ok == true) { await groupRepo.update(groupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!))); if (!mounted) return; _load(); }
+            if (ok == true) { await groupRepo.update(groupId, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), sessionId: Value(sessId!), subjectGroupId: Value(groupId))); if (!mounted) return; _load(); }
           } else if (action == 'waitlist') {
-            await _enrollRepo.addToWaitlist(studentId!, groupId!); if (!mounted) return; _load();
+            await _enrollRepo.addToWaitlist(studentId!, groupId); if (!mounted) return; _load();
           }
         }
       } else {
-        await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), subjectGroupId: Value(groupId!)));
+        await _enrollRepo.create(EnrollmentsCompanion(studentId: Value(studentId!), sessionId: Value(sessId!), subjectGroupId: Value(groupId)));
         if (!mounted) return;
         _load();
       }
@@ -235,21 +238,24 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
   void _showTransferDialog(Enrollment e) async {
     final l10n = AppLocalizations.of(context);
-    String? toGroupId;
+    final sessions = await SessionRepository(widget.database).getAllActive();
+    String? toSessionId;
     final result = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
       maxWidth: 450, title: 'Transfer Student',
       body: Column(children: [
         Text('From: ${_groupNames[e.subjectGroupId] ?? e.subjectGroupId}', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(value: toGroupId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination group'), items: _groups.where((g) => !g.isArchived && g.id != e.subjectGroupId).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toGroupId = v)),
+        DropdownButtonFormField<String>(value: toSessionId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination session'), items: sessions.where((s) => s.subjectGroupId != e.subjectGroupId).map((s) => DropdownMenuItem(value: s.id, child: Text(_sessionLabel(s), style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toSessionId = v)),
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Transfer'))),
       ]),
     )));
-    if (result == true && toGroupId != null) {
+    if (result == true && toSessionId != null) {
+      final toSession = sessions.firstWhere((s) => s.id == toSessionId);
+      final toGroupId = toSession.subjectGroupId;
       final groupRepo = SubjectGroupRepository(widget.database);
-      final g = await groupRepo.getById(toGroupId!);
-      final count = await groupRepo.activeEnrollmentCount(toGroupId!);
+      final g = await groupRepo.getById(toGroupId);
+      final count = await groupRepo.activeEnrollmentCount(toGroupId);
       if (g?.capacity != null && count >= g!.capacity!) {
         if (context.mounted) {
           final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
@@ -269,11 +275,11 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
               actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
             ));
-            if (ok == true) { await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!); if (!mounted) return; _load(); }
+            if (ok == true) { await groupRepo.update(toGroupId, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text)))); await _enrollRepo.transferEnrollment(studentId: e.studentId, fromSessionId: e.sessionId, toSessionId: toSessionId!); if (!mounted) return; _load(); }
           }
         }
       } else {
-        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!);
+        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromSessionId: e.sessionId, toSessionId: toSessionId!);
         if (!mounted) return;
         _load();
       }
@@ -284,26 +290,30 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     final l10n = AppLocalizations.of(context);
     final active = _selectedEnrollmentRows().where((e) => e.status == 'active').toList();
     if (active.isEmpty) return;
+    final sessions = await SessionRepository(widget.database).getAllActive();
+    final sourceSessionId = active.first.sessionId;
     final sourceGroupId = active.first.subjectGroupId;
-    final rows = active.where((e) => e.subjectGroupId == sourceGroupId).toList();
+    final rows = active.where((e) => e.sessionId == sourceSessionId).toList();
     final selectedCount = rows.length;
 
-    String? toGroupId;
+    String? toSessionId;
     final result = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
       maxWidth: 450, title: 'Transfer Selected Students',
       body: Column(children: [
         Text('From: ${_groupNames[sourceGroupId] ?? sourceGroupId} ($selectedCount students)', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(value: toGroupId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination group'), items: _groups.where((g) => !g.isArchived && g.id != sourceGroupId).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toGroupId = v)),
+        DropdownButtonFormField<String>(value: toSessionId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination session'), items: sessions.where((s) => s.subjectGroupId != sourceGroupId).map((s) => DropdownMenuItem(value: s.id, child: Text(_sessionLabel(s), style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toSessionId = v)),
         const SizedBox(height: 20),
         SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Transfer Selected'))),
       ]),
     )));
-    if (result != true || toGroupId == null || !mounted) return;
+    if (result != true || toSessionId == null || !mounted) return;
 
+    final toSession = sessions.firstWhere((s) => s.id == toSessionId);
+    final toGroupId = toSession.subjectGroupId;
     final groupRepo = SubjectGroupRepository(widget.database);
-    final g = await groupRepo.getById(toGroupId!);
-    final currentCount = await groupRepo.activeEnrollmentCount(toGroupId!);
+    final g = await groupRepo.getById(toGroupId);
+    final currentCount = await groupRepo.activeEnrollmentCount(toGroupId);
     final remaining = g?.capacity != null ? g!.capacity! - currentCount : null;
 
     if (remaining != null && remaining < selectedCount) {
@@ -325,7 +335,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
             content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
           ));
-          if (ok == true) await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text))));
+          if (ok == true) await groupRepo.update(toGroupId, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text))));
           else return;
         } else {
           return;
@@ -339,7 +349,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     int skipped = 0;
     for (final e in rows) {
       try {
-        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!);
+        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromSessionId: e.sessionId, toSessionId: toSessionId!);
         done++;
       } catch (_) {
         skipped++;
@@ -391,7 +401,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   bool _canBulkTransfer() {
     final active = _selectedEnrollmentRows().where((e) => e.status == 'active').toList();
     if (active.isEmpty) return false;
-    return active.map((e) => e.subjectGroupId).toSet().length == 1;
+    return active.map((e) => e.sessionId).toSet().length == 1;
   }
 
   Widget _buildToolbar(AppLocalizations l10n) {
@@ -486,6 +496,14 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   }
 
   String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  String _sessionLabel(Session s) {
+    const dayNames = {1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun'};
+    final day = dayNames[s.dayOfWeek] ?? '?';
+    final start = '${s.startTime.hour.toString().padLeft(2, '0')}:${s.startTime.minute.toString().padLeft(2, '0')}';
+    final end = '${s.endTime.hour.toString().padLeft(2, '0')}:${s.endTime.minute.toString().padLeft(2, '0')}';
+    return '${_groupNames[s.subjectGroupId] ?? s.subjectGroupId} — $day $start-$end';
+  }
 
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const AppLoading();
