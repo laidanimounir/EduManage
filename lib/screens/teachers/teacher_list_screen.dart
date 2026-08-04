@@ -424,7 +424,11 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(t.code)),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_salaryLabel(t.salaryType, l10n))),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_subjectNamesCache[t.id] ?? '...')),
-        GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: isTeachingNow ? ShellBadge(label: l10n.liveNow.replaceAll('● ', ''), color: SemanticTokens.success) : overdue ? ShellBadge(label: l10n.overdue, color: const Color(0xFFC2823A)) : const SizedBox.shrink()),
+        GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (isTeachingNow) _statusChip('الآن', SemanticTokens.success, SemanticTokens.success.withValues(alpha: 0.12)),
+            if (isTeachingNow && overdue) const SizedBox(width: 4),
+            if (overdue) _statusChip('متأخر', const Color(0xFFC2823A), const Color(0xFF3D2E18)),
+          ])),
         _buildActionsCell(t),
       ],
     );
@@ -478,6 +482,14 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       database: widget.database, teacherId: t.id,
       teacherName: '${t.firstNameAr} ${t.lastNameAr}',
     )).then((_) => _preloadOverdueStatus());
+  }
+
+  Widget _statusChip(String label, Color fg, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(3)),
+      child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: fg)),
+    );
   }
 
   Widget _buildActionsCell(Teacher t) {
