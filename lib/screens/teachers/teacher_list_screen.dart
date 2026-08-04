@@ -1605,22 +1605,31 @@ class _TeacherPaymentDialog extends StatefulWidget {
 
 class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   List<Map<String, dynamic>> _unpaid = [];
+  List<Map<String, dynamic>> _displayed = [];
   bool _loading = true;
+  bool _isPartial = false;
+  bool _paying = false;
   String? _error;
+  String? _payError;
+  final _partialCtrl = TextEditingController();
 
   @override
   void initState() { super.initState(); _load(); }
 
+  @override
+  void dispose() { _partialCtrl.dispose(); super.dispose(); }
+
   Future<void> _load() async {
     try {
-      _unpaid = await widget.database.getTeacherUnpaidAttendance(widget.teacherId);
-      if (mounted) setState(() { _loading = false; _error = null; });
+      final raw = await widget.database.getTeacherUnpaidAttendance(widget.teacherId);
+      final filtered = raw.where((r) => _calcRemaining(r) > 0).toList();
+      if (mounted) setState(() { _unpaid = raw; _displayed = filtered; _loading = false; _error = null; });
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.toString(); });
     }
   }
 
-  double _calcAmount(Map<String, dynamic> row) {
+  double _calcFullAmount(Map<String, dynamic> row) {
     final sessionFixed = row['session_fixed_amount'] as double?;
     final sessionPct = row['session_share_pct'] as double?;
     final defaultFixed = row['teacher_default_fixed'] as double?;
@@ -1644,6 +1653,12 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
     return 0;
   }
 
+  double _calcRemaining(Map<String, dynamic> row) {
+    final full = _calcFullAmount(row);
+    final paid = (row['already_paid'] as double?) ?? 0;
+    return (full - paid).clamp(0, full);
+  }
+
   String _rateLabel(Map<String, dynamic> row) {
     final sessionFixed = row['session_fixed_amount'] as double?;
     final sessionPct = row['session_share_pct'] as double?;
@@ -1658,13 +1673,101 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
     return '—';
   }
 
-  double get _grandTotal => _unpaid.fold(0, (sum, r) => sum + _calcAmount(r));
+  String _rateSnapshotStr(Map<String, dynamic> row) {
+    final attendance = row['attendance_count'] as int;
+    final monthlyPrice = row['monthly_price'] as double;
+    final sessionsPerMonth = row['sessions_per_month'] as int;
+    final sessionFixed = row['session_fixed_amount'] as double?;
+    final sessionPct = row['session_share_pct'] as double?;
+    final defaultFixed = row['teacher_default_fixed'] as double?;
+    final defaultPct = row['teacher_default_pct'] as double?;
+    final salaryType = row['teacher_salary_type'] as String;
+
+    final effFixed = sessionFixed ?? defaultFixed;
+    final effPct = sessionPct ?? defaultPct;
+    final effType = (sessionFixed != null || sessionPct != null)
+        ? (sessionFixed != null ? 'fixed' : 'percentage')
+        : salaryType;
+
+    if (effFixed != null && effType == 'fixed') return 'fixed:${effFixed.toStringAsFixed(0)}';
+    if (effPct != null) return 'pct:${effPct.toStringAsFixed(1)},base:${monthlyPrice.toStringAsFixed(0)},sessions:$sessionsPerMonth,students:$attendance';
+    return 'none';
+  }
+
+  double get _grandTotal => _displayed.fold(0, (sum, r) => sum + _calcRemaining(r));
+
+  Future<void> _pay() async {
+    if (_isPartial) {
+      final v = double.tryParse(_partialCtrl.text.trim());
+      if (v == null || v <= 0) { setState(() => _payError = 'المبلغ يجب أن يكون أكبر من صفر'); return; }
+      if (v > _grandTotal) { setState(() => _payError = 'المبلغ لا يمكن أن يتجاوز الإجمالي المستحق'); return; }
+    }
+
+    setState(() { _paying = true; _payError = null; });
+    final txService = TransactionService(widget.database);
+    try {
+      if (_isPartial) {
+        final amount = double.parse(_partialCtrl.text.trim());
+        double remaining = amount;
+        final paid = <String>[];
+        double totalPaid = 0;
+        for (final r in _displayed) {
+          if (remaining <= 0) break;
+          final owed = _calcRemaining(r);
+          if (owed <= 0) continue;
+          final payNow = remaining >= owed ? owed : remaining;
+          if (payNow <= 0) continue;
+          await txService.createTeacherPayoutOverride(
+            teacherId: widget.teacherId,
+            sessionId: r['session_id'] as String,
+            amount: payNow,
+            rateSnapshotStr: '${_rateSnapshotStr(r)},partial:${payNow.toStringAsFixed(0)}',
+            date: r['attendance_date'] as DateTime,
+          );
+          paid.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): ${payNow.toStringAsFixed(0)} دج');
+          totalPaid += payNow;
+          remaining -= payNow;
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تم الدفع الجزئي: ${totalPaid.toStringAsFixed(0)} دج'),
+            backgroundColor: ShellTokens.chromeSurface));
+        }
+      } else {
+        int success = 0, skipped = 0;
+        for (final r in _displayed) {
+          try {
+            await txService.createTeacherPayoutOverride(
+              teacherId: widget.teacherId,
+              sessionId: r['session_id'] as String,
+              amount: _calcRemaining(r),
+              rateSnapshotStr: _rateSnapshotStr(r),
+              date: r['attendance_date'] as DateTime,
+            );
+            success++;
+          } catch (_) { skipped++; }
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تم الدفع: $success حصة${skipped > 0 ? ' ($skipped تم تجاوزها)' : ''}'),
+            backgroundColor: ShellTokens.chromeSurface));
+        }
+      }
+      if (mounted) {
+        Navigator.pop(context, _TeacherPaymentResult(confirmed: true, items: []));
+      }
+    } catch (e) {
+      if (mounted) setState(() { _paying = false; _payError = e.toString(); });
+    }
+  }
+
+  String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
     final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
     return ShellDialog(
-      maxWidth: 550, maxHeight: 600,
+      maxWidth: 550, maxHeight: 650,
       title: 'الدفع — ${widget.teacherName}',
       body: _loading
           ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
@@ -1674,7 +1777,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                   const SizedBox(height: 8),
                   Text(_error!, style: const TextStyle(fontSize: 12, color: SemanticTokens.error)),
                 ]))
-              : _unpaid.isEmpty
+              : _displayed.isEmpty
                   ? const Center(child: Text('لا توجد حصص غير مدفوعة', style: TextStyle(fontSize: 14, color: ShellTokens.textDisabled)))
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('المستحقات غير المدفوعة (الحصص المنتهية)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
@@ -1682,10 +1785,12 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                       Expanded(
                         child: ListView.builder(
                           shrinkWrap: true,
-                          itemCount: _unpaid.length,
+                          itemCount: _displayed.length,
                           itemBuilder: (_, i) {
-                            final r = _unpaid[i];
-                            final amt = _calcAmount(r);
+                            final r = _displayed[i];
+                            final remaining = _calcRemaining(r);
+                            final full = _calcFullAmount(r);
+                            final alreadyPaid = (r['already_paid'] as double?) ?? 0;
                             final attDate = r['attendance_date'] as DateTime;
                             final day = days[r['day_of_week'] as int];
                             final start = r['start_time'] as DateTime;
@@ -1703,7 +1808,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                                     Expanded(child: Text(r['group_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
                                   ]),
                                   const SizedBox(height: 8),
-                                  _payRow('التاريخ', '${attDate.year}-${attDate.month.toString().padLeft(2, '0')}-${attDate.day.toString().padLeft(2, '0')}'),
+                                  _payRow('التاريخ', _fmtDate(attDate)),
                                   const SizedBox(height: 3),
                                   _payRow('اليوم والتوقيت', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}–${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
                                   const SizedBox(height: 3),
@@ -1711,7 +1816,10 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                                   const SizedBox(height: 3),
                                   _payRow('الأجرة', _rateLabel(r)),
                                   const SizedBox(height: 3),
-                                  _payRow('المبلغ المستحق', '${amt.toStringAsFixed(0)} دج'),
+                                  if (alreadyPaid > 0)
+                                    _payRow('المبلغ المدفوع سابقاً', '${alreadyPaid.toStringAsFixed(0)} دج'),
+                                  const SizedBox(height: 3),
+                                  _payRow('المبلغ المستحق', '${remaining.toStringAsFixed(0)} دج${alreadyPaid > 0 ? ' (الإجمالي: ${full.toStringAsFixed(0)})' : ''}'),
                                 ]),
                               ),
                             );
@@ -1724,13 +1832,49 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                         const Spacer(),
                         Text('${_grandTotal.toStringAsFixed(0)} دج', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SemanticTokens.success)),
                       ]),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        const Text('دفع جزئي', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+                        Switch(value: _isPartial, onChanged: (v) => setState(() { _isPartial = v; _payError = null; })),
+                      ]),
+                      if (_isPartial) ...[
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 38,
+                          child: TextField(
+                            controller: _partialCtrl,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'أدخل المبلغ (الأقصى: ${_grandTotal.toStringAsFixed(0)} دج)',
+                              isDense: true,
+                              filled: true,
+                              fillColor: ShellTokens.chromeBase,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (_payError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(_payError!, style: const TextStyle(fontSize: 12, color: SemanticTokens.error)),
+                      ],
+                      const SizedBox(height: 12),
+                      SizedBox(width: double.infinity, child: FilledButton(
+                        onPressed: _paying ? null : _pay,
+                        style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
+                        child: _paying
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase))
+                            : Text(_isPartial ? 'تأكيد الدفع الجزئي' : 'دفع كامل المبلغ', style: const TextStyle(fontSize: 14)),
+                      )),
                     ]),
     );
   }
 
   Widget _payRow(String label, String value) {
     return Row(children: [
-      SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+      SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
       Expanded(child: Text(value, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
     ]);
   }

@@ -727,6 +727,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Map<String, dynamic>>> getTeacherUnpaidAttendance(String teacherId) async {
     final rows = await customSelect(
       'SELECT a.session_id, a.attendance_date, COUNT(*) AS attendance_count, '
+      'COALESCE((SELECT SUM(t2.amount) FROM transactions t2 WHERE t2.teacher_id = s.teacher_id AND t2.session_id = a.session_id AND t2.type = \'teacher_payout\' AND date(t2.transaction_date) = date(a.attendance_date)), 0) AS already_paid, '
       's.day_of_week, s.start_time, s.end_time, '
       's.monthly_price, s.sessions_per_month, '
       's.teacher_share_pct, s.teacher_fixed_amount, '
@@ -738,13 +739,6 @@ class AppDatabase extends _$AppDatabase {
       'JOIN sessions s ON a.session_id = s.id '
       'JOIN subject_groups sg ON s.subject_group_id = sg.id '
       'WHERE s.teacher_id = ? AND a.student_id IS NOT NULL AND a.status = \'present\' '
-      'AND NOT EXISTS ('
-      '  SELECT 1 FROM transactions t '
-      '  WHERE t.teacher_id = s.teacher_id '
-      '  AND t.session_id = a.session_id '
-      '  AND t.type = \'teacher_payout\' '
-      '  AND date(t.transaction_date) = date(a.attendance_date)'
-      ') '
       'GROUP BY a.session_id, a.attendance_date '
       'ORDER BY a.attendance_date, s.day_of_week, s.start_time',
       variables: [Variable.withString(teacherId), Variable.withString(teacherId), Variable.withString(teacherId), Variable.withString(teacherId)],
@@ -753,6 +747,7 @@ class AppDatabase extends _$AppDatabase {
       'session_id': r.read<String>('session_id'),
       'attendance_date': r.read<DateTime>('attendance_date'),
       'attendance_count': r.read<int>('attendance_count'),
+      'already_paid': r.read<double>('already_paid'),
       'day_of_week': r.read<int>('day_of_week'),
       'start_time': r.read<DateTime>('start_time'),
       'end_time': r.read<DateTime>('end_time'),

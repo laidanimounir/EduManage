@@ -377,6 +377,46 @@ class TransactionService extends BaseRepository {
     return id;
   }
 
+  Future<String> createTeacherPayoutOverride({
+    required String teacherId,
+    required String sessionId,
+    required double amount,
+    required String rateSnapshotStr,
+    required DateTime date,
+    String? note,
+    String? createdByUserId,
+  }) async {
+    await _checkPeriodOpen(date);
+
+    final cancelled = await _isSessionCancelled(sessionId, date);
+    if (cancelled) {
+      throw StateError('Cannot pay out for a cancelled session');
+    }
+
+    final fullNote = note != null ? '$rateSnapshotStr | $note' : rateSnapshotStr;
+
+    final id = await _txRepo.insert(TransactionsCompanion(
+      teacherId: Value(teacherId),
+      sessionId: Value(sessionId),
+      type: const Value('teacher_payout'),
+      amount: Value(amount),
+      transactionDate: Value(date),
+      note: Value(fullNote),
+      rateSnapshot: Value(rateSnapshotStr),
+      createdByUserId: Value(createdByUserId),
+    ));
+
+    await _auditRepo.create(AuditLogCompanion(
+      userId: Value(createdByUserId ?? 'system'),
+      action: const Value('teacher_payout_created'),
+      entityType: const Value('transaction'),
+      entityId: Value(id),
+      details: Value('Teacher: $teacherId, Session: $sessionId, Amount: $amount, Rate: $rateSnapshotStr (partial/manual)'),
+    ));
+
+    return id;
+  }
+
   Future<int> _getSessionAttendanceCount(String sessionId, DateTime date) async {
     final dateStart = DateTime(date.year, date.month, date.day);
     final dateEnd = dateStart.add(const Duration(days: 1));
