@@ -900,222 +900,22 @@ class _PayoutHistoryListState extends State<_PayoutHistoryList> {
   }
 
   Future<void> _payNow() async {
-    final sessions = await SessionRepository(widget.database).getByTeacher(widget.teacherId);
-    final activeSessions = sessions.where((s) => s.isActive).toList();
-    if (activeSessions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.l10n.noTeacherSessions), backgroundColor: ShellTokens.chromeSurface));
-      return;
-    }
-
     if (!mounted) return;
-    final result = await showDialog<_PayNowResult>(
+    final result = await showDialog<_TeacherPaymentResult>(
       context: context,
-      builder: (ctx) => _PayNowDialog(
+      builder: (ctx) => _TeacherPaymentDialog(
         database: widget.database,
         teacherId: widget.teacherId,
-        sessions: activeSessions,
-        l10n: widget.l10n,
+        teacherName: '',
       ),
     );
-
     if (result != null && result.confirmed && mounted) {
-      final txService = TransactionService(widget.database);
-      int successCount = 0;
-      int skippedCount = 0;
-      for (final s in result.selectedSessions) {
-        try {
-          await txService.createTeacherPayout(
-            teacherId: widget.teacherId,
-            sessionId: s.id,
-            date: result.date,
-          );
-          successCount++;
-        } on StateError {
-          skippedCount++;
-        } catch (_) {
-          skippedCount++;
-        }
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Payout recorded for $successCount session(s)${skippedCount > 0 ? ' ($skippedCount skipped)' : ''}'),
-          backgroundColor: ShellTokens.chromeSurface));
-      }
       _load();
     }
   }
 
   String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 }
-
-class _PayNowResult {
-  final bool confirmed;
-  final List<Session> selectedSessions;
-  final DateTime date;
-  const _PayNowResult({required this.confirmed, required this.selectedSessions, required this.date});
-}
-
-class _PayNowDialog extends StatefulWidget {
-  final AppDatabase database;
-  final String teacherId;
-  final List<Session> sessions;
-  final AppLocalizations l10n;
-
-  const _PayNowDialog({
-    required this.database,
-    required this.teacherId,
-    required this.sessions,
-    required this.l10n,
-  });
-
-  @override
-  State<_PayNowDialog> createState() => _PayNowDialogState();
-}
-
-class _PayNowDialogState extends State<_PayNowDialog> {
-  Set<String> _selectedIds = {};
-  DateTime _date = DateTime.now();
-  Map<String, int> _attendanceCounts = {};
-  Map<String, double> _amounts = {};
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIds = widget.sessions.map((s) => s.id).toSet();
-    _loadCounts();
-  }
-
-  Future<void> _loadCounts() async {
-    final dateStart = DateTime(_date.year, _date.month, _date.day);
-    final dateEnd = dateStart.add(const Duration(days: 1));
-    for (final s in widget.sessions) {
-      final result = await widget.database.customSelect(
-        'SELECT COUNT(*) AS cnt FROM attendance WHERE session_id = ? AND person_type = \'student\' AND attendance_date >= ? AND attendance_date < ?',
-        variables: [Variable.withString(s.id), Variable.withDateTime(dateStart), Variable.withDateTime(dateEnd)],
-      ).getSingle();
-      _attendanceCounts[s.id] = result.read<int>('cnt');
-
-      final teacher = await TeacherRepository(widget.database).getById(widget.teacherId);
-      double amount = 0;
-      final effFixed = s.teacherFixedAmount ?? teacher?.teacherFixedAmount;
-      final effShare = s.teacherSharePct ?? teacher?.teacherSharePct;
-      final salaryType = (s.teacherFixedAmount != null || s.teacherSharePct != null)
-          ? (s.teacherFixedAmount != null ? 'fixed' : 'percentage')
-          : teacher?.salaryType ?? 'percentage';
-
-      if (effFixed != null && salaryType == 'fixed') {
-        amount = effFixed;
-      } else if (effShare != null && s.sessionsPerMonth > 0) {
-        final perSession = s.monthlyPrice / s.sessionsPerMonth;
-        amount = perSession * effShare / 100 * result.read<int>('cnt');
-      }
-      _amounts[s.id] = amount;
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  Future<void> _changeDate() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (d != null) {
-      setState(() { _date = d; _loading = true; });
-      _loadCounts();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final total = _selectedIds.fold<double>(0, (sum, id) => sum + (_amounts[id] ?? 0));
-    return ShellDialog(
-      maxWidth: 520, maxHeight: 600, title: widget.l10n.payTeacher,
-      body: _loading
-          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Text('${widget.l10n.date}: ', style: const TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
-          GestureDetector(
-            onTap: _changeDate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(4), border: Border.all(color: ShellTokens.chromeBorder)),
-              child: Text('${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 8),
-        ShellSectionHeader(text: widget.l10n.sessions, withBorder: true),
-        ListView.builder(
-          shrinkWrap: true,
-          itemCount: widget.sessions.length,
-          itemBuilder: (_, i) {
-              final s = widget.sessions[i];
-              final selected = _selectedIds.contains(s.id);
-              final count = _attendanceCounts[s.id] ?? 0;
-              final amount = _amounts[s.id] ?? 0;
-              return CheckboxListTile(
-                value: selected,
-                onChanged: (v) {
-                  setState(() {
-                    if (v == true) { _selectedIds.add(s.id); } else { _selectedIds.remove(s.id); }
-                  });
-                },
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(_sessionLabel(s), style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
-                subtitle: Text('$count ${widget.l10n.students} — ${amount.toStringAsFixed(0)} DA',
-                  style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
-                activeColor: ShellTokens.accent,
-                checkColor: ShellTokens.chromeBase,
-              );
-            },
-          ),
-        const Divider(color: ShellTokens.chromeBorder),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(children: [
-            Text('${widget.l10n.totalPaid}: ', style: const TextStyle(fontSize: 13, color: ShellTokens.textSecondary)),
-            Text('${total.toStringAsFixed(0)} DA',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SemanticTokens.success)),
-          ]),
-        ),
-      ]),
-      actions: Row(children: [
-        Expanded(child: TextButton(
-          onPressed: () => Navigator.pop(context, _PayNowResult(confirmed: false, selectedSessions: [], date: _date)),
-          child: Text(widget.l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary)),
-        )),
-        const SizedBox(width: 8),
-        Expanded(child: FilledButton(
-          onPressed: _selectedIds.isEmpty ? null : () => Navigator.pop(context, _PayNowResult(
-            confirmed: true,
-            selectedSessions: widget.sessions.where((s) => _selectedIds.contains(s.id)).toList(),
-            date: _date,
-          )),
-          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase),
-          child: Text(widget.l10n.confirm),
-        )),
-      ]),
-    );
-  }
-
-  String _sessionLabel(Session s) {
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final day = days[s.dayOfWeek - 1];
-    final startH = s.startTime.hour.toString().padLeft(2, '0');
-    final startM = s.startTime.minute.toString().padLeft(2, '0');
-    final endH = s.endTime.hour.toString().padLeft(2, '0');
-    final endM = s.endTime.minute.toString().padLeft(2, '0');
-    return '$day $startH:$startM–$endH:$endM';
-  }
-}
-
 
 
 class _SalaryHistoryList extends StatefulWidget {
