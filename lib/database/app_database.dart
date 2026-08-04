@@ -287,6 +287,19 @@ class SchoolClosures extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Subjects extends Table {
+  TextColumn get id => text()();
+  TextColumn get nameAr => text()();
+  TextColumn get nameFr => text().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class SchoolLevels extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -363,7 +376,7 @@ class SpecialCases extends Table {
 }
 
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers, SpecialCases],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Subjects, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers, SpecialCases],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -394,7 +407,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -503,6 +516,24 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('DELETE FROM transactions WHERE enrollment_id IS NOT NULL');
         await m.deleteTable('enrollments');
         await m.createTable(enrollments);
+      }
+      if (from < 15) {
+        await m.createTable(subjects);
+        final distinct = await customSelect(
+          'SELECT DISTINCT subject_ar AS ar, subject_fr AS fr '
+          'FROM subject_groups WHERE subject_ar IS NOT NULL AND TRIM(subject_ar) != \'\' '
+          'ORDER BY subject_ar',
+        ).get();
+        for (final row in distinct) {
+          final ar = row.read<String>('ar');
+          final fr = row.read<String?>('fr');
+          await into(subjects).insert(SubjectsCompanion(
+            id: Value(UuidHelper.generate()),
+            nameAr: Value(ar),
+            nameFr: Value(fr),
+            deviceId: Value(await DeviceId.get()),
+          ));
+        }
       }
     },
   );
