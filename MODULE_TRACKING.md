@@ -1297,4 +1297,47 @@ Use `flutter run` (cold start) for all tests — hot reload bypasses `IndexedSta
 ### Deferred
 - **Removal of `subject_ar`/`subject_fr` text columns:** `subjects.subject_id` is now the normalized reference, but many screens/read paths still read the text columns (group list/detail, subject search, reports, enrollment operations filters, sample seeder). Deferred until all consumers migrate to `subject_id`. When done, drop the text columns in a future migration.
 - **Duplicate-group double-billing rule:** The Task 5 warning is advisory only. There is no hard business rule or schema uniqueness preventing a student from holding multiple active sessions of the same group. Whether to enforce/enroll-per-group is a deferred policy decision.
-- **Full Subjects management screen:** No dedicated CRUD screen for subjects; they are created inline via the group dialog's "+ Add New" and by backfill. Archived subjects are hidden from the group dialog dropdown (`getAllActive`).
+- **Full Subjects management screen:** ➜ **Implemented in Round 17** (Task H). A dedicated `SubjectListScreen` with create/edit/archive and a per-subject group management detail view was added; see Round 17 below.
+
+---
+
+## Round 17 — Dedicated Subjects Management Screen (2026-08-04)
+
+Continuation of Round 16's Subjects work. Closes the "Full Subjects management screen" deferred item: subjects are now first-class, discoverable entities with a dedicated sidebar entry, and admins can attach multiple grade-level groups to an existing subject (e.g. "فرنسية متوسط" under "اللغة الفرنسية") without re-deriving a subject from the ambiguous inline dropdown.
+
+### Schema
+- **No schema change.** `subjects.is_archived` already exists (from Round 16 / v15). Task H adds repository `archive`/`restore` methods and screen-level archive behavior; no new columns or migrations.
+
+### Files
+- `lib/screens/subjects/subject_list_screen.dart` (new): `SubjectListScreen`, `_SubjectEditDialog`, `_SubjectDetailDialog`.
+- `lib/screens/groups/subject_group_list_screen.dart`: `_GroupEditDialog` → made public as `GroupEditDialog` with a new optional `lockedSubject` (`Subject?`) that pre-fills and locks the subject field (rendered read-only with a pin "Linked" indicator) instead of the re-selectable dropdown.
+- `lib/repositories/subject_repository.dart`: added `archive(String id)` and `restore(String id)`.
+- `lib/screens/main_shell.dart`: added "المواد" (Subjects) nav entry (PhosphorIcons.notebook) directly before "Groups" (المجموعات) in the Manage section.
+
+### Task H — SubjectListScreen + add-group-under-subject flow
+- **List:** dense table (ShellTokens dark theme, zebra stripes) with columns Name (AR/FR dual-line), Group count (active, non-archived subject_groups where `subject_id = id`), and Actions (edit / archive-restore). Filter chips All / Active / Archived reusing `SubjectRepository.isArchived`.
+- **Create/Edit:** "+ إضافة" opens `_SubjectEditDialog` with only `name_ar` (required) and `name_fr` fields; saves via `SubjectRepository.create`/`update`.
+- **Detail dialog:** row click opens `_SubjectDetailDialog` — subject name, list of its subject_groups (name, school level, active session count via `getSessions`), and a "+ إضافة قسم جديد لهذه المادة" button.
+- **Add group under this subject:** that button opens `GroupEditDialog(lockedSubject: subject)` so the new group's `subject_id` is guaranteed to be this subject (no dropdown). On save the detail dialog refreshes to show the new group.
+- **Archive behavior:** archiving a subject does NOT cascade-archive its subject_groups. Archive confirmation shows a warning row when the subject still has active (non-archived) groups, matching the Teacher/Classroom/Group warning pattern.
+- **Consistency:** `GroupEditDialog`'s subject dropdown (Task 3) and the enrollment `GroupAssignmentDialog` Step 1 both source from `SubjectRepository.getAllActive()`, so archived subjects are already excluded everywhere subjects are selectable.
+
+### Verification
+- Ran drift codegen (no schema change → no-op) and `flutter analyze`: **zero errors** across the project before committing.
+- Committed as a single Task H commit: "Add dedicated Subjects management screen with grouped detail and add-group flow".
+
+### New checklist items (continuing Round 16 numbering)
+- [ ] **291. Subjects screen — list, filters & counts**
+  - Open "المواد" in the sidebar. Confirm all subjects load with AR/FR name, active group count, and All/Active/Archived filter chips behave correctly.
+- [ ] **292. Create / edit subject**
+  - "+ إضافة" opens a dialog with name_ar (required) + name_fr only; save creates a subject. Edit from a row's pencil updates the selected subject.
+- [ ] **293. Archive / restore subject**
+  - Archive hides subject from active lists and dropdowns; restoring brings it back. Verify archiving a subject with active groups shows the "still has N active group(s)" warning, and that its groups are untouched (no cascade).
+- [ ] **294. Subject detail — group list**
+  - Row click opens detail with each subject_group's name, school level, and active session count.
+- [ ] **295. Add group under existing subject**
+  - From detail, "+ إضافة قسم جديد لهذه المادة" opens the group dialog with the subject pre-filled and locked (pin "Linked", non-tappable). Save links the new group to that `subject_id`; detail refreshes to show it.
+- [ ] **296. Cross-screen consistency after add**
+  - The new group appears in: the Subjects detail group list, the Groups screen, and the two-step enrollment dialog Step 2 under "اللغة الفرنسية" showing 2 groups with the correct per-group sessions.
+- [ ] **297. Archived subjects excluded**
+  - Confirm the group-edit subject dropdown and enrollment Step 1 both omit archived subjects (via `getAllActive`).
