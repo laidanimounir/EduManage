@@ -1467,3 +1467,104 @@ class _SubjectGroupMultiSelectState extends State<_SubjectGroupMultiSelect> {
     )).toList());
   }
 }
+
+class _TeacherTeachingInfoDialog extends StatefulWidget {
+  final AppDatabase database;
+  final String teacherId;
+  final String teacherName;
+  const _TeacherTeachingInfoDialog({required this.database, required this.teacherId, required this.teacherName});
+  @override
+  State<_TeacherTeachingInfoDialog> createState() => _TeacherTeachingInfoDialogState();
+}
+
+class _TeacherTeachingInfoDialogState extends State<_TeacherTeachingInfoDialog> {
+  List<Map<String, dynamic>> _sessions = [];
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    _sessions = await widget.database.getTeacherTeachingInfo(widget.teacherId);
+    if (mounted) setState(() => _loading = false);
+  }
+
+  String _effectiveRate(Map<String, dynamic> s) {
+    final sessionFixed = s['session_fixed_amount'] as double?;
+    final sessionPct = s['session_share_pct'] as double?;
+    if (sessionFixed != null) return 'مبلغ ثابت ${sessionFixed.toStringAsFixed(0)} دج';
+    if (sessionPct != null) return 'نسبة ${sessionPct.toStringAsFixed(0)}%';
+    final defaultFixed = s['teacher_default_fixed'] as double?;
+    final defaultPct = s['teacher_default_pct'] as double?;
+    final defaultType = s['teacher_salary_type'] as String;
+    if (defaultType == 'fixed' && defaultFixed != null) return 'مبلغ ثابت ${defaultFixed.toStringAsFixed(0)} دج (افتراضي)';
+    if (defaultPct != null) return 'نسبة ${defaultPct.toStringAsFixed(0)}% (افتراضي)';
+    return 'غير محدد';
+  }
+
+  String _levelLabel(String? level) {
+    return switch (level) {
+      'primary' => 'ابتدائي',
+      'middle' => 'متوسط',
+      'secondary' => 'ثانوي',
+      _ => level ?? '—',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return ShellDialog(
+      maxWidth: 520, maxHeight: 600,
+      title: 'معلومات التدريس — ${widget.teacherName}',
+      body: _loading
+          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
+          : _sessions.isEmpty
+              ? const Center(child: Text('لا توجد حصص نشطة لهذا الأستاذ', style: TextStyle(fontSize: 13, color: ShellTokens.textDisabled)))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _sessions.length,
+                  itemBuilder: (_, i) {
+                    final s = _sessions[i];
+                    final day = days[s['day_of_week'] as int];
+                    final start = s['start_time'] as DateTime;
+                    final end = s['end_time'] as DateTime;
+                    final enrolled = s['enrolled'] as int;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: ShellTokens.chromeBase,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Container(width: 8, height: 8, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(s['group_name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: ShellTokens.accentMuted, borderRadius: BorderRadius.circular(10)),
+                              child: Text(_levelLabel(s['school_level']), style: const TextStyle(fontSize: 10, color: ShellTokens.textPrimary)),
+                            ),
+                          ]),
+                          const SizedBox(height: 10),
+                          _teachRow('اليوم والتوقيت', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}–${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
+                          const SizedBox(height: 4),
+                          _teachRow('الطلاب المسجلين', '$enrolled طالب'),
+                          const SizedBox(height: 4),
+                          _teachRow('الأجرة', _effectiveRate(s)),
+                        ]),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+
+  Widget _teachRow(String label, String value) {
+    return Row(children: [
+      SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+      Expanded(child: Text(value, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
+    ]);
+  }
+}

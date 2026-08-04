@@ -692,6 +692,38 @@ class AppDatabase extends _$AppDatabase {
     return result.read<int>('cnt');
   }
 
+  Future<List<Map<String, dynamic>>> getTeacherTeachingInfo(String teacherId) async {
+    final rows = await customSelect(
+      'SELECT s.id, s.day_of_week, s.start_time, s.end_time, '
+      's.teacher_share_pct, s.teacher_fixed_amount, '
+      'sg.name_ar AS group_name, sg.school_level, '
+      't.teacher_share_pct AS teacher_default_pct, '
+      't.teacher_fixed_amount AS teacher_default_fixed, '
+      't.salary_type AS teacher_salary_type, '
+      '(SELECT COUNT(*) FROM enrollments e WHERE e.subject_group_id = sg.id AND e.status = \'active\' AND e.is_transferred = 0) AS enrolled '
+      'FROM sessions s '
+      'JOIN subject_groups sg ON s.subject_group_id = sg.id '
+      'JOIN teachers t ON t.id = ? '
+      'WHERE s.teacher_id = ? AND s.is_active = 1 AND s.is_archived = 0 AND sg.is_archived = 0 '
+      'ORDER BY s.day_of_week, s.start_time',
+      variables: [Variable.withString(teacherId), Variable.withString(teacherId)],
+    ).get();
+    return rows.map((r) => {
+      'session_id': r.read<String>('id'),
+      'day_of_week': r.read<int>('day_of_week'),
+      'start_time': r.read<DateTime>('start_time'),
+      'end_time': r.read<DateTime>('end_time'),
+      'session_share_pct': r.read<double?>('teacher_share_pct'),
+      'session_fixed_amount': r.read<double?>('teacher_fixed_amount'),
+      'group_name': r.read<String>('group_name'),
+      'school_level': r.read<String>('school_level'),
+      'teacher_default_pct': r.read<double?>('teacher_default_pct'),
+      'teacher_default_fixed': r.read<double?>('teacher_default_fixed'),
+      'teacher_salary_type': r.read<String>('teacher_salary_type'),
+      'enrolled': r.read<int>('enrolled'),
+    }).toList();
+  }
+
   Future<DateTime?> getTeacherLastPayoutDate(String teacherId) async {
     final result = await customSelect(
       'SELECT transaction_date FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\' ORDER BY transaction_date DESC LIMIT 1',
