@@ -30,7 +30,7 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   late final StudentRepository _studentRepo;
 
   int _tabIndex = 0;
-  static const _tabs = ['الأرباح الشهرية', 'الحضور', 'الاتجاه المالي'];
+  static const _tabs = ['الأرباح الشهرية', 'الحضور', 'الاتجاه المالي', 'أداء الأقسام'];
 
   DateTime _selectedDate = DateTime.now();
   DateTime? _dateFrom;
@@ -39,6 +39,10 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
 
   List<Map<String, dynamic>> _trendData = [];
   bool _trendLoading = false;
+  List<Map<String, dynamic>> _classData = [];
+  bool _classLoading = false;
+  int _classSortColumn = 0;
+  bool _classSortAsc = true;
 
   double _studentPaymentIncome = 0;
   double _sessionChargeIncome = 0;
@@ -479,6 +483,154 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
   }
 
+  Future<void> _loadClassPerformance() async {
+    setState(() => _classLoading = true);
+    try {
+      _classData = await widget.database.getClassPerformanceReport();
+      _sortClassData();
+    } catch (_) {
+      _classData = [];
+    }
+    if (mounted) setState(() => _classLoading = false);
+  }
+
+  void _sortClassData() {
+    final keys = ['group_name', 'school_level', 'teacher_name', 'enrolled', 'revenue', 'attendance_rate'];
+    _classData.sort((a, b) {
+      final va = a[keys[_classSortColumn]];
+      final vb = b[keys[_classSortColumn]];
+      int cmp = 0;
+      if (va is String && vb is String) {
+        cmp = va.compareTo(vb);
+      } else if (va is num && vb is num) {
+        cmp = va.compareTo(vb);
+      }
+      return _classSortAsc ? cmp : -cmp;
+    });
+  }
+
+  void _onClassSort(int col) {
+    setState(() {
+      if (_classSortColumn == col) {
+        _classSortAsc = !_classSortAsc;
+      } else {
+        _classSortColumn = col;
+        _classSortAsc = true;
+      }
+      _sortClassData();
+    });
+  }
+
+  Widget _buildClassPerformanceContent() {
+    if (_classLoading) return const Center(child: CircularProgressIndicator());
+    if (_classData.isEmpty) {
+      _loadClassPerformance();
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadClassPerformance,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Row(children: [
+                const SizedBox(width: 12),
+                Text('${_classData.length} أقسام', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                const Spacer(),
+                SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.file, size: 16, color: ShellTokens.textSecondary), onPressed: _exportClassPdf, tooltip: 'Export PDF', style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+                const SizedBox(width: 4),
+                SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.table, size: 16, color: ShellTokens.textSecondary), onPressed: _exportClassExcel, tooltip: 'Export Excel', style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildClassTable(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClassTable() {
+    const headers = ['القسم', 'المستوى', 'الأستاذ', 'الطلاب', 'المداخيل', 'نسبة الحضور'];
+    const keys = ['group_name', 'school_level', 'teacher_name', 'enrolled', 'revenue', 'attendance_rate'];
+
+    return Card(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          sortColumnIndex: _classSortColumn,
+          sortAscending: _classSortAsc,
+          headingRowColor: WidgetStateProperty.all(ShellTokens.chromeBorder),
+          columns: List.generate(headers.length, (i) => DataColumn(label: Text(headers[i], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)), onSort: (col, _) => _onClassSort(col))),
+          rows: _classData.map((d) => DataRow(cells: [
+            DataCell(Text(d['group_name'] as String, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+            DataCell(Text(_levelLabel(d['school_level'] as String), style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+            DataCell(Text((d['teacher_name'] as String?)?.isNotEmpty == true ? (d['teacher_name'] as String) : '—', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+            DataCell(Text('${d['enrolled']}', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+            DataCell(Text('${(d['revenue'] as num).toStringAsFixed(0)} ${AppConstants.currencySymbol}', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
+            DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+              ClipRRect(borderRadius: BorderRadius.circular(3), child: SizedBox(width: 40, height: 6, child: LinearProgressIndicator(value: ((d['attendance_rate'] as num).toDouble()) / 100, minHeight: 6, backgroundColor: ShellTokens.chromeBorder, color: (d['attendance_rate'] as num).toDouble() >= 80 ? SemanticTokens.success : (d['attendance_rate'] as num).toDouble() >= 50 ? SemanticTokens.warning : SemanticTokens.error))),
+              const SizedBox(width: 6),
+              Text('${(d['attendance_rate'] as num).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+            ])),
+          ])).toList(),
+        ),
+      ),
+    );
+  }
+
+  String _levelLabel(String l) => switch (l) { 'primary' => 'ابتدائي', 'middle' => 'متوسط', 'secondary' => 'ثانوي', _ => l };
+
+  Future<void> _exportClassPdf() async {
+    if (_classData.isEmpty) return;
+    final pdf = pw.Document();
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      build: (_) => [
+        pw.Header(text: 'Class Performance Report', level: 1),
+        pw.SizedBox(height: 8),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 7),
+          headers: ['Group', 'Level', 'Teacher', 'Students', 'Revenue', 'Attendance %'],
+          data: _classData.map((d) => [
+            d['group_name'] as String,
+            _levelLabel(d['school_level'] as String),
+            (d['teacher_name'] as String?) ?? '',
+            '${d['enrolled']}',
+            '${(d['revenue'] as num).toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+            '${(d['attendance_rate'] as num).toStringAsFixed(0)}%',
+          ]).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportClassExcel() async {
+    if (_classData.isEmpty) return;
+    final excel = Excel.createExcel();
+    final sheet = excel['Class Performance'];
+    sheet.appendRow([TextCellValue('Group'), TextCellValue('Level'), TextCellValue('Teacher'), TextCellValue('Students'), TextCellValue('Revenue'), TextCellValue('Attendance %')]);
+    for (final d in _classData) {
+      sheet.appendRow([
+        TextCellValue(d['group_name'] as String),
+        TextCellValue(_levelLabel(d['school_level'] as String)),
+        TextCellValue((d['teacher_name'] as String?) ?? ''),
+        TextCellValue('${d['enrolled']}'),
+        TextCellValue('${(d['revenue'] as num).toStringAsFixed(0)}'),
+        TextCellValue('${(d['attendance_rate'] as num).toStringAsFixed(0)}%'),
+      ]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/class_performance.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+  }
+
   Widget _buildTabBar() {
     return Container(
       decoration: const BoxDecoration(
@@ -521,6 +673,9 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     }
     if (_tabIndex == 2) {
       return _buildTrendContent();
+    }
+    if (_tabIndex == 3) {
+      return _buildClassPerformanceContent();
     }
 
     if (_loading) return const Center(child: CircularProgressIndicator());

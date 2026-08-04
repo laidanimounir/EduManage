@@ -1464,4 +1464,33 @@ class AppDatabase extends _$AppDatabase {
     final expected = totalSessions * enrolled;
     return expected > 0 ? (present / expected * 100) : 0;
   }
+
+  Future<List<Map<String, dynamic>>> getClassPerformanceReport({DateTime? from, DateTime? to}) async {
+    final rows = await customSelect(
+      'SELECT sg.id, sg.name_ar AS group_name, sg.school_level, '
+      '(SELECT t.first_name_ar || \' \' || t.last_name_ar FROM sessions s JOIN teachers t ON s.teacher_id = t.id WHERE s.subject_group_id = sg.id AND s.is_archived = 0 LIMIT 1) AS teacher_name, '
+      '(SELECT COUNT(*) FROM enrollments e WHERE e.subject_group_id = sg.id AND e.status = \'active\' AND e.is_transferred = 0) AS enrolled, '
+      'COALESCE((SELECT SUM(tx.amount) FROM transactions tx JOIN sessions s2 ON tx.session_id = s2.id WHERE s2.subject_group_id = sg.id AND tx.type = \'session_charge\'), 0) AS revenue, '
+      '(SELECT COUNT(*) FROM attendance a JOIN sessions s3 ON a.session_id = s3.id WHERE s3.subject_group_id = sg.id AND a.status = \'present\') AS present_count, '
+      '(SELECT COUNT(*) FROM sessions s4 WHERE s4.subject_group_id = sg.id AND s4.is_active = 1 AND s4.is_archived = 0) AS total_sessions '
+      'FROM subject_groups sg WHERE sg.is_archived = 0 ORDER BY sg.name_ar',
+    ).get();
+
+    return rows.map((r) {
+      final enrolled = r.read<int>('enrolled');
+      final totalSessions = r.read<int>('total_sessions');
+      final present = r.read<int>('present_count');
+      final expected = totalSessions * enrolled;
+      final rate = expected > 0 ? (present / expected * 100) : 0.0;
+      return {
+        'id': r.read<String>('id'),
+        'group_name': r.read<String>('group_name'),
+        'school_level': r.read<String>('school_level'),
+        'teacher_name': r.read<String?>('teacher_name') ?? '',
+        'enrolled': enrolled,
+        'revenue': r.read<double>('revenue'),
+        'attendance_rate': rate,
+      };
+    }).toList();
+  }
 }
