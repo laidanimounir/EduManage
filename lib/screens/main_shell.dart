@@ -25,6 +25,7 @@ import 'users/user_management_screen.dart';
 import 'settings/settings_screen.dart';
 import 'enrollments/enrollment_screen.dart';
 import 'families/family_screen.dart';
+import 'special_cases/special_cases_screen.dart';
 
 class MainShell extends StatefulWidget {
   final AppDatabase database;
@@ -99,6 +100,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         _NavItem(PhosphorIcons.building, l10n.classrooms),
         _NavItem(PhosphorIcons.notebook, l10n.enrollments),
         _NavItem(PhosphorIcons.usersThree, 'Families'),
+        _NavItem(PhosphorIcons.warning, 'Special Cases'),
         _NavItem(PhosphorIcons.currencyCircleDollar, l10n.payments),
         _NavItem(PhosphorIcons.wallet, l10n.outstandingDebts),
         _NavItem(PhosphorIcons.chartBar, l10n.reports),
@@ -120,6 +122,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         ClassroomListScreen(database: widget.database),
         EnrollmentScreen(database: widget.database),
         FamilyScreen(database: widget.database),
+        SpecialCasesScreen(database: widget.database, createdByUserId: widget.userId),
         UnifiedPaymentScreen(database: widget.database),
         StudentBalancesScreen(database: widget.database),
         ProfitReportScreen(database: widget.database),
