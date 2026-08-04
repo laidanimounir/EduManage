@@ -344,8 +344,25 @@ class FamilyMembers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class SpecialCases extends Table {
+  TextColumn get id => text()();
+  TextColumn get studentId => text().references(Students, #id)();
+  TextColumn get caseType => text()();
+  RealColumn get discountPercent => real().nullable()();
+  RealColumn get discountFixed => real().nullable()();
+  TextColumn get reason => text()();
+  TextColumn get approvedByUserId => text().nullable().references(Users, #id)();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get reviewDate => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers, SpecialCases],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -376,7 +393,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -477,6 +494,9 @@ class AppDatabase extends _$AppDatabase {
             sessions.makeupForSessionId,
           ],
         ));
+      }
+      if (from < 13) {
+        await m.createTable(specialCases);
       }
     },
   );
@@ -1234,6 +1254,12 @@ class AppDatabase extends _$AppDatabase {
     final member = await getStudentFamily(studentId);
     if (member == null) return null;
     return (select(families)..where((t) => t.id.equals(member.familyId))..limit(1)).getSingleOrNull();
+  }
+
+  Future<SpecialCase?> getActiveSpecialCase(String studentId) async {
+    return (select(specialCases)
+      ..where((t) => t.studentId.equals(studentId) & t.isActive.equals(true))
+      ..limit(1)).getSingleOrNull();
   }
 
   Future<int> countUnbilledActiveStudents() async {

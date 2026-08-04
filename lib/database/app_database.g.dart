@@ -13012,6 +13012,692 @@ class FamilyMembersCompanion extends UpdateCompanion<FamilyMember> {
   }
 }
 
+class $SpecialCasesTable extends SpecialCases
+    with TableInfo<$SpecialCasesTable, SpecialCase> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SpecialCasesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _studentIdMeta = const VerificationMeta(
+    'studentId',
+  );
+  @override
+  late final GeneratedColumn<String> studentId = GeneratedColumn<String>(
+    'student_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES students (id)',
+    ),
+  );
+  static const VerificationMeta _caseTypeMeta = const VerificationMeta(
+    'caseType',
+  );
+  @override
+  late final GeneratedColumn<String> caseType = GeneratedColumn<String>(
+    'case_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _discountPercentMeta = const VerificationMeta(
+    'discountPercent',
+  );
+  @override
+  late final GeneratedColumn<double> discountPercent = GeneratedColumn<double>(
+    'discount_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _discountFixedMeta = const VerificationMeta(
+    'discountFixed',
+  );
+  @override
+  late final GeneratedColumn<double> discountFixed = GeneratedColumn<double>(
+    'discount_fixed',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _approvedByUserIdMeta = const VerificationMeta(
+    'approvedByUserId',
+  );
+  @override
+  late final GeneratedColumn<String> approvedByUserId = GeneratedColumn<String>(
+    'approved_by_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id)',
+    ),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _reviewDateMeta = const VerificationMeta(
+    'reviewDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> reviewDate = GeneratedColumn<DateTime>(
+    'review_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    studentId,
+    caseType,
+    discountPercent,
+    discountFixed,
+    reason,
+    approvedByUserId,
+    isActive,
+    reviewDate,
+    createdAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'special_cases';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SpecialCase> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('student_id')) {
+      context.handle(
+        _studentIdMeta,
+        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_studentIdMeta);
+    }
+    if (data.containsKey('case_type')) {
+      context.handle(
+        _caseTypeMeta,
+        caseType.isAcceptableOrUnknown(data['case_type']!, _caseTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_caseTypeMeta);
+    }
+    if (data.containsKey('discount_percent')) {
+      context.handle(
+        _discountPercentMeta,
+        discountPercent.isAcceptableOrUnknown(
+          data['discount_percent']!,
+          _discountPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('discount_fixed')) {
+      context.handle(
+        _discountFixedMeta,
+        discountFixed.isAcceptableOrUnknown(
+          data['discount_fixed']!,
+          _discountFixedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('approved_by_user_id')) {
+      context.handle(
+        _approvedByUserIdMeta,
+        approvedByUserId.isAcceptableOrUnknown(
+          data['approved_by_user_id']!,
+          _approvedByUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('review_date')) {
+      context.handle(
+        _reviewDateMeta,
+        reviewDate.isAcceptableOrUnknown(data['review_date']!, _reviewDateMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SpecialCase map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SpecialCase(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      studentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}student_id'],
+      )!,
+      caseType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}case_type'],
+      )!,
+      discountPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}discount_percent'],
+      ),
+      discountFixed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}discount_fixed'],
+      ),
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      approvedByUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}approved_by_user_id'],
+      ),
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      reviewDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}review_date'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $SpecialCasesTable createAlias(String alias) {
+    return $SpecialCasesTable(attachedDatabase, alias);
+  }
+}
+
+class SpecialCase extends DataClass implements Insertable<SpecialCase> {
+  final String id;
+  final String studentId;
+  final String caseType;
+  final double? discountPercent;
+  final double? discountFixed;
+  final String reason;
+  final String? approvedByUserId;
+  final bool isActive;
+  final DateTime? reviewDate;
+  final DateTime createdAt;
+  final String deviceId;
+  const SpecialCase({
+    required this.id,
+    required this.studentId,
+    required this.caseType,
+    this.discountPercent,
+    this.discountFixed,
+    required this.reason,
+    this.approvedByUserId,
+    required this.isActive,
+    this.reviewDate,
+    required this.createdAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['student_id'] = Variable<String>(studentId);
+    map['case_type'] = Variable<String>(caseType);
+    if (!nullToAbsent || discountPercent != null) {
+      map['discount_percent'] = Variable<double>(discountPercent);
+    }
+    if (!nullToAbsent || discountFixed != null) {
+      map['discount_fixed'] = Variable<double>(discountFixed);
+    }
+    map['reason'] = Variable<String>(reason);
+    if (!nullToAbsent || approvedByUserId != null) {
+      map['approved_by_user_id'] = Variable<String>(approvedByUserId);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || reviewDate != null) {
+      map['review_date'] = Variable<DateTime>(reviewDate);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  SpecialCasesCompanion toCompanion(bool nullToAbsent) {
+    return SpecialCasesCompanion(
+      id: Value(id),
+      studentId: Value(studentId),
+      caseType: Value(caseType),
+      discountPercent: discountPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(discountPercent),
+      discountFixed: discountFixed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(discountFixed),
+      reason: Value(reason),
+      approvedByUserId: approvedByUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(approvedByUserId),
+      isActive: Value(isActive),
+      reviewDate: reviewDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewDate),
+      createdAt: Value(createdAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory SpecialCase.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SpecialCase(
+      id: serializer.fromJson<String>(json['id']),
+      studentId: serializer.fromJson<String>(json['studentId']),
+      caseType: serializer.fromJson<String>(json['caseType']),
+      discountPercent: serializer.fromJson<double?>(json['discountPercent']),
+      discountFixed: serializer.fromJson<double?>(json['discountFixed']),
+      reason: serializer.fromJson<String>(json['reason']),
+      approvedByUserId: serializer.fromJson<String?>(json['approvedByUserId']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      reviewDate: serializer.fromJson<DateTime?>(json['reviewDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'studentId': serializer.toJson<String>(studentId),
+      'caseType': serializer.toJson<String>(caseType),
+      'discountPercent': serializer.toJson<double?>(discountPercent),
+      'discountFixed': serializer.toJson<double?>(discountFixed),
+      'reason': serializer.toJson<String>(reason),
+      'approvedByUserId': serializer.toJson<String?>(approvedByUserId),
+      'isActive': serializer.toJson<bool>(isActive),
+      'reviewDate': serializer.toJson<DateTime?>(reviewDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  SpecialCase copyWith({
+    String? id,
+    String? studentId,
+    String? caseType,
+    Value<double?> discountPercent = const Value.absent(),
+    Value<double?> discountFixed = const Value.absent(),
+    String? reason,
+    Value<String?> approvedByUserId = const Value.absent(),
+    bool? isActive,
+    Value<DateTime?> reviewDate = const Value.absent(),
+    DateTime? createdAt,
+    String? deviceId,
+  }) => SpecialCase(
+    id: id ?? this.id,
+    studentId: studentId ?? this.studentId,
+    caseType: caseType ?? this.caseType,
+    discountPercent: discountPercent.present
+        ? discountPercent.value
+        : this.discountPercent,
+    discountFixed: discountFixed.present
+        ? discountFixed.value
+        : this.discountFixed,
+    reason: reason ?? this.reason,
+    approvedByUserId: approvedByUserId.present
+        ? approvedByUserId.value
+        : this.approvedByUserId,
+    isActive: isActive ?? this.isActive,
+    reviewDate: reviewDate.present ? reviewDate.value : this.reviewDate,
+    createdAt: createdAt ?? this.createdAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  SpecialCase copyWithCompanion(SpecialCasesCompanion data) {
+    return SpecialCase(
+      id: data.id.present ? data.id.value : this.id,
+      studentId: data.studentId.present ? data.studentId.value : this.studentId,
+      caseType: data.caseType.present ? data.caseType.value : this.caseType,
+      discountPercent: data.discountPercent.present
+          ? data.discountPercent.value
+          : this.discountPercent,
+      discountFixed: data.discountFixed.present
+          ? data.discountFixed.value
+          : this.discountFixed,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      approvedByUserId: data.approvedByUserId.present
+          ? data.approvedByUserId.value
+          : this.approvedByUserId,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      reviewDate: data.reviewDate.present
+          ? data.reviewDate.value
+          : this.reviewDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpecialCase(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('caseType: $caseType, ')
+          ..write('discountPercent: $discountPercent, ')
+          ..write('discountFixed: $discountFixed, ')
+          ..write('reason: $reason, ')
+          ..write('approvedByUserId: $approvedByUserId, ')
+          ..write('isActive: $isActive, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    studentId,
+    caseType,
+    discountPercent,
+    discountFixed,
+    reason,
+    approvedByUserId,
+    isActive,
+    reviewDate,
+    createdAt,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SpecialCase &&
+          other.id == this.id &&
+          other.studentId == this.studentId &&
+          other.caseType == this.caseType &&
+          other.discountPercent == this.discountPercent &&
+          other.discountFixed == this.discountFixed &&
+          other.reason == this.reason &&
+          other.approvedByUserId == this.approvedByUserId &&
+          other.isActive == this.isActive &&
+          other.reviewDate == this.reviewDate &&
+          other.createdAt == this.createdAt &&
+          other.deviceId == this.deviceId);
+}
+
+class SpecialCasesCompanion extends UpdateCompanion<SpecialCase> {
+  final Value<String> id;
+  final Value<String> studentId;
+  final Value<String> caseType;
+  final Value<double?> discountPercent;
+  final Value<double?> discountFixed;
+  final Value<String> reason;
+  final Value<String?> approvedByUserId;
+  final Value<bool> isActive;
+  final Value<DateTime?> reviewDate;
+  final Value<DateTime> createdAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const SpecialCasesCompanion({
+    this.id = const Value.absent(),
+    this.studentId = const Value.absent(),
+    this.caseType = const Value.absent(),
+    this.discountPercent = const Value.absent(),
+    this.discountFixed = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.approvedByUserId = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.reviewDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SpecialCasesCompanion.insert({
+    required String id,
+    required String studentId,
+    required String caseType,
+    this.discountPercent = const Value.absent(),
+    this.discountFixed = const Value.absent(),
+    required String reason,
+    this.approvedByUserId = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.reviewDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       studentId = Value(studentId),
+       caseType = Value(caseType),
+       reason = Value(reason),
+       deviceId = Value(deviceId);
+  static Insertable<SpecialCase> custom({
+    Expression<String>? id,
+    Expression<String>? studentId,
+    Expression<String>? caseType,
+    Expression<double>? discountPercent,
+    Expression<double>? discountFixed,
+    Expression<String>? reason,
+    Expression<String>? approvedByUserId,
+    Expression<bool>? isActive,
+    Expression<DateTime>? reviewDate,
+    Expression<DateTime>? createdAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (studentId != null) 'student_id': studentId,
+      if (caseType != null) 'case_type': caseType,
+      if (discountPercent != null) 'discount_percent': discountPercent,
+      if (discountFixed != null) 'discount_fixed': discountFixed,
+      if (reason != null) 'reason': reason,
+      if (approvedByUserId != null) 'approved_by_user_id': approvedByUserId,
+      if (isActive != null) 'is_active': isActive,
+      if (reviewDate != null) 'review_date': reviewDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SpecialCasesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? studentId,
+    Value<String>? caseType,
+    Value<double?>? discountPercent,
+    Value<double?>? discountFixed,
+    Value<String>? reason,
+    Value<String?>? approvedByUserId,
+    Value<bool>? isActive,
+    Value<DateTime?>? reviewDate,
+    Value<DateTime>? createdAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return SpecialCasesCompanion(
+      id: id ?? this.id,
+      studentId: studentId ?? this.studentId,
+      caseType: caseType ?? this.caseType,
+      discountPercent: discountPercent ?? this.discountPercent,
+      discountFixed: discountFixed ?? this.discountFixed,
+      reason: reason ?? this.reason,
+      approvedByUserId: approvedByUserId ?? this.approvedByUserId,
+      isActive: isActive ?? this.isActive,
+      reviewDate: reviewDate ?? this.reviewDate,
+      createdAt: createdAt ?? this.createdAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (studentId.present) {
+      map['student_id'] = Variable<String>(studentId.value);
+    }
+    if (caseType.present) {
+      map['case_type'] = Variable<String>(caseType.value);
+    }
+    if (discountPercent.present) {
+      map['discount_percent'] = Variable<double>(discountPercent.value);
+    }
+    if (discountFixed.present) {
+      map['discount_fixed'] = Variable<double>(discountFixed.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (approvedByUserId.present) {
+      map['approved_by_user_id'] = Variable<String>(approvedByUserId.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (reviewDate.present) {
+      map['review_date'] = Variable<DateTime>(reviewDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpecialCasesCompanion(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('caseType: $caseType, ')
+          ..write('discountPercent: $discountPercent, ')
+          ..write('discountFixed: $discountFixed, ')
+          ..write('reason: $reason, ')
+          ..write('approvedByUserId: $approvedByUserId, ')
+          ..write('isActive: $isActive, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -13039,6 +13725,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ClosedPeriodsTable closedPeriods = $ClosedPeriodsTable(this);
   late final $FamiliesTable families = $FamiliesTable(this);
   late final $FamilyMembersTable familyMembers = $FamilyMembersTable(this);
+  late final $SpecialCasesTable specialCases = $SpecialCasesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13065,6 +13752,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     closedPeriods,
     families,
     familyMembers,
+    specialCases,
   ];
 }
 
@@ -13228,6 +13916,24 @@ final class $$StudentsTableReferences
     ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_familyMembersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SpecialCasesTable, List<SpecialCase>>
+  _specialCasesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.specialCases,
+    aliasName: 'students__id__special_cases__student_id',
+  );
+
+  $$SpecialCasesTableProcessedTableManager get specialCasesRefs {
+    final manager = $$SpecialCasesTableTableManager(
+      $_db,
+      $_db.specialCases,
+    ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_specialCasesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -13479,6 +14185,31 @@ class $$StudentsTableFilterComposer
           }) => $$FamilyMembersTableFilterComposer(
             $db: $db,
             $table: $db.familyMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> specialCasesRefs(
+    Expression<bool> Function($$SpecialCasesTableFilterComposer f) f,
+  ) {
+    final $$SpecialCasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.specialCases,
+      getReferencedColumn: (t) => t.studentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SpecialCasesTableFilterComposer(
+            $db: $db,
+            $table: $db.specialCases,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13826,6 +14557,31 @@ class $$StudentsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> specialCasesRefs<T extends Object>(
+    Expression<T> Function($$SpecialCasesTableAnnotationComposer a) f,
+  ) {
+    final $$SpecialCasesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.specialCases,
+      getReferencedColumn: (t) => t.studentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SpecialCasesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.specialCases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$StudentsTableTableManager
@@ -13848,6 +14604,7 @@ class $$StudentsTableTableManager
             bool attendanceRefs,
             bool studentCardsRefs,
             bool familyMembersRefs,
+            bool specialCasesRefs,
           })
         > {
   $$StudentsTableTableManager(_$AppDatabase db, $StudentsTable table)
@@ -13965,6 +14722,7 @@ class $$StudentsTableTableManager
                 attendanceRefs = false,
                 studentCardsRefs = false,
                 familyMembersRefs = false,
+                specialCasesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -13975,6 +14733,7 @@ class $$StudentsTableTableManager
                     if (attendanceRefs) db.attendance,
                     if (studentCardsRefs) db.studentCards,
                     if (familyMembersRefs) db.familyMembers,
+                    if (specialCasesRefs) db.specialCases,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -14105,6 +14864,27 @@ class $$StudentsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (specialCasesRefs)
+                        await $_getPrefetchedData<
+                          Student,
+                          $StudentsTable,
+                          SpecialCase
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudentsTableReferences
+                              ._specialCasesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).specialCasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.studentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -14132,6 +14912,7 @@ typedef $$StudentsTableProcessedTableManager =
         bool attendanceRefs,
         bool studentCardsRefs,
         bool familyMembersRefs,
+        bool specialCasesRefs,
       })
     >;
 typedef $$TeachersTableCreateCompanionBuilder =
@@ -20441,6 +21222,24 @@ final class $$UsersTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SpecialCasesTable, List<SpecialCase>>
+  _specialCasesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.specialCases,
+    aliasName: 'users__id__special_cases__approved_by_user_id',
+  );
+
+  $$SpecialCasesTableProcessedTableManager get specialCasesRefs {
+    final manager = $$SpecialCasesTableTableManager($_db, $_db.specialCases)
+        .filter(
+          (f) => f.approvedByUserId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_specialCasesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
@@ -20517,6 +21316,31 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
           }) => $$AuditLogTableFilterComposer(
             $db: $db,
             $table: $db.auditLog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> specialCasesRefs(
+    Expression<bool> Function($$SpecialCasesTableFilterComposer f) f,
+  ) {
+    final $$SpecialCasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.specialCases,
+      getReferencedColumn: (t) => t.approvedByUserId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SpecialCasesTableFilterComposer(
+            $db: $db,
+            $table: $db.specialCases,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -20652,6 +21476,31 @@ class $$UsersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> specialCasesRefs<T extends Object>(
+    Expression<T> Function($$SpecialCasesTableAnnotationComposer a) f,
+  ) {
+    final $$SpecialCasesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.specialCases,
+      getReferencedColumn: (t) => t.approvedByUserId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SpecialCasesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.specialCases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$UsersTableTableManager
@@ -20667,7 +21516,7 @@ class $$UsersTableTableManager
           $$UsersTableUpdateCompanionBuilder,
           (User, $$UsersTableReferences),
           User,
-          PrefetchHooks Function({bool auditLogRefs})
+          PrefetchHooks Function({bool auditLogRefs, bool specialCasesRefs})
         > {
   $$UsersTableTableManager(_$AppDatabase db, $UsersTable table)
     : super(
@@ -20738,28 +21587,63 @@ class $$UsersTableTableManager
                     (e.readTable(table), $$UsersTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({auditLogRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (auditLogRefs) db.auditLog],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (auditLogRefs)
-                    await $_getPrefetchedData<User, $UsersTable, AuditLogData>(
-                      currentTable: table,
-                      referencedTable: $$UsersTableReferences
-                          ._auditLogRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$UsersTableReferences(db, table, p0).auditLogRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.userId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({auditLogRefs = false, specialCasesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (auditLogRefs) db.auditLog,
+                    if (specialCasesRefs) db.specialCases,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (auditLogRefs)
+                        await $_getPrefetchedData<
+                          User,
+                          $UsersTable,
+                          AuditLogData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._auditLogRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).auditLogRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (specialCasesRefs)
+                        await $_getPrefetchedData<
+                          User,
+                          $UsersTable,
+                          SpecialCase
+                        >(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._specialCasesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).specialCasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.approvedByUserId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -20776,7 +21660,7 @@ typedef $$UsersTableProcessedTableManager =
       $$UsersTableUpdateCompanionBuilder,
       (User, $$UsersTableReferences),
       User,
-      PrefetchHooks Function({bool auditLogRefs})
+      PrefetchHooks Function({bool auditLogRefs, bool specialCasesRefs})
     >;
 typedef $$AuditLogTableCreateCompanionBuilder =
     AuditLogCompanion Function({
@@ -23943,6 +24827,534 @@ typedef $$FamilyMembersTableProcessedTableManager =
       FamilyMember,
       PrefetchHooks Function({bool familyId, bool studentId})
     >;
+typedef $$SpecialCasesTableCreateCompanionBuilder =
+    SpecialCasesCompanion Function({
+      required String id,
+      required String studentId,
+      required String caseType,
+      Value<double?> discountPercent,
+      Value<double?> discountFixed,
+      required String reason,
+      Value<String?> approvedByUserId,
+      Value<bool> isActive,
+      Value<DateTime?> reviewDate,
+      Value<DateTime> createdAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$SpecialCasesTableUpdateCompanionBuilder =
+    SpecialCasesCompanion Function({
+      Value<String> id,
+      Value<String> studentId,
+      Value<String> caseType,
+      Value<double?> discountPercent,
+      Value<double?> discountFixed,
+      Value<String> reason,
+      Value<String?> approvedByUserId,
+      Value<bool> isActive,
+      Value<DateTime?> reviewDate,
+      Value<DateTime> createdAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$SpecialCasesTableReferences
+    extends BaseReferences<_$AppDatabase, $SpecialCasesTable, SpecialCase> {
+  $$SpecialCasesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $StudentsTable _studentIdTable(_$AppDatabase db) =>
+      db.students.createAlias('special_cases__student_id__students__id');
+
+  $$StudentsTableProcessedTableManager get studentId {
+    final $_column = $_itemColumn<String>('student_id')!;
+
+    final manager = $$StudentsTableTableManager(
+      $_db,
+      $_db.students,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_studentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $UsersTable _approvedByUserIdTable(_$AppDatabase db) =>
+      db.users.createAlias('special_cases__approved_by_user_id__users__id');
+
+  $$UsersTableProcessedTableManager? get approvedByUserId {
+    final $_column = $_itemColumn<String>('approved_by_user_id');
+    if ($_column == null) return null;
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_approvedByUserIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SpecialCasesTableFilterComposer
+    extends Composer<_$AppDatabase, $SpecialCasesTable> {
+  $$SpecialCasesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get caseType => $composableBuilder(
+    column: $table.caseType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get discountPercent => $composableBuilder(
+    column: $table.discountPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get discountFixed => $composableBuilder(
+    column: $table.discountFixed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudentsTableFilterComposer get studentId {
+    final $$StudentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableFilterComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableFilterComposer get approvedByUserId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedByUserId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SpecialCasesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SpecialCasesTable> {
+  $$SpecialCasesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caseType => $composableBuilder(
+    column: $table.caseType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get discountPercent => $composableBuilder(
+    column: $table.discountPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get discountFixed => $composableBuilder(
+    column: $table.discountFixed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudentsTableOrderingComposer get studentId {
+    final $$StudentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableOrderingComposer get approvedByUserId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedByUserId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SpecialCasesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SpecialCasesTable> {
+  $$SpecialCasesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get caseType =>
+      $composableBuilder(column: $table.caseType, builder: (column) => column);
+
+  GeneratedColumn<double> get discountPercent => $composableBuilder(
+    column: $table.discountPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get discountFixed => $composableBuilder(
+    column: $table.discountFixed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get reviewDate => $composableBuilder(
+    column: $table.reviewDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  $$StudentsTableAnnotationComposer get studentId {
+    final $$StudentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$UsersTableAnnotationComposer get approvedByUserId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.approvedByUserId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SpecialCasesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SpecialCasesTable,
+          SpecialCase,
+          $$SpecialCasesTableFilterComposer,
+          $$SpecialCasesTableOrderingComposer,
+          $$SpecialCasesTableAnnotationComposer,
+          $$SpecialCasesTableCreateCompanionBuilder,
+          $$SpecialCasesTableUpdateCompanionBuilder,
+          (SpecialCase, $$SpecialCasesTableReferences),
+          SpecialCase,
+          PrefetchHooks Function({bool studentId, bool approvedByUserId})
+        > {
+  $$SpecialCasesTableTableManager(_$AppDatabase db, $SpecialCasesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SpecialCasesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SpecialCasesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SpecialCasesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> studentId = const Value.absent(),
+                Value<String> caseType = const Value.absent(),
+                Value<double?> discountPercent = const Value.absent(),
+                Value<double?> discountFixed = const Value.absent(),
+                Value<String> reason = const Value.absent(),
+                Value<String?> approvedByUserId = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> reviewDate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SpecialCasesCompanion(
+                id: id,
+                studentId: studentId,
+                caseType: caseType,
+                discountPercent: discountPercent,
+                discountFixed: discountFixed,
+                reason: reason,
+                approvedByUserId: approvedByUserId,
+                isActive: isActive,
+                reviewDate: reviewDate,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String studentId,
+                required String caseType,
+                Value<double?> discountPercent = const Value.absent(),
+                Value<double?> discountFixed = const Value.absent(),
+                required String reason,
+                Value<String?> approvedByUserId = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> reviewDate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => SpecialCasesCompanion.insert(
+                id: id,
+                studentId: studentId,
+                caseType: caseType,
+                discountPercent: discountPercent,
+                discountFixed: discountFixed,
+                reason: reason,
+                approvedByUserId: approvedByUserId,
+                isActive: isActive,
+                reviewDate: reviewDate,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SpecialCasesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({studentId = false, approvedByUserId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (studentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.studentId,
+                                    referencedTable:
+                                        $$SpecialCasesTableReferences
+                                            ._studentIdTable(db),
+                                    referencedColumn:
+                                        $$SpecialCasesTableReferences
+                                            ._studentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (approvedByUserId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.approvedByUserId,
+                                    referencedTable:
+                                        $$SpecialCasesTableReferences
+                                            ._approvedByUserIdTable(db),
+                                    referencedColumn:
+                                        $$SpecialCasesTableReferences
+                                            ._approvedByUserIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SpecialCasesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SpecialCasesTable,
+      SpecialCase,
+      $$SpecialCasesTableFilterComposer,
+      $$SpecialCasesTableOrderingComposer,
+      $$SpecialCasesTableAnnotationComposer,
+      $$SpecialCasesTableCreateCompanionBuilder,
+      $$SpecialCasesTableUpdateCompanionBuilder,
+      (SpecialCase, $$SpecialCasesTableReferences),
+      SpecialCase,
+      PrefetchHooks Function({bool studentId, bool approvedByUserId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -23989,4 +25401,6 @@ class $AppDatabaseManager {
       $$FamiliesTableTableManager(_db, _db.families);
   $$FamilyMembersTableTableManager get familyMembers =>
       $$FamilyMembersTableTableManager(_db, _db.familyMembers);
+  $$SpecialCasesTableTableManager get specialCases =>
+      $$SpecialCasesTableTableManager(_db, _db.specialCases);
 }
