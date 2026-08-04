@@ -1153,3 +1153,80 @@ for (final s in sessions) {
 
 ### Task 5 — Bulk archive/drop
 - Schema decision: `enrollments` has no `isArchived` column — `status` text ('active'/'inactive'/'transferred_out'/'dropped') is the record lifecycle, so "inactive" is already the archive-equivalent. No new schema or state was added. Instead, the existing bulk "Drop Enrollment" action now requires a confirmation dialog showing the affected count, with an optional cutoff date that restricts the action to enrollments older than the date. Already-inactive rows are skipped; a summary SnackBar reports the dropped count.
+
+---
+
+## REPORTS HUB
+
+- [ ] **241. Tab shell navigation**
+  - Open sidebar → "Reports". Verify five tabs appear: الأرباح الشهرية, الحضور, الاتجاه المالي, أداء الأقسام, عبء الأساتذة. Switch between all five tabs — each loads its own content without affecting other tabs.
+- [ ] **242. Monthly profit — existing behavior unchanged**
+  - On the الأرباح الشهرية tab, verify month navigation (chevrons), year picker (tap month/year text), income/expense breakdown, top debtors list all function identically to before the hub restructure.
+- [ ] **243. Monthly profit — PDF export**
+  - Click PDF icon in the month selector toolbar. Verify a PDF opens (via Printing.layoutPdf) with net profit, income breakdown, expense breakdown, and top debtors table.
+- [ ] **244. Monthly profit — Excel export**
+  - Click Excel icon. Verify an xlsx file is saved to the documents directory with a SnackBar showing the path. Open it — verify same data as the PDF.
+- [ ] **245. Monthly profit — custom date range**
+  - Click the calendar-range icon → two date-picker buttons appear (من/إلى). Pick a From date and a To date. Verify the KPI card and breakdowns update for the custom range. Verify the PDF/Excel filenames include the range dates.
+- [ ] **246. Monthly profit — clear range**
+  - With a custom range active, click the X (clear) button. Verify the UI returns to normal month navigation and data reloads for the current month.
+- [ ] **247. Attendance tab — reachable**
+  - Switch to the الحضور tab. Verify the previously unreachable Attendance Reports screen loads: group dropdown, 6-month attendance rates with progress bars, PDF and Excel export fully functional.
+- [ ] **248. Financial trend — table**
+  - Switch to الاتجاه المالي tab. Verify a 6-month revenue vs expense table appears with month, revenue, expenses, net columns.
+- [ ] **249. Financial trend — chart**
+  - Verify a bar chart rendering revenue (blue) and expenses (orange) per month appears above the table.
+- [ ] **250. Financial trend — KPI row**
+  - Verify three summary cards (المداخيل, المصاريف, الصافي) show aggregated totals above the chart.
+- [ ] **251. Financial trend — PDF/Excel export**
+  - Click PDF and Excel icons on the toolbar. Verify the exported data matches the table (6 months, revenue/expenses/net).
+- [ ] **252. Class performance — tab loads**
+  - Switch to أداء الأقسام tab. Verify a sortable DataTable shows all active subject groups with: القسم, المستوى, الأستاذ, الطلاب, المداخيل, نسبة الحضور columns. Attendance rate column shows a progress bar + percentage.
+- [ ] **253. Class performance — sorting**
+  - Click any column header. Verify the table sorts ascending on that column. Click again — sorts descending. Verify numeric columns (enrolled, revenue, attendance rate) sort numerically, not alphabetically.
+- [ ] **254. Class performance — PDF/Excel export**
+  - Click PDF and Excel icons. Verify exported files contain all groups with the same 6 columns.
+- [ ] **255. Teacher workload — tab loads**
+  - Switch to عبء الأساتذة tab. Verify a sortable DataTable shows active teachers with: الأستاذ, الحصص, الساعات/أسبوع, الطلاب, المستخلصات columns.
+- [ ] **256. Teacher workload — sorting**
+  - Click column headers. Verify sorting works on all columns (name alphabetically, numeric columns numerically).
+- [ ] **257. Teacher workload — PDF/Excel export**
+  - Click PDF and Excel icons. Verify exported files contain all teachers with the same 5 columns.
+- [ ] **258. Timetable export fix**
+  - Navigate to Timetable screen. Click PDF icon — verify a PDF exports the current timetable grid (day, start, end, group, teacher, classroom, price). Click Excel icon — verify xlsx saved to documents directory. Both were previously no-op stubs (onPressed: () {}).
+- [ ] **259. Teacher list export fix**
+  - Navigate to Teachers screen. Click PDF → exports current filtered teachers (code, first name, last name, phone, email, salary, subjects). Click Excel → xlsx saved. Both were previously empty methods.
+- [ ] **260. Payments export fix**
+  - Navigate to Payments screen. Click PDF → exports current filtered transactions (date, type, name, code, amount, note). Click Excel → xlsx saved. Both were previously "Coming soon" stubs.
+- [ ] **261. All export buttons produce real output**
+  - Do a quick pass across all screens — verify no export button anywhere in the app is still a no-op stub or "Coming soon" placeholder. Timetable, Teachers, and Payments are now real; Students and Debts were already functional; Monthly Profit/Financial Trend/Class Perf/Teacher Workload tabs on Reports hub all have real exports.
+
+---
+
+## Round 14 — Reports Hub (2026-08-04)
+
+### Task 1 — Tabbed shell
+- Restructured `profit_report_screen.dart` into a multi-tab Reports Hub. Added a `_buildTabBar` with ShellTokens-styled tab pills (accent color for selected, transparent for unselected). The existing Monthly Profit content (month navigation, KPI card, income/expense breakdown, top debtors) rendered unchanged in the first tab "الأرباح الشهرية".
+
+### Task 2 — Monthly Profit export
+- Added real PDF and Excel export buttons to the Monthly Profit tab toolbar. PDF uses `Printing.layoutPdf` with a MultiPage layout covering net profit, income, expense, and top debtors. Excel writes a structured sheet saved to the documents directory. Both follow the existing real-export pattern from Students/Debts screens.
+
+### Task 3 — Custom date-range
+- Added a calendar-range toggle icon next to the export buttons. When toggled, the month navigation transforms into From/To date-picker buttons with a clear (X) button. `_loadData()` uses the custom range when both dates are set, falling back to the selected month otherwise. Export filenames and titles include the range dates.
+
+### Task 4 — Attendance tab
+- Added "الحضور" as a second tab embedding the previously unreachable `AttendanceReportsScreen` directly. All existing functionality (group dropdown, 6-month attendance rates with progress bars, PDF + Excel export) is preserved and now reachable from the sidebar.
+
+### Task 5 — Financial Trend tab
+- Added "الاتجاه المالي" as a third tab. Lazy-loads 6-month revenue/expense data via `getMonthlyRevenueAndExpenses`. Displays a bar chart (revenue blue, expenses orange) reusing `ChartTokens` styling, plus a sortable source-data table with month, revenue, expenses, and net columns. Three KPI summary cards show aggregated totals. PDF and Excel export the table data.
+
+### Task 6 — Class Performance tab
+- Added "أداء الأقسام" as a fourth tab. Added `getClassPerformanceReport` database method that joins subject_groups, sessions, teachers, enrollments, attendance, and transactions to produce per-group: name, level, teacher, enrolled count, revenue (session_charge total), and attendance rate (present / (sessions × enrolled) × 100). Rendered as a sortable DataTable with progress bars on the attendance column. PDF and Excel export included.
+
+### Task 7 — Teacher Workload tab
+- Added "عبء الأساتذة" as a fifth tab. Added `getTeacherWorkloadReport` database method that aggregates per active teacher: session count, weekly teaching hours (from julianday subtraction of session start/end times), distinct students taught, and total payouts. Rendered as a sortable DataTable. PDF and Excel export included.
+
+### Task 8 — Stub export fixes
+- **8a:** Timetable screen — replaced `onPressed: () {}` no-ops with real PDF/Excel exports exporting the current weekly timetable grid (day, start, end, group, teacher, classroom, price).
+- **8b:** Teacher list screen — replaced empty `_exportPdf`/`_exportExcel` methods with real implementations exporting the current filtered teacher table (code, name AR+FR, phone, email, salary type, subjects).
+- **8c:** Payments screen — replaced "Coming soon" `_buildExportBtn` with a callback-accepting version wired to real PDF/Excel exports of the current filtered transaction table (date, type, student/teacher name, code, amount, note).
