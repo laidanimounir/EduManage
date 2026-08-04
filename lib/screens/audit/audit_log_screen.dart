@@ -121,6 +121,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       case 'classroom': return const Color(0xFF7C4DFF);
       case 'user': return const Color(0xFFF1C40F);
       case 'family': return const Color(0xFFE74C3C);
+      case 'special_case': return const Color(0xFF16A085);
       default: return ShellTokens.textSecondary;
     }
   }
@@ -151,6 +152,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       case 'classroom': return 'classroom';
       case 'user': return 'user';
       case 'family': return 'family';
+      case 'special_case': return 'special_case';
       default: return 'other';
     }
   }
@@ -230,11 +232,11 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final entities = ['all', 'student', 'teacher', 'session', 'financial', 'enrollment', 'group', 'classroom', 'user', 'family', 'other'];
+    final entities = ['all', 'student', 'teacher', 'session', 'financial', 'enrollment', 'group', 'classroom', 'user', 'family', 'special_case', 'other'];
     final entityLabels = <String, String>{
       'all': l10n.all, 'student': l10n.student, 'teacher': l10n.teacher, 'session': 'Session',
       'financial': 'Financial', 'enrollment': 'Enrollment', 'group': 'Group',
-      'classroom': 'Classroom', 'user': 'User', 'family': 'Family', 'other': 'Other',
+      'classroom': 'Classroom', 'user': 'User', 'family': 'Family', 'special_case': 'Special Case', 'other': 'Other',
     };
     return Scaffold(
       body: Column(
