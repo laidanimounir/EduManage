@@ -1,4 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/phosphor_icons.dart';
@@ -180,6 +186,79 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     );
   }
 
+  Future<void> _exportPdf() async {
+    final pdf = pw.Document();
+    const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final periodLabel = '${monthLabels[_selectedDate.month]} ${_selectedDate.year}';
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      build: (_) => [
+        pw.Header(text: 'Monthly Profit — $periodLabel', level: 1),
+        pw.SizedBox(height: 8),
+        pw.Text('Net Profit: ${_netProfit.toStringAsFixed(2)} ${AppConstants.currencySymbol}',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 12),
+        pw.Header(text: 'Income', level: 2),
+        pw.TableHelper.fromTextArray(
+          headers: ['Category', 'Amount'],
+          data: [
+            ['Student Payments', '${_studentPaymentIncome.toStringAsFixed(2)} ${AppConstants.currencySymbol}'],
+            ['Session Charges', '${_sessionChargeIncome.toStringAsFixed(2)} ${AppConstants.currencySymbol}'],
+            if (_discountTotal > 0) ['Discounts', '-${_discountTotal.toStringAsFixed(2)} ${AppConstants.currencySymbol}'],
+          ],
+        ),
+        pw.SizedBox(height: 12),
+        pw.Header(text: 'Expenses', level: 2),
+        pw.TableHelper.fromTextArray(
+          headers: ['Category', 'Amount'],
+          data: [
+            ['Teacher Payouts', '${_teacherPayouts.toStringAsFixed(2)} ${AppConstants.currencySymbol}'],
+            ['Expenses', '${_expenses.toStringAsFixed(2)} ${AppConstants.currencySymbol}'],
+          ],
+        ),
+        if (_debtors.isNotEmpty) ...[
+          pw.SizedBox(height: 12),
+          pw.Header(text: 'Top Debtors', level: 2),
+          pw.TableHelper.fromTextArray(
+            headers: ['Student', 'Code', 'Debt'],
+            data: _debtors.take(10).map((d) => [d.studentName, d.studentCode, '${d.debt.toStringAsFixed(2)} ${AppConstants.currencySymbol}']).toList(),
+          ),
+        ],
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportExcel() async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Monthly Profit'];
+    sheet.appendRow([TextCellValue('Category'), TextCellValue('Amount')]);
+    sheet.appendRow([TextCellValue('Net Profit'), TextCellValue('${_netProfit.toStringAsFixed(2)} ${AppConstants.currencySymbol}')]);
+    sheet.appendRow([TextCellValue(''), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Income'), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Student Payments'), TextCellValue('${_studentPaymentIncome.toStringAsFixed(2)}')]);
+    sheet.appendRow([TextCellValue('Session Charges'), TextCellValue('${_sessionChargeIncome.toStringAsFixed(2)}')]);
+    if (_discountTotal > 0) {
+      sheet.appendRow([TextCellValue('Discounts'), TextCellValue('-${_discountTotal.toStringAsFixed(2)}')]);
+    }
+    sheet.appendRow([TextCellValue(''), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Expenses'), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Teacher Payouts'), TextCellValue('${_teacherPayouts.toStringAsFixed(2)}')]);
+    sheet.appendRow([TextCellValue('Expenses'), TextCellValue('${_expenses.toStringAsFixed(2)}')]);
+    sheet.appendRow([TextCellValue(''), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Top Debtors'), TextCellValue('')]);
+    sheet.appendRow([TextCellValue('Student'), TextCellValue('Code'), TextCellValue('Debt')]);
+    for (final d in _debtors.take(10)) {
+      sheet.appendRow([TextCellValue(d.studentName), TextCellValue(d.studentCode), TextCellValue('${d.debt.toStringAsFixed(2)}')]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/monthly_profit_${_selectedDate.year}_${_selectedDate.month.toString().padLeft(2, '0')}.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+    }
+  }
+
   Widget _buildTabBar() {
     return Container(
       decoration: const BoxDecoration(
@@ -239,9 +318,8 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   Widget _buildMonthSelector(AppLocalizations l10n, List<String> monthNames) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
@@ -259,6 +337,26 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
               icon: const Icon(Icons.chevron_right),
               onPressed: _nextMonth,
               tooltip: l10n.next,
+            ),
+            const Spacer(),
+            SizedBox(
+              height: 34,
+              child: IconButton(
+                icon: const Icon(PhosphorIcons.file, size: 16, color: ShellTokens.textSecondary),
+                onPressed: _exportPdf,
+                tooltip: 'Export PDF',
+                style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              height: 34,
+              child: IconButton(
+                icon: const Icon(PhosphorIcons.table, size: 16, color: ShellTokens.textSecondary),
+                onPressed: _exportExcel,
+                tooltip: 'Export Excel',
+                style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+              ),
             ),
           ],
         ),
