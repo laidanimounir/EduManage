@@ -5,10 +5,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
+import '../../constants/chart_tokens.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../constants/app_constants.dart';
@@ -28,12 +30,15 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   late final StudentRepository _studentRepo;
 
   int _tabIndex = 0;
-  static const _tabs = ['الأرباح الشهرية', 'الحضور'];
+  static const _tabs = ['الأرباح الشهرية', 'الحضور', 'الاتجاه المالي'];
 
   DateTime _selectedDate = DateTime.now();
   DateTime? _dateFrom;
   DateTime? _dateTo;
   bool _loading = true;
+
+  List<Map<String, dynamic>> _trendData = [];
+  bool _trendLoading = false;
 
   double _studentPaymentIncome = 0;
   double _sessionChargeIncome = 0;
@@ -124,6 +129,16 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
       _netProfit = netProfit;
       _debtors = debtors;
     });
+  }
+
+  Future<void> _loadTrend() async {
+    setState(() => _trendLoading = true);
+    try {
+      _trendData = await widget.database.getMonthlyRevenueAndExpenses(6);
+    } catch (_) {
+      _trendData = [];
+    }
+    if (mounted) setState(() => _trendLoading = false);
   }
 
   void _previousMonth() {
@@ -274,6 +289,196 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     }
   }
 
+  Widget _buildTrendContent() {
+    if (_trendLoading) return const Center(child: CircularProgressIndicator());
+    if (_trendData.isEmpty) {
+      _loadTrend();
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    final totalRevenue = _trendData.fold<double>(0, (s, d) => s + ((d['revenue'] as num?)?.toDouble() ?? 0));
+    final totalExpenses = _trendData.fold<double>(0, (s, d) => s + ((d['expenses'] as num?)?.toDouble() ?? 0));
+    final totalNet = totalRevenue - totalExpenses;
+
+    return RefreshIndicator(
+      onRefresh: _loadTrend,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Row(children: [
+                const SizedBox(width: 12),
+                const Text('آخر 6 أشهر', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                const Spacer(),
+                SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.file, size: 16, color: ShellTokens.textSecondary), onPressed: _exportTrendPdf, tooltip: 'Export PDF', style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+                const SizedBox(width: 4),
+                SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.table, size: 16, color: ShellTokens.textSecondary), onPressed: _exportTrendExcel, tooltip: 'Export Excel', style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(children: [
+            _trendKpiCard('المداخيل', totalRevenue, Colors.green),
+            const SizedBox(width: 8),
+            _trendKpiCard('المصاريف', totalExpenses, Colors.red),
+            const SizedBox(width: 8),
+            _trendKpiCard('الصافي', totalNet, totalNet >= 0 ? Colors.green.shade700 : Colors.red.shade700),
+          ]),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: _buildTrendChart(monthLabels),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildTrendTable(monthLabels),
+        ],
+      ),
+    );
+  }
+
+  Widget _trendKpiCard(String label, double amount, Color color) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+            const SizedBox(height: 4),
+            Text('${amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrendChart(List<String> monthLabels) {
+    final maxY = _trendData.fold<double>(0, (s, d) {
+      final r = (d['revenue'] as num?)?.toDouble() ?? 0;
+      final e = (d['expenses'] as num?)?.toDouble() ?? 0;
+      return s > r ? (s > e ? s : e) : (r > e ? r : e);
+    }) * 1.2;
+    return AspectRatio(
+      aspectRatio: 1.6,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxY,
+          barGroups: _trendData.asMap().entries.map((e) {
+            final rev = (e.value['revenue'] as double?) ?? 0;
+            final exp = (e.value['expenses'] as double?) ?? 0;
+            return BarChartGroupData(x: e.key, barRods: [
+              BarChartRodData(toY: rev, color: ChartTokens.seriesPalette[0], width: 12, borderRadius: const BorderRadius.vertical(top: Radius.circular(3))),
+              BarChartRodData(toY: exp, color: ChartTokens.seriesPalette[2], width: 12, borderRadius: const BorderRadius.vertical(top: Radius.circular(3))),
+            ]);
+          }).toList(),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, _) {
+              final idx = v.toInt();
+              final month = idx >= 0 && idx < _trendData.length ? (_trendData[idx]['month'] as int?) : null;
+              return Text(monthLabels[month ?? 1], style: const TextStyle(fontSize: 9, color: ChartTokens.axisLabel));
+            })),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 36, getTitlesWidget: (v, _) => Text('${v.toInt()}', style: const TextStyle(fontSize: 9, color: ChartTokens.axisLabel)))),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (_) => FlLine(color: ChartTokens.gridLine, strokeWidth: 0.5)),
+          borderData: FlBorderData(show: false),
+        ),
+        duration: Duration.zero,
+      ),
+    );
+  }
+
+  Widget _buildTrendTable(List<String> monthLabels) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('البيانات الشهرية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          const SizedBox(height: 8),
+          Table(
+            border: TableBorder.all(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5),
+            columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(1), 2: FlexColumnWidth(1), 3: FlexColumnWidth(1)},
+            children: [
+              TableRow(decoration: const BoxDecoration(color: ShellTokens.chromeBorder), children: [
+                _trendCell('الشهر', isHeader: true),
+                _trendCell('المداخيل', isHeader: true),
+                _trendCell('المصاريف', isHeader: true),
+                _trendCell('الصافي', isHeader: true),
+              ]),
+              ..._trendData.map((d) {
+                final month = monthLabels[d['month'] as int];
+                final year = d['year'] as int;
+                final rev = (d['revenue'] as num?)?.toDouble() ?? 0;
+                final exp = (d['expenses'] as num?)?.toDouble() ?? 0;
+                final net = rev - exp;
+                return TableRow(children: [
+                  _trendCell('$month $year'),
+                  _trendCell(rev.toStringAsFixed(0), color: Colors.green),
+                  _trendCell(exp.toStringAsFixed(0), color: Colors.red),
+                  _trendCell(net.toStringAsFixed(0), color: net >= 0 ? Colors.green : Colors.red),
+                ]);
+              }),
+            ],
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _trendCell(String text, {bool isHeader = false, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Text(text, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: isHeader ? FontWeight.w600 : FontWeight.w400, color: color ?? ShellTokens.textPrimary)),
+    );
+  }
+
+  Future<void> _exportTrendPdf() async {
+    if (_trendData.isEmpty) return;
+    final pdf = pw.Document();
+    const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      build: (_) => [
+        pw.Header(text: 'Financial Trend — Last 6 Months', level: 1),
+        pw.SizedBox(height: 8),
+        pw.TableHelper.fromTextArray(
+          headers: ['Month', 'Revenue', 'Expenses', 'Net'],
+          data: _trendData.map((d) {
+            final month = monthLabels[d['month'] as int];
+            final year = d['year'] as int;
+            final rev = (d['revenue'] as num?)?.toDouble() ?? 0;
+            final exp = (d['expenses'] as num?)?.toDouble() ?? 0;
+            return ['$month $year', '${rev.toStringAsFixed(0)} ${AppConstants.currencySymbol}', '${exp.toStringAsFixed(0)} ${AppConstants.currencySymbol}', '${(rev - exp).toStringAsFixed(0)} ${AppConstants.currencySymbol}'];
+          }).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportTrendExcel() async {
+    if (_trendData.isEmpty) return;
+    final excel = Excel.createExcel();
+    final sheet = excel['Financial Trend'];
+    sheet.appendRow([TextCellValue('Month'), TextCellValue('Revenue'), TextCellValue('Expenses'), TextCellValue('Net')]);
+    for (final d in _trendData) {
+      final rev = (d['revenue'] as num?)?.toDouble() ?? 0;
+      final exp = (d['expenses'] as num?)?.toDouble() ?? 0;
+      sheet.appendRow([TextCellValue('${d['year']}-${(d['month'] as int).toString().padLeft(2, '0')}'), TextCellValue('${rev.toStringAsFixed(0)}'), TextCellValue('${exp.toStringAsFixed(0)}'), TextCellValue('${(rev - exp).toStringAsFixed(0)}')]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/financial_trend.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+  }
+
   Widget _buildTabBar() {
     return Container(
       decoration: const BoxDecoration(
@@ -313,6 +518,9 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   Widget _buildTabContent(AppLocalizations l10n, List<String> monthNames) {
     if (_tabIndex == 1) {
       return AttendanceReportsScreen(database: widget.database);
+    }
+    if (_tabIndex == 2) {
+      return _buildTrendContent();
     }
 
     if (_loading) return const Center(child: CircularProgressIndicator());
