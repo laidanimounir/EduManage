@@ -40,7 +40,8 @@ class PdfGenerator {
     for (final c in charges) {
       final discountNote = discounts
           .where((d) => d.referenceTransactionId == c.id)
-          .map((d) => 'Discount: ${d.amount.toStringAsFixed(0)} ${_currency}')
+          .map((d) => 'Discount: ${d.amount.toStringAsFixed(0)} ${_currency}'
+              '${(d.note != null && d.note!.isNotEmpty) ? ' (${d.note})' : ''}')
           .join(', ');
       chargeRows.add([
         _formatDate(c.transactionDate),
