@@ -16,6 +16,7 @@ import 'teachers/teacher_list_screen.dart';
 import 'sessions/session_list_screen.dart';
 import 'sessions/timetable_screen.dart';
 import 'groups/subject_group_list_screen.dart';
+import 'subjects/subject_list_screen.dart';
 import 'classrooms/classroom_list_screen.dart';
 import 'payments/unified_payment_screen.dart';
 import 'reports/profit_report_screen.dart';
@@ -96,6 +97,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         _NavEntry(icon: PhosphorIcons.chalkboardTeacher, label: 'الأساتذة', screen: TeacherListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.clock, label: l10n.sessions, screen: SessionListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.table, label: l10n.timetable, screen: TimetableScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.notebook, label: 'المواد', screen: SubjectListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.usersThree, label: l10n.groups, screen: SubjectGroupListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.building, label: l10n.classrooms, screen: ClassroomListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.notebook, label: 'عمليات التسجيل', screen: EnrollmentScreen(database: db, currentUserId: widget.userId), section: NavSection.manage),

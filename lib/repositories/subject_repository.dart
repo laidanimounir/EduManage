@@ -43,4 +43,16 @@ class SubjectRepository extends BaseRepository {
   Future<void> delete(String id) async {
     await (db.delete(db.subjects)..where((t) => t.id.equals(id))).go();
   }
+
+  Future<void> archive(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.subjects)..where((t) => t.id.equals(id)))
+        .write(SubjectsCompanion(isArchived: Value(true), deviceId: Value(deviceId)));
+  }
+
+  Future<void> restore(String id) async {
+    final deviceId = await DeviceId.get();
+    await (db.update(db.subjects)..where((t) => t.id.equals(id)))
+        .write(SubjectsCompanion(isArchived: Value(false), deviceId: Value(deviceId)));
+  }
 }

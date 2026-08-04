@@ -65,7 +65,7 @@ class _SubjectGroupListScreenState extends State<SubjectGroupListScreen> {
   }
 
   void _openEdit(SubjectGroup? g) async {
-    final result = await showDialog<bool>(context: context, builder: (_) => _GroupEditDialog(database: widget.database, group: g, l10n: AppLocalizations.of(context)));
+    final result = await showDialog<bool>(context: context, builder: (_) => GroupEditDialog(database: widget.database, group: g, l10n: AppLocalizations.of(context)));
     if (result == true) _fetchPage();
   }
 
@@ -321,13 +321,13 @@ class _SessionListState extends State<_SessionList> {
   }
 }
 
-class _GroupEditDialog extends StatefulWidget {
-  final AppDatabase database; final SubjectGroup? group; final AppLocalizations l10n;
-  const _GroupEditDialog({required this.database, this.group, required this.l10n});
+class GroupEditDialog extends StatefulWidget {
+  final AppDatabase database; final SubjectGroup? group; final AppLocalizations l10n; final Subject? lockedSubject;
+  const GroupEditDialog({required this.database, this.group, required this.l10n, this.lockedSubject});
   @override
-  State<_GroupEditDialog> createState() => _GroupEditDialogState();
+  State<GroupEditDialog> createState() => GroupEditDialogState();
 }
-class _GroupEditDialogState extends State<_GroupEditDialog> {
+class GroupEditDialogState extends State<GroupEditDialog> {
   late final GlobalKey<FormState> _formKey;
   late final SubjectGroupRepository _repo; bool _saving = false; bool _isEdit = false;
   late TextEditingController _nameArCtrl, _nameFrCtrl, _descCtrl, _capacityCtrl;
@@ -341,7 +341,10 @@ class _GroupEditDialogState extends State<_GroupEditDialog> {
     super.initState(); _formKey = GlobalKey<FormState>(); _repo = SubjectGroupRepository(widget.database); _isEdit = widget.group != null;
     final g = widget.group;
     _nameArCtrl = TextEditingController(text: g?.nameAr ?? ''); _nameFrCtrl = TextEditingController(text: g?.nameFr ?? '');
-    _subjectId = g?.subjectId; _subjectAr = g?.subjectAr ?? ''; _subjectFr = g?.subjectFr;
+    final locked = widget.lockedSubject;
+    _subjectId = locked?.id ?? g?.subjectId;
+    _subjectAr = locked?.nameAr ?? g?.subjectAr ?? '';
+    _subjectFr = locked?.nameFr ?? g?.subjectFr;
     _descCtrl = TextEditingController(text: g?.description ?? ''); _capacityCtrl = TextEditingController(text: g?.capacity?.toString() ?? '');
     if (g != null) _schoolLevel = g.schoolLevel;
   }
@@ -400,12 +403,14 @@ class _GroupEditDialogState extends State<_GroupEditDialog> {
     return ShellDialog(maxWidth: 520, title: _isEdit ? l10n.edit : l10n.add, body: Form(key: _formKey, child: Column(children: [
       _tf(_nameArCtrl, required: true, hint: '${l10n.name} AR'), const SizedBox(height: 8),
       _tf(_nameFrCtrl, hint: '${l10n.name} FR'), const SizedBox(height: 8),
-      InkWell(onTap: _pickSubject, child: Container(
+      InkWell(onTap: widget.lockedSubject != null ? null : _pickSubject, child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)),
+        decoration: BoxDecoration(color: widget.lockedSubject != null ? ShellTokens.chromeSurface : ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)),
         child: Row(children: [
           Expanded(child: Text(_subjectAr.isNotEmpty ? _subjectAr : l10n.subject, style: TextStyle(fontSize: 12, color: _subjectAr.isNotEmpty ? ShellTokens.textPrimary : ShellTokens.textDisabled))),
-          const Icon(PhosphorIcons.arrowsLeftRight, size: 14, color: ShellTokens.textSecondary),
+          widget.lockedSubject != null
+            ? const Row(mainAxisSize: MainAxisSize.min, children: [Icon(PhosphorIcons.pushPinSimple, size: 13, color: ShellTokens.textDisabled), SizedBox(width: 4), Text('Linked', style: TextStyle(fontSize: 10, color: ShellTokens.textDisabled))])
+            : const Icon(PhosphorIcons.arrowsLeftRight, size: 14, color: ShellTokens.textSecondary),
         ]),
       )), const SizedBox(height: 14),
       ShellSectionHeader(text: l10n.schoolLevel), const SizedBox(height: 8),
