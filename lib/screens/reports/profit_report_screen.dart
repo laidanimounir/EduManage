@@ -12,6 +12,7 @@ import '../../constants/theme_tokens.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../constants/app_constants.dart';
+import '../checkin/attendance_reports_screen.dart';
 
 class ProfitReportScreen extends StatefulWidget {
   final AppDatabase database;
@@ -27,7 +28,7 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   late final StudentRepository _studentRepo;
 
   int _tabIndex = 0;
-  static const _tabs = ['الأرباح الشهرية'];
+  static const _tabs = ['الأرباح الشهرية', 'الحضور'];
 
   DateTime _selectedDate = DateTime.now();
   DateTime? _dateFrom;
@@ -310,6 +311,10 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   }
 
   Widget _buildTabContent(AppLocalizations l10n, List<String> monthNames) {
+    if (_tabIndex == 1) {
+      return AttendanceReportsScreen(database: widget.database);
+    }
+
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     return RefreshIndicator(
