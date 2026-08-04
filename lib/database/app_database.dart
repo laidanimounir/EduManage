@@ -724,6 +724,49 @@ class AppDatabase extends _$AppDatabase {
     }).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getTeacherUnpaidAttendance(String teacherId) async {
+    final rows = await customSelect(
+      'SELECT a.session_id, a.attendance_date, COUNT(*) AS attendance_count, '
+      's.day_of_week, s.start_time, s.end_time, '
+      's.monthly_price, s.sessions_per_month, '
+      's.teacher_share_pct, s.teacher_fixed_amount, '
+      'sg.name_ar AS group_name, '
+      '(SELECT t.teacher_share_pct FROM teachers t WHERE t.id = ?) AS teacher_default_pct, '
+      '(SELECT t.teacher_fixed_amount FROM teachers t WHERE t.id = ?) AS teacher_default_fixed, '
+      '(SELECT t.salary_type FROM teachers t WHERE t.id = ?) AS teacher_salary_type '
+      'FROM attendance a '
+      'JOIN sessions s ON a.session_id = s.id '
+      'JOIN subject_groups sg ON s.subject_group_id = sg.id '
+      'WHERE s.teacher_id = ? AND a.student_id IS NOT NULL AND a.status = \'present\' '
+      'AND NOT EXISTS ('
+      '  SELECT 1 FROM transactions t '
+      '  WHERE t.teacher_id = s.teacher_id '
+      '  AND t.session_id = a.session_id '
+      '  AND t.type = \'teacher_payout\' '
+      '  AND date(t.transaction_date) = date(a.attendance_date)'
+      ') '
+      'GROUP BY a.session_id, a.attendance_date '
+      'ORDER BY a.attendance_date, s.day_of_week, s.start_time',
+      variables: [Variable.withString(teacherId), Variable.withString(teacherId), Variable.withString(teacherId), Variable.withString(teacherId)],
+    ).get();
+    return rows.map((r) => {
+      'session_id': r.read<String>('session_id'),
+      'attendance_date': r.read<DateTime>('attendance_date'),
+      'attendance_count': r.read<int>('attendance_count'),
+      'day_of_week': r.read<int>('day_of_week'),
+      'start_time': r.read<DateTime>('start_time'),
+      'end_time': r.read<DateTime>('end_time'),
+      'monthly_price': r.read<double>('monthly_price'),
+      'sessions_per_month': r.read<int>('sessions_per_month'),
+      'session_share_pct': r.read<double?>('teacher_share_pct'),
+      'session_fixed_amount': r.read<double?>('teacher_fixed_amount'),
+      'group_name': r.read<String>('group_name'),
+      'teacher_default_pct': r.read<double?>('teacher_default_pct'),
+      'teacher_default_fixed': r.read<double?>('teacher_default_fixed'),
+      'teacher_salary_type': r.read<String>('teacher_salary_type'),
+    }).toList();
+  }
+
   Future<DateTime?> getTeacherLastPayoutDate(String teacherId) async {
     final result = await customSelect(
       'SELECT transaction_date FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\' ORDER BY transaction_date DESC LIMIT 1',

@@ -1579,3 +1579,159 @@ class _TeacherTeachingInfoDialogState extends State<_TeacherTeachingInfoDialog> 
     ]);
   }
 }
+
+class _TeacherPaymentResult {
+  final bool confirmed;
+  final List<_PaymentItem> items;
+  _TeacherPaymentResult({required this.confirmed, required this.items});
+}
+
+class _PaymentItem {
+  final String sessionId;
+  final DateTime attendanceDate;
+  final int attendanceCount;
+  final double amount;
+  _PaymentItem({required this.sessionId, required this.attendanceDate, required this.attendanceCount, required this.amount});
+}
+
+class _TeacherPaymentDialog extends StatefulWidget {
+  final AppDatabase database;
+  final String teacherId;
+  final String teacherName;
+  const _TeacherPaymentDialog({required this.database, required this.teacherId, required this.teacherName});
+  @override
+  State<_TeacherPaymentDialog> createState() => _TeacherPaymentDialogState();
+}
+
+class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
+  List<Map<String, dynamic>> _unpaid = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    try {
+      _unpaid = await widget.database.getTeacherUnpaidAttendance(widget.teacherId);
+      if (mounted) setState(() { _loading = false; _error = null; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = e.toString(); });
+    }
+  }
+
+  double _calcAmount(Map<String, dynamic> row) {
+    final sessionFixed = row['session_fixed_amount'] as double?;
+    final sessionPct = row['session_share_pct'] as double?;
+    final defaultFixed = row['teacher_default_fixed'] as double?;
+    final defaultPct = row['teacher_default_pct'] as double?;
+    final salaryType = row['teacher_salary_type'] as String;
+    final attendance = row['attendance_count'] as int;
+    final monthlyPrice = row['monthly_price'] as double;
+    final sessionsPerMonth = row['sessions_per_month'] as int;
+
+    final effFixed = sessionFixed ?? defaultFixed;
+    final effPct = sessionPct ?? defaultPct;
+    final effType = (sessionFixed != null || sessionPct != null)
+        ? (sessionFixed != null ? 'fixed' : 'percentage')
+        : salaryType;
+
+    if (effFixed != null && effType == 'fixed') return effFixed;
+    if (effPct != null && sessionsPerMonth > 0) {
+      final perSession = monthlyPrice / sessionsPerMonth;
+      return perSession * effPct / 100 * attendance;
+    }
+    return 0;
+  }
+
+  String _rateLabel(Map<String, dynamic> row) {
+    final sessionFixed = row['session_fixed_amount'] as double?;
+    final sessionPct = row['session_share_pct'] as double?;
+    final defaultFixed = row['teacher_default_fixed'] as double?;
+    final defaultPct = row['teacher_default_pct'] as double?;
+    final salaryType = row['teacher_salary_type'] as String;
+
+    if (sessionFixed != null) return '${sessionFixed.toStringAsFixed(0)} دج';
+    if (sessionPct != null) return '${sessionPct.toStringAsFixed(0)}%';
+    if (salaryType == 'fixed' && defaultFixed != null) return '${defaultFixed.toStringAsFixed(0)} دج';
+    if (defaultPct != null) return '${defaultPct.toStringAsFixed(0)}%';
+    return '—';
+  }
+
+  double get _grandTotal => _unpaid.fold(0, (sum, r) => sum + _calcAmount(r));
+
+  @override
+  Widget build(BuildContext context) {
+    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return ShellDialog(
+      maxWidth: 550, maxHeight: 600,
+      title: 'الدفع — ${widget.teacherName}',
+      body: _loading
+          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
+          : _error != null
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(PhosphorIcons.warning, size: 24, color: SemanticTokens.error),
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(fontSize: 12, color: SemanticTokens.error)),
+                ]))
+              : _unpaid.isEmpty
+                  ? const Center(child: Text('لا توجد حصص غير مدفوعة', style: TextStyle(fontSize: 14, color: ShellTokens.textDisabled)))
+                  : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('المستحقات غير المدفوعة (الحصص المنتهية)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _unpaid.length,
+                          itemBuilder: (_, i) {
+                            final r = _unpaid[i];
+                            final amt = _calcAmount(r);
+                            final attDate = r['attendance_date'] as DateTime;
+                            final day = days[r['day_of_week'] as int];
+                            final start = r['start_time'] as DateTime;
+                            final end = r['end_time'] as DateTime;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 3),
+                              color: ShellTokens.chromeBase,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Row(children: [
+                                    Container(width: 8, height: 8, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(r['group_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
+                                  ]),
+                                  const SizedBox(height: 8),
+                                  _payRow('التاريخ', '${attDate.year}-${attDate.month.toString().padLeft(2, '0')}-${attDate.day.toString().padLeft(2, '0')}'),
+                                  const SizedBox(height: 3),
+                                  _payRow('اليوم والتوقيت', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}–${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
+                                  const SizedBox(height: 3),
+                                  _payRow('عدد الطلاب', '${r['attendance_count']}'),
+                                  const SizedBox(height: 3),
+                                  _payRow('الأجرة', _rateLabel(r)),
+                                  const SizedBox(height: 3),
+                                  _payRow('المبلغ المستحق', '${amt.toStringAsFixed(0)} دج'),
+                                ]),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const Divider(color: ShellTokens.chromeBorder, height: 24),
+                      Row(children: [
+                        const Text('الإجمالي المستحق', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary)),
+                        const Spacer(),
+                        Text('${_grandTotal.toStringAsFixed(0)} دج', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SemanticTokens.success)),
+                      ]),
+                    ]),
+    );
+  }
+
+  Widget _payRow(String label, String value) {
+    return Row(children: [
+      SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
+      Expanded(child: Text(value, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
+    ]);
+  }
+}
