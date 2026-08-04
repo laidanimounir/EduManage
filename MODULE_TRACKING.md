@@ -249,74 +249,6 @@ Use `flutter run` (cold start) for all tests — hot reload bypasses `IndexedSta
 
 ---
 
-## KNOWN OPEN ISSUES
-
-### Pay Now Payout Logic (NOT FIXED)
-
-**Location:** `_PayoutHistoryListState._payNow()` in `teacher_list_screen.dart:799`
-
-**What it does today:**
-```dart
-final sessions = await sessionRepo.getByTeacher(widget.teacherId);
-for (final s in sessions) {
-  if (!s.isActive) continue;
-  await txService.createTeacherPayout(teacherId: widget.teacherId, sessionId: s.id);
-}
-```
-
-**Specific bugs (traced in code):**
-
-1. **No date bounding:** `createTeacherPayout` defaults `date` to `DateTime.now()`. `_getSessionAttendanceCount` queries attendance for exactly today's date. Any attendance from yesterday or last week — even if unpaid — is NOT counted. The payout is always $0 for past attendance because it filters by today's date range.
-
-2. **No already-paid check:** `createTeacherPayout` has no deduplication. Clicking "Pay Now" twice creates duplicate `teacher_payout` transactions for the same session with the same timestamp. An admin could accidentally double-pay a teacher.
-
-3. **No cancellation check in payout:** `createTeacherPayout` does NOT call `_isSessionCancelled()`. If a session was cancelled on today's date and students were already checked in (with reversal transactions), the payout would still try to calculate attendance — resulting in $0 for already-reversed attendance. But if attendance records remain after reversal (reversals only credit the charge, they don't delete attendance), the attendance count would be stale.
-
-4. **Blanket pay-all without session selection UI:** The UI has no checkbox or date-range picker to choose which sessions or date ranges to include. It pays ALL active sessions for the teacher, regardless of whether some were already paid.
-
-**Recommended fix (not implemented):**
-- Add a date range parameter to `_payNow()` (from/to dates)
-- Add a `_isAlreadyPaid` check in `createTeacherPayout`
-- Add cancellation check in `createTeacherPayout`
-- Add session selection checkboxes in the `_PerSessionEarningsList` widget, passing selected session IDs to `_payNow()`
-
----
-
-# Module Tracking — Round 3 (Timetable, SubjectGroups, Classrooms, Enrollments)
-
----
-
-## Known Bug: Pay Now Payout Logic (NOT FIXED — Documented)
-
-**Location:** `_PayoutHistoryListState._payNow()` at `teacher_list_screen.dart:799`
-
-**What it does today:**
-```dart
-final sessions = await sessionRepo.getByTeacher(widget.teacherId);
-for (final s in sessions) {
-  if (!s.isActive) continue;
-  await txService.createTeacherPayout(teacherId: widget.teacherId, sessionId: s.id);
-}
-```
-
-**Specific issues identified (traced in code):**
-
-1. **No date bounding:** `createTeacherPayout` defaults `date` to `DateTime.now()`. `_getSessionAttendanceCount` queries attendance for exactly today's date. Any attendance from yesterday or last week — even if unpaid — is NOT counted. The payout is always $0 for past attendance because it filters by today's date range.
-
-2. **No already-paid check:** `createTeacherPayout` has no deduplication. Clicking "Pay Now" twice creates duplicate `teacher_payout` transactions for the same session with the same timestamp. An admin could accidentally double-pay a teacher.
-
-3. **No cancellation check in payout:** `createTeacherPayout` does NOT call `_isSessionCancelled()`. If a session was cancelled on today's date and students were already checked in (with reversal transactions), the payout would still try to calculate attendance — resulting in $0 for already-reversed attendance. But if attendance records remain after reversal (reversals only credit the charge, they don't delete attendance), the attendance count would be stale.
-
-4. **Blanket pay-all without session selection UI:** The UI has no checkbox or date-range picker to choose which sessions or date ranges to include. It pays ALL active sessions for the teacher, regardless of whether some were already paid.
-
-**Recommended fix (not implemented):**
-- Add a date range parameter to `_payNow()` (from/to dates)
-- Add a `_isAlreadyPaid` check in `createTeacherPayout`
-- Add cancellation check in `createTeacherPayout`
-- Add session selection checkboxes in the `_PerSessionEarningsList` widget, passing selected session IDs to `_payNow()`
-
----
-
 ## Completed Fixes
 
 ### Timetable Time Range
@@ -1230,3 +1162,68 @@ for (final s in sessions) {
 - **8a:** Timetable screen — replaced `onPressed: () {}` no-ops with real PDF/Excel exports exporting the current weekly timetable grid (day, start, end, group, teacher, classroom, price).
 - **8b:** Teacher list screen — replaced empty `_exportPdf`/`_exportExcel` methods with real implementations exporting the current filtered teacher table (code, name AR+FR, phone, email, salary type, subjects).
 - **8c:** Payments screen — replaced "Coming soon" `_buildExportBtn` with a callback-accepting version wired to real PDF/Excel exports of the current filtered transaction table (date, type, student/teacher name, code, amount, note).
+
+---
+
+## TEACHER PAYMENT REDESIGN
+
+- [ ] **262. Earned total includes cancellation reversals**
+  - Create a teacher payout, then cancel the corresponding session with existing attendance. Open teacher detail → Financial Status → verify "Total Earned" and "Balance" correctly reflect the deduction (the reversal reduces earned, balance becomes negative if already paid out).
+- [ ] **263. Archive warning — unpaid attendance**
+  - Create attendance for a teacher's session without running a payout. Archive the teacher → verify the confirmation dialog shows a red warning box: "N حصة غير مدفوعة المستحقات لهذا الأستاذ" with the accurate count.
+- [ ] **264. Teaching Info dialog — opens from detail**
+  - Open teacher detail → click info (ⓘ) icon in footer. Verify ShellDialog opens titled "معلومات التدريس — [teacher name]".
+- [ ] **265. Teaching Info — session cards**
+  - In the Teaching Info dialog, verify each active session is shown as a card with: group name + school level badge, day + time range, enrolled student count, and effective rate (percentage or fixed DA, with "(افتراضي)" label when using teacher default).
+- [ ] **266. Teaching Info — empty state**
+  - Open Teaching Info for a teacher with no active sessions → verify "لا توجد حصص نشطة لهذا الأستاذ" message.
+- [ ] **267. Payment dialog — already-taught-only calculation**
+  - Create student attendance for past dates on a teacher's sessions. Open the Payment dialog. Verify ONLY sessions with real attendance records appear (not future scheduled sessions with no attendance).
+- [ ] **268. Payment dialog — already-paid exclusion**
+  - Pay Now for a session-date via the new dialog. Reopen the Payment dialog → verify that paid session-date no longer appears.
+- [ ] **269. Payment dialog — full payment**
+  - Open Payment dialog with unpaid attendance. Leave partial toggle off → click "دفع كامل المبلغ". Verify all unpaid entries are paid and a success SnackBar appears.
+- [ ] **270. Payment dialog — partial payment (full coverage)**
+  - Create unpaid attendance for 3 session-dates (e.g. 1000+2000+3000 = 6000 total). Open Payment dialog → toggle partial payment → enter 6000. Verify all 3 are paid successfully.
+- [ ] **271. Payment dialog — partial payment (split)**
+  - Same setup, enter 2500 as partial amount. Verify: first entry (1000) paid in full, second entry paid 1500 (partial). Verify "المبلغ المدفوع سابقاً" shows 2000 for the first entry on subsequent reopens.
+- [ ] **272. Payment dialog — partial validation**
+  - Toggle partial payment → enter 0 or empty string → click confirm → error "المبلغ يجب أن يكون أكبر من صفر". Enter amount exceeding grand total → error "المبلغ لا يمكن أن يتجاوز الإجمالي المستحق".
+- [ ] **273. Payout history updates after payment**
+  - Make a payment via the new dialog, close it → verify Payout History section in the teacher detail reflects the new payment.
+- [ ] **274. Old dialog removal**
+  - Search codebase for `_PayNowDialog`, `_PayNowResult`, `_PerSessionEarningsList` — verify zero matches.
+
+---
+
+## Round 15 — Teacher Payment Redesign (2026-08-04)
+
+### Task 1 — Fix getTeacherTotalEarned
+- `getTeacherTotalEarned` now includes `session_cancellation_reversal` in its negative sum (alongside `reversal`), so session cancellation reversals correctly reduce the "Earned" total. Previously the Financial Status card showed an overstated earned amount when cancellations existed.
+
+### Task 2 — Unpaid-attendance archive warning
+- Added `getTeacherUnpaidAttendanceCount()` database method that counts distinct (session_id, attendance_date) pairs with student attendance where no matching `teacher_payout` exists. Wired into `_confirmArchive` as a red warning box below the existing transaction warning.
+
+### Task 3 — Teaching Info dialog
+- New `_TeacherTeachingInfoDialog` ShellDialog replacing the cluttered `_PerSessionEarningsList`. Loads per-session data via `getTeacherTeachingInfo()` (session joined with subject_groups + teacher defaults). Displays cards with group name + school level badge, day/time, enrolled count, and resolved effective rate. All Arabic, no broken interpolation.
+
+### Task 4 — Teaching Info button
+- Info (ⓘ) icon added to `_TeacherDetailDialog` footer actions, opening the Teaching Info dialog.
+
+### Task 5 — Payment dialog informational part
+- New `_TeacherPaymentDialog` ShellDialog. Uses `getTeacherUnpaidAttendance()` to find attendance records per (session, date) where no matching payout exists. Calculates amounts using the existing rate resolution chain. Displays itemized cards with date, day/time, attendance count, rate, and amount owed. Shows grand total.
+
+### Task 6 — Partial/full payment logic
+- Added `createTeacherPayoutOverride()` to TransactionService — same cancellation + period-open checks as `createTeacherPayout` but skips dedup to allow partial payments and accepts a pre-computed amount.
+- Updated `getTeacherUnpaidAttendance()` to return `already_paid` per entry, filtering fully-paid entries and showing remaining balances.
+- Payment dialog: "Full Amount" button (pays all), "Partial Payment" toggle with numeric input validated against grand total. Partial amounts allocated FIFO against unpaid entries (pay full for covered entries, partial for the last entry). Success/error feedback via SnackBar.
+
+### Task 7 — Wire new dialog, remove old
+- `_PayoutHistoryList._payNow()` now opens `_TeacherPaymentDialog`. Old `_PayNowDialog`, `_PayNowDialogState`, and `_PayNowResult` classes fully removed (203 lines deleted).
+
+### Task 8 — Remove PerSessionEarningsList
+- `_PerSessionEarningsList` and `_PerSessionEarningsListState` fully removed (64 lines deleted). Its role is now covered by Teaching Info (informational) + Payment (payout) dialogs. Financial Status and Payout History sections unaffected.
+
+### Task 9 — Documentation
+- Stale dual "KNOWN OPEN ISSUES" / "Known Bug" sections (lines ~252-318) removed — these described Pay Now bugs fixed in Round 5 and fully superseded in Round 15.
+- Round 15 summary and TEACHER PAYMENT REDESIGN checklist (items 262-274) appended.
