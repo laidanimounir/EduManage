@@ -58,8 +58,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   bool _showWelcome = true;
   final Map<int, int> _visitCounters = {};
 
-  late List<_NavItem> _items;
-  late List<Widget> _screens;
+  late List<_NavEntry> _entries;
 
   static const double _collapsedWidth = 56;
   static const double _expandedWidth = 220;
@@ -72,7 +71,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     return full.isNotEmpty ? full : widget.userName;
   }
 
-  int get _tileCount => _items.length;
+  int get _tileCount => _entries.length;
 
   @override
   void initState() {
@@ -89,49 +88,27 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     if (!_initialized) {
       _initialized = true;
       final l10n = AppLocalizations.of(context);
-      _items = [
-        _NavItem(PhosphorIcons.squaresFour, l10n.dashboard),
-        _NavItem(PhosphorIcons.signIn, l10n.checkIn),
-        _NavItem(PhosphorIcons.users, l10n.students),
-        _NavItem(PhosphorIcons.chalkboardTeacher, l10n.teachers),
-        _NavItem(PhosphorIcons.clock, l10n.sessions),
-        _NavItem(PhosphorIcons.table, l10n.timetable),
-        _NavItem(PhosphorIcons.usersThree, l10n.groups),
-        _NavItem(PhosphorIcons.building, l10n.classrooms),
-        _NavItem(PhosphorIcons.notebook, l10n.enrollments),
-        _NavItem(PhosphorIcons.usersThree, 'Families'),
-        _NavItem(PhosphorIcons.warning, 'Special Cases'),
-        _NavItem(PhosphorIcons.currencyCircleDollar, l10n.payments),
-        _NavItem(PhosphorIcons.wallet, l10n.outstandingDebts),
-        _NavItem(PhosphorIcons.chartBar, l10n.reports),
-        _NavItem(PhosphorIcons.identificationCard, l10n.cards),
-        _NavItem(PhosphorIcons.scroll, l10n.auditLog),
-        if (widget.userRole == 'admin')
-          _NavItem(PhosphorIcons.userCircleGear, l10n.users),
-        _NavItem(PhosphorIcons.gear, l10n.settings),
-      ];
-
-      _screens = [
-        DashboardScreen(database: widget.database),
-        LiveAttendanceBoard(database: widget.database, currentUserId: widget.userId),
-        StudentListScreen(database: widget.database),
-        TeacherListScreen(database: widget.database),
-        SessionListScreen(database: widget.database),
-        TimetableScreen(database: widget.database),
-        SubjectGroupListScreen(database: widget.database),
-        ClassroomListScreen(database: widget.database),
-        EnrollmentScreen(database: widget.database),
-        FamilyScreen(database: widget.database),
-        SpecialCasesScreen(database: widget.database, createdByUserId: widget.userId),
-        UnifiedPaymentScreen(database: widget.database),
-        StudentBalancesScreen(database: widget.database),
-        ProfitReportScreen(database: widget.database),
-        StudentCardScreen(database: widget.database),
-        AuditLogScreen(database: widget.database),
-        if (widget.userRole == 'admin')
-          UserManagementScreen(database: widget.database),
-        SettingsScreen(database: widget.database),
-      ];
+      final db = widget.database;
+      _entries = [
+        _NavEntry(icon: PhosphorIcons.squaresFour, label: l10n.dashboard, screen: DashboardScreen(database: db), section: NavSection.core),
+        _NavEntry(icon: PhosphorIcons.signIn, label: l10n.checkIn, screen: LiveAttendanceBoard(database: db, currentUserId: widget.userId), section: NavSection.core),
+        _NavEntry(icon: PhosphorIcons.users, label: l10n.students, screen: StudentListScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.chalkboardTeacher, label: l10n.teachers, screen: TeacherListScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.clock, label: l10n.sessions, screen: SessionListScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.table, label: l10n.timetable, screen: TimetableScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.usersThree, label: l10n.groups, screen: SubjectGroupListScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.building, label: l10n.classrooms, screen: ClassroomListScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.notebook, label: l10n.enrollments, screen: EnrollmentScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.usersThree, label: 'Families', screen: FamilyScreen(database: db), section: NavSection.finance),
+        _NavEntry(icon: PhosphorIcons.warning, label: 'Special Cases', screen: SpecialCasesScreen(database: db, createdByUserId: widget.userId), section: NavSection.finance),
+        _NavEntry(icon: PhosphorIcons.currencyCircleDollar, label: l10n.payments, screen: UnifiedPaymentScreen(database: db), section: NavSection.finance),
+        _NavEntry(icon: PhosphorIcons.wallet, label: l10n.outstandingDebts, screen: StudentBalancesScreen(database: db), section: NavSection.finance),
+        _NavEntry(icon: PhosphorIcons.chartBar, label: l10n.reports, screen: ProfitReportScreen(database: db), section: NavSection.system),
+        _NavEntry(icon: PhosphorIcons.identificationCard, label: l10n.cards, screen: StudentCardScreen(database: db), section: NavSection.system),
+        _NavEntry(icon: PhosphorIcons.scroll, label: l10n.auditLog, screen: AuditLogScreen(database: db), section: NavSection.system),
+        _NavEntry(icon: PhosphorIcons.userCircleGear, label: l10n.users, screen: UserManagementScreen(database: db), section: NavSection.system, adminOnly: true),
+        _NavEntry(icon: PhosphorIcons.gear, label: l10n.settings, screen: SettingsScreen(database: db), section: NavSection.system),
+      ].where((e) => !e.adminOnly || widget.userRole == 'admin').toList();
     }
   }
 
@@ -215,7 +192,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final currentLocale = Localizations.localeOf(context);
-    final title = _selectedIndex < _items.length ? _items[_selectedIndex].label : '';
+    final title = _selectedIndex < _entries.length ? _entries[_selectedIndex].label : '';
 
     return CallbackShortcuts(
       bindings: {
@@ -324,9 +301,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                       Expanded(
                         child: IndexedStack(
                           index: _selectedIndex,
-                          children: List.generate(_screens.length, (i) => KeyedSubtree(
+                          children: List.generate(_entries.length, (i) => KeyedSubtree(
                             key: ValueKey('screen_${i}_${_visitCounters[i] ?? 0}'),
-                            child: _screens[i],
+                            child: _entries[i].screen,
                           )),
                         ),
                       ),
@@ -354,23 +331,30 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     final expanded = _sidebarHovered || _sidebarPinned || !_sidebarIntroPlayed;
     final showExpanded = expanded;
 
-    final sections = [
-      _SidebarSection(label: l10n.sidebarSectionCore, indices: [0, 1]),
-      _SidebarSection(label: l10n.sidebarSectionManage, indices: [2, 3, 4, 5, 6, 7, 8]),
-      _SidebarSection(label: l10n.sidebarSectionFinance, indices: [9, 10, 11]),
-      _SidebarSection(label: l10n.sidebarSectionSystem, indices: [12, 13, 14, 15]),
-    ];
+    const sectionOrder = [NavSection.core, NavSection.manage, NavSection.finance, NavSection.system];
+    final sectionLabels = <NavSection, String>{
+      NavSection.core: l10n.sidebarSectionCore,
+      NavSection.manage: l10n.sidebarSectionManage,
+      NavSection.finance: l10n.sidebarSectionFinance,
+      NavSection.system: l10n.sidebarSectionSystem,
+    };
 
     final widgets = <Widget>[];
     int flatIndex = 0;
-    for (final section in sections) {
+    for (final section in sectionOrder) {
+      final indices = <int>[
+        for (var i = 0; i < _entries.length; i++)
+          if (_entries[i].section == section) i,
+      ];
+      if (indices.isEmpty) continue;
+
       if (widgets.isNotEmpty) {
         widgets.add(const SizedBox(height: 2));
         if (showExpanded) {
           widgets.add(Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              section.label,
+              sectionLabels[section] ?? '',
               style: const TextStyle(
                 color: ShellTokens.textDisabled,
                 fontSize: 9,
@@ -390,9 +374,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         widgets.add(const SizedBox(height: 2));
       }
 
-      for (final i in section.indices) {
-        if (i >= _items.length) continue;
-        final item = _items[i];
+      for (final i in indices) {
+        final item = _entries[i];
         final selected = _selectedIndex == i;
 
         Widget tile = _SidebarTile(
@@ -516,16 +499,21 @@ class _WelcomeOverlayState extends State<_WelcomeOverlay> with SingleTickerProvi
   }
 }
 
-class _SidebarSection {
-  final String label;
-  final List<int> indices;
-  const _SidebarSection({required this.label, required this.indices});
-}
+enum NavSection { core, manage, finance, system }
 
-class _NavItem {
+class _NavEntry {
   final IconData icon;
   final String label;
-  const _NavItem(this.icon, this.label);
+  final Widget screen;
+  final NavSection section;
+  final bool adminOnly;
+  const _NavEntry({
+    required this.icon,
+    required this.label,
+    required this.screen,
+    required this.section,
+    this.adminOnly = false,
+  });
 }
 
 class _SidebarTile extends StatelessWidget {
