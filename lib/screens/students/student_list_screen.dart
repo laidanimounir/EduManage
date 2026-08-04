@@ -1025,6 +1025,7 @@ class _StudentDetailDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _FamilyInfo(database: database, studentId: student.id, l10n: l10n),
+                    _SpecialCaseBanner(database: database, studentId: student.id),
                     _sectionHeader(l10n.personalInfo),
                     const SizedBox(height: 8),
                     _infoRow(l10n.firstName, '${student.firstNameAr} / ${student.firstNameFr ?? '—'}'),
@@ -1762,6 +1763,63 @@ class _FamilyInfoState extends State<_FamilyInfo> {
           if (_family!.discountFixed != null)
             Text('${_family!.discountFixed!.toStringAsFixed(0)} DA ${widget.l10n.discount}',
               style: const TextStyle(fontSize: 10, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
+        ])),
+      ]),
+    );
+  }
+}
+
+class _SpecialCaseBanner extends StatefulWidget {
+  final AppDatabase database;
+  final String studentId;
+  const _SpecialCaseBanner({required this.database, required this.studentId});
+  @override
+  State<_SpecialCaseBanner> createState() => _SpecialCaseBannerState();
+}
+
+class _SpecialCaseBannerState extends State<_SpecialCaseBanner> {
+  SpecialCase? _specialCase;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final c = await widget.database.getActiveSpecialCase(widget.studentId);
+    if (mounted) setState(() { _specialCase = c; _loaded = true; });
+  }
+
+  String _summary(SpecialCase c) {
+    if (c.caseType == 'full') return 'Full exemption';
+    if (c.discountPercent != null) return 'Partial — ${c.discountPercent!.toStringAsFixed(0)}% exemption';
+    if (c.discountFixed != null) return 'Partial — ${c.discountFixed!.toStringAsFixed(0)} DA exemption';
+    return 'Partial exemption';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) return const SizedBox.shrink();
+    final c = _specialCase;
+    if (c == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16A085).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF16A085).withValues(alpha: 0.35)),
+      ),
+      child: Row(children: [
+        const Icon(PhosphorIcons.checkCircle, size: 16, color: Color(0xFF16A085)),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_summary(c),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          Text(c.reason,
+            style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
         ])),
       ]),
     );
