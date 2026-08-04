@@ -1227,3 +1227,74 @@ Use `flutter run` (cold start) for all tests — hot reload bypasses `IndexedSta
 ### Task 9 — Documentation
 - Stale dual "KNOWN OPEN ISSUES" / "Known Bug" sections (lines ~252-318) removed — these described Pay Now bugs fixed in Round 5 and fully superseded in Round 15.
 - Round 15 summary and TEACHER PAYMENT REDESIGN checklist (items 262-274) appended.
+
+---
+
+## SUBJECTS & TWO-STEP ENROLLMENT DIALOG
+
+- [ ] **275. Subjects table after fresh migration**
+  - Delete DB, cold start. Verify a `subjects` table exists and is populated: one row per distinct `subject_groups.subject_ar` value (e.g. "اللغة الفرنسية", "اللغة الإنجليزية"). `subject_groups.subject_id` is NOT NULL-ish for every existing group (backfilled).
+- [ ] **276. subject_groups.subject_id backfill correctness**
+  - Open Groups list → edit a group. Verify the Subject dropdown opens pre-selected on the group's subject ("اللغة الفرنسية" for "فرنسية ابتدائي"), not empty, proving `subject_id` was correctly backfilled by matching `subject_ar`.
+- [ ] **277. Group edit dialog — subject dropdown**
+  - In group edit dialog, open the Subject field. Verify a dropdown (not a free-text field) lists the subjects from the subjects table. Save a change → verify it persists (dropdown still shows the picked subject on reopen).
+- [ ] **278. Group edit dialog — "+ Add New" subject**
+  - In the Subject dropdown, tap "New...". Type a subject name → Add. Verify the new subject is created in the subjects table and selected. Save the group. Reopen → new subject still selected.
+- [ ] **279. Group edit dialog — writes subject_id AND subject_ar/fr**
+  - Save a group with a picked subject. Inspect the group row: `subject_id` set to the subject's id, and `subject_ar`/`subject_fr` still populated (backward-compat text columns retained). Verify Groups list and detail still render the subject text.
+- [ ] **280. Group edit dialog — subject required**
+  - Create a new group without picking a subject → verify save is blocked with the required-field message.
+- [ ] **281. Enrollment dialog — two-step subject list (Step 1)**
+  - Open group-assignment dialog for a student. Verify Step 1 lists Subjects (only those having at least one active, non-archived group with at least one active session), each showing name + group count + session count and a chevron.
+- [ ] **282. Enrollment dialog — subject drill-down (Step 2)**
+  - Tap a subject. Verify Step 2 shows that subject's name as the title with a Back arrow, and its subject_groups as sections, each with its sessions (day/time) as checkboxes. Back arrow returns to the subject list.
+- [ ] **283. Enrollment dialog — multi-subject selection preserved**
+  - Select sessions in one subject, go Back, select sessions in a second subject. Verify both sets remain checked and the footer count reflects the total across subjects. Save → both enrolled.
+- [ ] **284. Enrollment dialog — save creates per-session enrollment**
+  - Select sessions and Save. Verify one `enrollments` row is created per selected session (session_id + subject_group_id). Dropping an existing check and saving marks the old enrollment 'dropped'.
+- [ ] **285. Duplicate-group session warning (current selection)**
+  - Within one group, tick two of its sessions. Verify an amber banner appears under that group: "يتم تسجيل الطالب في أكثر من حصة لنفس القسم …". Saving is still allowed.
+- [ ] **286. Duplicate-group warning against existing enrollments**
+  - A student already enrolled in one session of a group. In the dialog, additionally tick another session of that same group → verify the amber warning still appears (checks existing active enrollments, not just new selection).
+- [ ] **287. Capacity — full-group selection**
+  - Fill a group to capacity (or set capacity = current enrollments). In the dialog, try to tick a session of that full group → verify the "القسم ممتلئ" dialog appears (Increase Capacity / Add to Waitlist / Cancel) instead of silently enrolling.
+- [ ] **288. Capacity — increase capacity then enroll**
+  - In the full-group dialog choose "Increase Capacity", enter a new greater number, save → verify the session becomes checked and can be enrolled.
+- [ ] **289. Capacity — add to waitlist**
+  - In the full-group dialog choose "Add to Waitlist" → verify the student is added to that group's waitlist (and the session is NOT selected/enrolled). Confirmation SnackBar appears.
+- [ ] **290. Capacity — Full badge**
+  - For a group at/over capacity, verify a red "Full" badge shows in the group header in Step 2 of the enrollment dialog.
+
+---
+
+## Round 16 — Subjects Entity & Two-Step Enrollment Dialog (2026-08-04)
+
+### Schema v15 & v16
+- **v15:** New `subjects` table: `id` (PK), `name_ar` (NOT NULL), `name_fr` (nullable), `is_archived` (bool default false), `created_at`, `updated_at`, `device_id`. Migration backfills one row per distinct `subject_groups.subject_ar`.
+- **v16:** Added `subject_id` (text, nullable, FK → subjects) to `subject_groups`. Migration backfills `subject_id` by matching `subjects.name_ar = subject_groups.subject_ar`. `subject_ar`/`subject_fr` text columns are KEPT (not removed).
+
+### Task 1 — Subjects table + backfill (v15)
+- Created `subjects` table via schema migration; registered in the Drift database annotation and regenerated `.g.dart`. One-time backfill inserts a deduplicated `subjects` row per unique `subject_groups.subject_ar` text value.
+
+### Task 2 — Link subject_groups to subjects (v16)
+- Added nullable `subject_id` FK column to `subject_groups`. Migration backfills every existing row by matching its `subject_ar` text to the corresponding `subjects.name_ar` created in Task 1. Text columns kept for backward compatibility.
+
+### Task 3 — Group edit dialog uses subjects dropdown
+- Replaced the free-text subject_ar/subject_fr inputs in `_GroupEditDialog` (`subject_group_list_screen.dart`) with a subject dropdown sourced from the `subjects` table (via new `SubjectRepository`), including a "New..." inline-creation option (same UX as the school-level "New..." pattern in the student dialog). Save still writes `subject_ar`/`subject_fr` AND `subject_id`. Subject selection is required (validate → blocked otherwise).
+
+### Task 4 — Two-step enrollment dialog
+- `GroupAssignmentDialog` (`group_assignment_dialog.dart`) rebuilt from a flat session list into a two-step drill-down:
+  - Step 1: list Subjects (from `subjects`) that have at least one active/non-archived subject_group with at least one active session.
+  - Step 2: tapping a subject shows its subject_groups, each with its sessions (day/time) as checkboxes, with a Back arrow to return.
+  - A persistent global selection set (`_selectedSessionIds`) spans all visited subjects, preserving multi-subject/enrollment selection. Save behavior unchanged: one enrollment row per selected session; unchecking an enrolled session drops it.
+
+### Task 5 — Duplicate-group warning (non-blocking)
+- Amber banner shown under a subject_group when the student would be enrolled in 2+ sessions of that same group. Condition counts both the current selection AND existing active enrollments for that group. Warns only — saving is always allowed.
+
+### Task 6 — Capacity awareness in the dialog
+- Selecting a session whose subject_group is at/over capacity (reusing `activeEnrollmentCount` + `group.capacity`) opens the "القسم ممتلئ" dialog offering Increase Capacity / Add to Waitlist / Cancel — same flow as the standalone Enrollment screen and the group detail dialog. Full groups show a red "Full" badge in the Step 2 group header.
+
+### Deferred
+- **Removal of `subject_ar`/`subject_fr` text columns:** `subjects.subject_id` is now the normalized reference, but many screens/read paths still read the text columns (group list/detail, subject search, reports, enrollment operations filters, sample seeder). Deferred until all consumers migrate to `subject_id`. When done, drop the text columns in a future migration.
+- **Duplicate-group double-billing rule:** The Task 5 warning is advisory only. There is no hard business rule or schema uniqueness preventing a student from holding multiple active sessions of the same group. Whether to enforce/enroll-per-group is a deferred policy decision.
+- **Full Subjects management screen:** No dedicated CRUD screen for subjects; they are created inline via the group dialog's "+ Add New" and by backfill. Archived subjects are hidden from the group dialog dropdown (`getAllActive`).
