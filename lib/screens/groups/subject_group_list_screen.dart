@@ -5,6 +5,7 @@ import '../../constants/theme_tokens.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/subject_group_repository.dart';
+import '../../repositories/subject_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/enrollment_repository.dart';
 import '../../repositories/student_repository.dart';
@@ -329,28 +330,69 @@ class _GroupEditDialog extends StatefulWidget {
 class _GroupEditDialogState extends State<_GroupEditDialog> {
   late final GlobalKey<FormState> _formKey;
   late final SubjectGroupRepository _repo; bool _saving = false; bool _isEdit = false;
-  late TextEditingController _nameArCtrl, _nameFrCtrl, _subjectArCtrl, _subjectFrCtrl, _descCtrl, _capacityCtrl;
+  late TextEditingController _nameArCtrl, _nameFrCtrl, _descCtrl, _capacityCtrl;
   String _schoolLevel = 'primary';
+  String? _subjectId;
+  String _subjectAr = '';
+  String? _subjectFr;
 
   @override
   void initState() {
     super.initState(); _formKey = GlobalKey<FormState>(); _repo = SubjectGroupRepository(widget.database); _isEdit = widget.group != null;
     final g = widget.group;
     _nameArCtrl = TextEditingController(text: g?.nameAr ?? ''); _nameFrCtrl = TextEditingController(text: g?.nameFr ?? '');
-    _subjectArCtrl = TextEditingController(text: g?.subjectAr ?? ''); _subjectFrCtrl = TextEditingController(text: g?.subjectFr ?? '');
+    _subjectId = g?.subjectId; _subjectAr = g?.subjectAr ?? ''; _subjectFr = g?.subjectFr;
     _descCtrl = TextEditingController(text: g?.description ?? ''); _capacityCtrl = TextEditingController(text: g?.capacity?.toString() ?? '');
     if (g != null) _schoolLevel = g.schoolLevel;
   }
   @override
-  void dispose() { _nameArCtrl.dispose(); _nameFrCtrl.dispose(); _subjectArCtrl.dispose(); _subjectFrCtrl.dispose(); _descCtrl.dispose(); _capacityCtrl.dispose(); super.dispose(); }
+  void dispose() { _nameArCtrl.dispose(); _nameFrCtrl.dispose(); _descCtrl.dispose(); _capacityCtrl.dispose(); super.dispose(); }
 
   Future<void> _save() async {
+    if (_subjectAr.isEmpty) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.l10n.fieldRequired)));
+      return;
+    }
     if (!_formKey.currentState!.validate()) return; setState(() => _saving = true);
     try {
-      final entry = SubjectGroupsCompanion(nameAr: Value(_nameArCtrl.text.trim()), nameFr: Value(_nameFrCtrl.text.trim().isEmpty ? null : _nameFrCtrl.text.trim()), subjectAr: Value(_subjectArCtrl.text.trim()), subjectFr: Value(_subjectFrCtrl.text.trim().isEmpty ? null : _subjectFrCtrl.text.trim()), schoolLevel: Value(_schoolLevel), description: Value(_descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()), capacity: Value(int.tryParse(_capacityCtrl.text)));
+      final entry = SubjectGroupsCompanion(nameAr: Value(_nameArCtrl.text.trim()), nameFr: Value(_nameFrCtrl.text.trim().isEmpty ? null : _nameFrCtrl.text.trim()), subjectAr: Value(_subjectAr), subjectFr: Value(_subjectFr), subjectId: Value(_subjectId), schoolLevel: Value(_schoolLevel), description: Value(_descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim()), capacity: Value(int.tryParse(_capacityCtrl.text)));
       if (_isEdit) { await _repo.update(widget.group!.id, entry); } else { await _repo.create(entry); }
       if (mounted) Navigator.pop(context, true);
     } catch (_) { if (mounted) setState(() => _saving = false); }
+  }
+
+  Future<void> _pickSubject() async {
+    final repo = SubjectRepository(widget.database);
+    final subjects = await repo.getAllActive();
+    final l10n = widget.l10n;
+    if (!mounted) return;
+    final items = <DropdownMenuItem<String?>>[
+      DropdownMenuItem(value: '__new__', child: Row(children: [Icon(PhosphorIcons.plus, size: 12, color: ShellTokens.accent), SizedBox(width: 4), Text('New...', style: const TextStyle(fontSize: 12, color: ShellTokens.accent))])),
+      ...subjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.nameAr, style: const TextStyle(fontSize: 12)))),
+    ];
+    final picked = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text(l10n.subject, style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary)),
+      content: DropdownButtonFormField<String?>(value: _subjectId, items: items, isExpanded: true, onChanged: (v) => Navigator.pop(ctx, v), style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary), decoration: ShellInputDecoration.dropdown()),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel))],
+    ));
+    if (picked == null || !mounted) return;
+    if (picked == '__new__') {
+      final ctrl = TextEditingController();
+      final name = await showDialog<String>(context: context, builder: (c) => AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: Text(l10n.add, style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary)),
+        content: TextField(controller: ctrl, autofocus: true, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: Text(l10n.add))],
+      ));
+      if (name != null && name.isNotEmpty && mounted) {
+        final id = await repo.create(nameAr: name);
+        setState(() { _subjectId = id; _subjectAr = name; _subjectFr = null; });
+      }
+    } else {
+      final s = await repo.getById(picked);
+      if (s != null && mounted) setState(() { _subjectId = s.id; _subjectAr = s.nameAr; _subjectFr = s.nameFr; });
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -358,8 +400,14 @@ class _GroupEditDialogState extends State<_GroupEditDialog> {
     return ShellDialog(maxWidth: 520, title: _isEdit ? l10n.edit : l10n.add, body: Form(key: _formKey, child: Column(children: [
       _tf(_nameArCtrl, required: true, hint: '${l10n.name} AR'), const SizedBox(height: 8),
       _tf(_nameFrCtrl, hint: '${l10n.name} FR'), const SizedBox(height: 8),
-      _tf(_subjectArCtrl, required: true, hint: '${l10n.subject} AR'), const SizedBox(height: 8),
-      _tf(_subjectFrCtrl, hint: '${l10n.subject} FR'), const SizedBox(height: 14),
+      InkWell(onTap: _pickSubject, child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)),
+        child: Row(children: [
+          Expanded(child: Text(_subjectAr.isNotEmpty ? _subjectAr : l10n.subject, style: TextStyle(fontSize: 12, color: _subjectAr.isNotEmpty ? ShellTokens.textPrimary : ShellTokens.textDisabled))),
+          const Icon(PhosphorIcons.arrowsLeftRight, size: 14, color: ShellTokens.textSecondary),
+        ]),
+      )), const SizedBox(height: 14),
       ShellSectionHeader(text: l10n.schoolLevel), const SizedBox(height: 8),
       DropdownButtonFormField<String>(value: _schoolLevel, items: ['primary', 'middle', 'secondary'].map((v) => DropdownMenuItem(value: v, child: Text(_lev(v), style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setState(() => _schoolLevel = v!), decoration: ShellInputDecoration.dropdown()),
       const SizedBox(height: 14),
