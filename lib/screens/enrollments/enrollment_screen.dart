@@ -8,6 +8,9 @@ import '../../repositories/enrollment_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../repositories/subject_group_repository.dart';
 import '../../repositories/session_repository.dart';
+import '../../repositories/audit_log_repository.dart';
+import '../../utils/device_id.dart';
+import '../../utils/uuid_helper.dart';
 import '../../widgets/shell_dialog.dart';
 import '../../widgets/shell_badge.dart';
 import '../../widgets/shell_section_header.dart';
@@ -17,7 +20,8 @@ import '../../widgets/app_loading.dart';
 
 class EnrollmentScreen extends StatefulWidget {
   final AppDatabase database;
-  const EnrollmentScreen({super.key, required this.database});
+  final String currentUserId;
+  const EnrollmentScreen({super.key, required this.database, this.currentUserId = ''});
   @override
   State<EnrollmentScreen> createState() => _EnrollmentScreenState();
 }
@@ -62,6 +66,59 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     for (final id in _selectedIds.toList()) { await _enrollRepo.updateStatus(id, status); }
     _load();
   }
+
+  Future<void> _showBulkSpecialCaseDialog() async {
+    final studentIds = _selectedEnrollmentRows().map((e) => e.studentId).toSet().toList();
+    if (studentIds.isEmpty) return;
+    final result = await showDialog<_BulkSpecialCaseData>(
+      context: context,
+      builder: (ctx) => _BulkSpecialCaseDialog(
+        studentCount: studentIds.length,
+        currentUserId: widget.currentUserId,
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    int created = 0;
+    int skipped = 0;
+    for (final studentId in studentIds) {
+      final active = await widget.database.getActiveSpecialCase(studentId);
+      if (active != null) { skipped++; continue; }
+      final id = 'sc_bulk_${UuidHelper.generate()}';
+      await widget.database.into(widget.database.specialCases).insert(SpecialCasesCompanion(
+        id: Value(id),
+        studentId: Value(studentId),
+        caseType: Value(result.caseType),
+        discountPercent: Value(result.discountPercent),
+        discountFixed: Value(result.discountFixed),
+        reason: Value(result.reason),
+        approvedByUserId: Value(widget.currentUserId.isEmpty ? null : widget.currentUserId),
+        reviewDate: Value(result.reviewDate),
+        deviceId: Value(await DeviceId.get()),
+      ));
+      if (widget.currentUserId.isNotEmpty) {
+        await AuditLogRepository(widget.database).create(AuditLogCompanion(
+          userId: Value(widget.currentUserId),
+          action: const Value('special_case_created_updated'),
+          entityType: const Value('special_case'),
+          entityId: Value(id),
+          details: Value('Student: $studentId, Case: ${result.caseType}, Reason: ${result.reason}'),
+        ));
+      }
+      created++;
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(skipped > 0
+            ? '$created special case(s) created, $skipped skipped (already active)'
+            : '$created special case(s) created'),
+        backgroundColor: ShellTokens.chromeSurface,
+      ));
+    }
+  }
+
+  List<Enrollment> _selectedEnrollmentRows() =>
+      _enrollments.where((e) => _selectedIds.contains(e.id)).toList();
 
   void _showAddDialog() async {
     final l10n = AppLocalizations.of(context);
@@ -188,6 +245,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       const Spacer(),
       TextButton(onPressed: () => _bulkSetStatus('active'), child: Text(l10n.active, style: const TextStyle(fontSize: 11, color: SemanticTokens.success))),
       TextButton(onPressed: () => _bulkSetStatus('inactive'), child: Text(l10n.dropEnrollment, style: const TextStyle(fontSize: 11, color: SemanticTokens.error))),
+      TextButton(onPressed: _selectedIds.isNotEmpty ? _showBulkSpecialCaseDialog : null, child: const Text('Apply Special Case', style: TextStyle(fontSize: 11, color: SemanticTokens.success))),
       TextButton.icon(onPressed: _toggleSelectAll, icon: Icon(_selectedIds.length == filtered.length ? PhosphorIcons.arrowLeft : PhosphorIcons.squaresFour, size: 16), label: Text(_selectedIds.length == filtered.length ? l10n.clearSelection : l10n.selectAll), style: TextButton.styleFrom(foregroundColor: ShellTokens.textPrimary)),
     ]));
   }
@@ -325,4 +383,145 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
   Widget _chkCell(Enrollment e, bool sel) => GestureDetector(onTap: () => setState(() { if (sel) { _selectedIds.remove(e.id); } else { _selectedIds.add(e.id); } }), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10), child: Container(width: 14, height: 14, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), border: Border.all(color: sel ? ShellTokens.accent : ShellTokens.textDisabled, width: 1.5), color: sel ? ShellTokens.accent : Colors.transparent), child: sel ? const Icon(Icons.check, size: 9, color: ShellTokens.chromeBase) : null)));
   Widget _txtCell(String t) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), child: Text(t, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis));
+}
+
+class _BulkSpecialCaseData {
+  final String caseType;
+  final double? discountPercent;
+  final double? discountFixed;
+  final String reason;
+  final DateTime? reviewDate;
+  const _BulkSpecialCaseData({
+    required this.caseType,
+    this.discountPercent,
+    this.discountFixed,
+    required this.reason,
+    this.reviewDate,
+  });
+}
+
+class _BulkSpecialCaseDialog extends StatefulWidget {
+  final int studentCount;
+  final String currentUserId;
+  const _BulkSpecialCaseDialog({required this.studentCount, this.currentUserId = ''});
+  @override
+  State<_BulkSpecialCaseDialog> createState() => _BulkSpecialCaseDialogState();
+}
+
+class _BulkSpecialCaseDialogState extends State<_BulkSpecialCaseDialog> {
+  String _caseType = 'full';
+  final _discountCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
+  DateTime? _reviewDate;
+  String _discountMode = 'percentage';
+
+  @override
+  void dispose() {
+    _discountCtrl.dispose();
+    _reasonCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickReviewDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _reviewDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null) setState(() => _reviewDate = picked);
+  }
+
+  void _submit() {
+    if (_reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reason is required')));
+      return;
+    }
+    final double? percent = _caseType == 'partial' && _discountMode == 'percentage'
+        ? double.tryParse(_discountCtrl.text)
+        : null;
+    final double? fixed = _caseType == 'partial' && _discountMode == 'fixed'
+        ? double.tryParse(_discountCtrl.text)
+        : null;
+    Navigator.pop(context, _BulkSpecialCaseData(
+      caseType: _caseType,
+      discountPercent: percent,
+      discountFixed: fixed,
+      reason: _reasonCtrl.text.trim(),
+      reviewDate: _reviewDate,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ShellDialog(
+      maxWidth: 500, maxHeight: 520, title: 'Apply Special Case to ${widget.studentCount}',
+      body: ListView(shrinkWrap: true, children: [
+        Text('This will create one special case record per selected student. Students with an active case are skipped.',
+            style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'full', label: Text('Full', style: TextStyle(fontSize: 11))),
+              ButtonSegment(value: 'partial', label: Text('Partial', style: TextStyle(fontSize: 11))),
+            ],
+            selected: {_caseType},
+            onSelectionChanged: (s) => setState(() => _caseType = s.first),
+            style: SegmentedButton.styleFrom(selectedBackgroundColor: ShellTokens.accent.withValues(alpha: 0.15)),
+          )),
+        ]),
+        if (_caseType == 'partial') ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: TextField(
+              controller: _discountCtrl, keyboardType: TextInputType.number,
+              decoration: ShellInputDecoration.textField(hintText: _discountMode == 'percentage' ? 'Discount %' : 'Fixed DA'),
+              style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+            )),
+            const SizedBox(width: 8),
+            DropdownButtonFormField<String>(
+              value: _discountMode,
+              decoration: ShellInputDecoration.dropdown(),
+              style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+              items: const [
+                DropdownMenuItem(value: 'percentage', child: Text('%', style: TextStyle(fontSize: 12))),
+                DropdownMenuItem(value: 'fixed', child: Text('DA', style: TextStyle(fontSize: 12))),
+              ],
+              onChanged: (v) => setState(() => _discountMode = v!),
+            ),
+          ]),
+        ],
+        const SizedBox(height: 14),
+        const ShellSectionHeader(text: 'Exemption Details', withBorder: false),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _reasonCtrl,
+          maxLines: 3,
+          decoration: ShellInputDecoration.textField(hintText: 'Reason (required)'),
+          style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+        ),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: TextButton.icon(
+            onPressed: _pickReviewDate,
+            icon: const Icon(PhosphorIcons.calendar, size: 16, color: ShellTokens.textSecondary),
+            label: Text(_reviewDate == null
+                ? 'Set review date (optional)'
+                : 'Review: ${_reviewDate.toString().substring(0, 10)}',
+              style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+          )),
+          if (_reviewDate != null)
+            IconButton(icon: const Icon(PhosphorIcons.x, size: 16, color: ShellTokens.textDisabled),
+              onPressed: () => setState(() => _reviewDate = null)),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(width: double.infinity, child: FilledButton(
+          onPressed: _submit,
+          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
+          child: Text('Apply to ${widget.studentCount} student(s)', style: const TextStyle(fontSize: 13, color: ShellTokens.chromeBase, fontWeight: FontWeight.w600)),
+        )),
+      ]),
+    );
+  }
 }
