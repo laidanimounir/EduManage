@@ -590,6 +590,17 @@ class _TeacherDetailDialog extends StatelessWidget {
           showDialog(context: context, builder: (_) => _TeacherEditDialog(database: database, teacher: teacher, l10n: l10n));
         }),
         IconButton(
+          icon: const Icon(PhosphorIcons.info, size: 16), color: ShellTokens.accent,
+          onPressed: () {
+            Navigator.pop(context);
+            showDialog(context: context, builder: (_) => _TeacherTeachingInfoDialog(
+              database: database, teacherId: teacher.id,
+              teacherName: '${teacher.firstNameAr} ${teacher.lastNameAr}',
+            ));
+          },
+          tooltip: 'معلومات التدريس',
+        ),
+        IconButton(
           icon: const Icon(PhosphorIcons.file, size: 16), color: ShellTokens.accent,
           onPressed: () async {
             try {
