@@ -9,6 +9,7 @@ import '../../widgets/shell_input_decoration.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
 import '../../utils/device_id.dart';
+import '../../repositories/audit_log_repository.dart';
 
 class SpecialCasesScreen extends StatefulWidget {
   final AppDatabase database;
@@ -82,7 +83,7 @@ class _SpecialCasesScreenState extends State<SpecialCasesScreen> {
     if (confirmed == true) {
       await (widget.database.update(widget.database.specialCases)..where((t) => t.id.equals(c.id)))
         .write(SpecialCasesCompanion(isActive: const Value(false)));
-      await widget.database.into(widget.database.auditLog).insert(AuditLogCompanion(
+      await AuditLogRepository(widget.database).create(AuditLogCompanion(
         userId: Value(widget.createdByUserId),
         action: const Value('special_case_revoked'),
         entityType: const Value('special_case'),
@@ -331,7 +332,7 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
               reviewDate: Value(_reviewDate),
               deviceId: Value(await DeviceId.get()),
             ));
-            await widget.database.into(widget.database.auditLog).insert(AuditLogCompanion(
+            await AuditLogRepository(widget.database).create(AuditLogCompanion(
               userId: Value(widget.currentUserId),
               action: const Value('special_case_created_updated'),
               entityType: const Value('special_case'),
