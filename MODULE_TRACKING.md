@@ -1064,3 +1064,40 @@ for (final s in sessions) {
 - **Sidebar hover polish:** Replaced `AnimatedContainer` (180ms uniform expand/collapse) with custom `AnimationController` (`_sidebarCtrl`, 450ms, `easeOutCubic`). `MouseRegion.onEnter` → `_sidebarCtrl.forward()` for smooth expansion. `MouseRegion.onExit` → `_sidebarCtrl.value = 0.0` for instant collapse. Pin toggle unchanged. Width computed by `lerpDouble(56, 220, _sidebarCtrl.value)` when unpinned; always 220px when pinned.
 
 - **One-time sidebar intro:** On first mount after login, following welcome overlay completion (~3.4s), `_playSidebarIntro()` runs: auto-expand 700ms → hold 2000ms → auto-collapse 500ms. Controller duration adjusted per phase. After collapse, `_sidebarIntroPlayed = true` and normal hover/pin behavior activates permanently. `_sidebarIntroPlayed` gates `MouseRegion` events — no hover response during intro.
+
+## MANUAL TESTING CHECKLIST — SPECIAL CASES
+
+### SPECIAL CASES (exemption module)
+- From the sidebar, open **Special Cases** (warning icon, next to Families). Verify the header has a "+" button and the empty state shows "No special cases".
+- Click the "+" button. Verify the creation dialog requires: a student (dropdown), a case type (Full/Partial segmented control), and a reason (required). For Partial, a discount field with a % / DA toggle appears. An optional review date picker is available.
+- Create a "Full" exemption for a student with a reason. Verify the new case appears in the list with a green checkmark and the summary "Full exemption — <reason>".
+- Create a "Partial" exemption with a given % and a fixed-DA exemption. Verify each renders its correct summary.
+- Edit an existing case and change its reason/details. Verify the change persists and an audit entry `special_case_created_updated` is written under the Special Case (or Financial) audit filter, linked to the current user.
+- Revoke an active case via the archive icon. Verify it stays visible but reads "... (revoked)", shows a muted icon, and is no longer applied to new charges (soft revoke). Verify audit entry `special_case_revoked`.
+- From the **Students** screen, open a student who has an active special case. Verify the distinct teal exemption banner shows the summary and reason just below the family information.
+- With an active full exemption, charge a session for that student. Verify the statement shows a discount with the note "Special case exemption (<reason>)" and that the student has no remaining outstanding balance (fully offset).
+- With an active partial exemption, verify the session charge only discounts the stated % or fixed amount, and the family discount and special case discount combined never exceed the charge (no fabricated credit).
+- Verify the audit log has a new "Special Case" entity filter chip and color, and the discount-application entries appear under the Financial filter.
+- Print a student statement (Students detail → "Print Statement"). Verify the Discount Applied column now includes the discount note text containing the special case reason.
+
+## Known Open Issues — Special Cases
+- Family accounts and special cases are independent; a student could be in a family AND have a special case. Both discounts are applied in `createSessionCharge` and capped together so the combined amount cannot exceed the surviving charge. Behavior is intentionally additive; a policy decision on precedence/priority may be needed.
+
+## Round 12 — Special Cases Module (2026-08-04)
+
+### Schema v13
+- Added `special_cases` table: `id` (PK), `student_id` (FK to students), `case_type` (full/partial), `discount_percent`, `discount_fixed`, `reason`, `approved_by_user_id` (FK to users), `is_active` (bool default true), `review_date`, `created_at`, `device_id`. Migration `from < 13`.
+
+### Billing integration
+- `createSessionCharge` now resolves the active special case via `getActiveSpecialCase(studentId)` and applies a full (100%) or partial (% or fixed) exemption as a linked discount transaction alongside any family discount. The two discounts are combined and capped at the surviving charge so no fabricated credit can be minted. New audit action `special_case_discount_applied`.
+
+### UI
+- New `SpecialCasesScreen` + create/edit dialog (student picker, Full/Partial toggle, % vs DA conditional field, reason, optional review date, audit on create/update/revoke). Wired into the shell sidebar (warning icon).
+- Student detail panel shows a teal `_SpecialCaseBanner` for an active case.
+
+### Audit & PDF
+- `special_case` entity added to the audit log color map, grouping, filter chip and label. Audit actions: create/update (`special_case_created_updated`), revoke (`special_case_revoked`), applied (`special_case_discount_applied`).
+- Student statement PDF now shows each discount note (including the special case reason) alongside the amount.
+
+### Discount cap bug fix
+- Fixed an over-application bug in `createSessionCharge`: the computed discount is now capped at the charge that survives credit application, so an oversized discount can no longer mint a fabricated credit balance.
