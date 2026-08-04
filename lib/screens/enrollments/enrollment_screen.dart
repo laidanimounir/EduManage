@@ -67,6 +67,62 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     _load();
   }
 
+  Future<void> _confirmBulkDrop() async {
+    final l10n = AppLocalizations.of(context);
+    final selected = _selectedEnrollmentRows();
+    if (selected.isEmpty) return;
+    DateTime? cutoff;
+
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+      List<Enrollment> affected() => selected
+          .where((e) => cutoff == null || e.enrollmentDate.isBefore(cutoff!))
+          .toList();
+      return AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: const Text('Drop Enrollments', style: TextStyle(color: ShellTokens.textPrimary)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('This will set ${affected().length} of ${selected.length} selected enrollment(s) to inactive (dropped). Inactive is the archive-equivalent state for enrollments.',
+              style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextButton.icon(
+              onPressed: () async {
+                final picked = await showDatePicker(context: context, initialDate: cutoff ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now());
+                if (picked != null) setSt(() => cutoff = picked);
+              },
+              icon: const Icon(PhosphorIcons.calendar, size: 16, color: ShellTokens.textSecondary),
+              label: Text(cutoff == null ? 'Only enrollments before a cutoff date (optional)' : 'Cutoff: ${_fmtDate(cutoff!)}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+            )),
+            if (cutoff != null)
+              IconButton(icon: const Icon(PhosphorIcons.x, size: 16, color: ShellTokens.textDisabled), onPressed: () => setSt(() => cutoff = null)),
+          ]),
+          const SizedBox(height: 4),
+          Text('${affected().length} record(s) will be affected',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: SemanticTokens.error)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.dropEnrollment, style: const TextStyle(color: SemanticTokens.error))),
+        ],
+      );
+    }));
+
+    if (confirmed != true) return;
+    final affected = selected.where((e) => cutoff == null || e.enrollmentDate.isBefore(cutoff!)).toList();
+    for (final e in affected) {
+      if (e.status != 'inactive') {
+        await _enrollRepo.updateStatus(e.id, 'inactive');
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${affected.length} enrollment(s) dropped'),
+        backgroundColor: ShellTokens.chromeSurface,
+      ));
+      _load();
+    }
+  }
+
   Future<void> _showBulkSpecialCaseDialog() async {
     final studentIds = _selectedEnrollmentRows().map((e) => e.studentId).toSet().toList();
     if (studentIds.isEmpty) return;
@@ -319,7 +375,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       Text('${_selectedIds.length} ${l10n.selected}', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
       const Spacer(),
       TextButton(onPressed: () => _bulkSetStatus('active'), child: Text(l10n.active, style: const TextStyle(fontSize: 11, color: SemanticTokens.success))),
-      TextButton(onPressed: () => _bulkSetStatus('inactive'), child: Text(l10n.dropEnrollment, style: const TextStyle(fontSize: 11, color: SemanticTokens.error))),
+      TextButton(onPressed: () => _confirmBulkDrop(), child: Text(l10n.dropEnrollment, style: const TextStyle(fontSize: 11, color: SemanticTokens.error))),
       TextButton(onPressed: _selectedIds.isNotEmpty ? _showBulkSpecialCaseDialog : null, child: const Text('Apply Special Case', style: TextStyle(fontSize: 11, color: SemanticTokens.success))),
       Tooltip(
         message: bulkTransferable ? '' : 'Only rows within a single source group can be bulk-transferred',
