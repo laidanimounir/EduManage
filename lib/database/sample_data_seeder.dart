@@ -16,8 +16,15 @@ class SampleDataSeeder {
   static Future<void> seed(AppDatabase db) async {
     final studentRepo = StudentRepository(db);
     final existingStudents = await studentRepo.getAll();
-    if (existingStudents.isNotEmpty) return;
 
+    if (existingStudents.isEmpty) {
+      await _seedCoreData(db, studentRepo);
+    }
+
+    await _seedAttendance(db);
+  }
+
+  static Future<void> _seedCoreData(AppDatabase db, StudentRepository studentRepo) async {
     final roomRepo = ClassroomRepository(db);
     final rooms = await roomRepo.getAll();
     final classroomId = rooms.isNotEmpty ? rooms.first.id : '';
@@ -163,44 +170,41 @@ class SampleDataSeeder {
       subjectGroupId: Value(g2Id),
       status: const Value('active'),
     ));
+  }
 
-    final t1Sessions = await sessionRepo.getByTeacher(t1Id);
-    final t2Sessions = await sessionRepo.getByTeacher(t2Id);
-    final attendanceRepo = AttendanceRepository(db);
+  static Future<void> _seedAttendance(AppDatabase db) async {
+    final existing = await db.customSelect(
+      'SELECT COUNT(*) AS cnt FROM attendance WHERE student_id IS NOT NULL AND status = \'present\'',
+    ).getSingle();
+    if (existing.read<int>('cnt') > 0) return;
+
+    final teachers = await TeacherRepository(db).getAll();
+    final sessionRepo = SessionRepository(db);
+    final enrollingRepo = EnrollmentRepository(db);
     final deviceId = await DeviceId.get();
 
-    for (int dateOffset = 1; dateOffset <= 3; dateOffset++) {
-      final attDate = DateTime(2026, 8, dateOffset);
-      for (final sess in t1Sessions.take(3)) {
-        for (final sid in [s1Id, s2Id]) {
-          await db.into(db.attendance).insert(AttendanceCompanion(
-            id: Value(UuidHelper.generate()),
-            studentId: Value(sid),
-            personType: const Value('student'),
-            sessionId: Value(sess.id),
-            attendanceDate: Value(attDate),
-            checkInTime: Value(attDate),
-            status: const Value('present'),
-            deviceId: Value(deviceId),
-          ));
-        }
-      }
-    }
+    for (final teacher in teachers.where((t) => !t.isArchived)) {
+      final sessions = await sessionRepo.getByTeacher(teacher.id);
+      if (sessions.isEmpty) continue;
 
-    for (int dateOffset = 2; dateOffset <= 3; dateOffset++) {
-      final attDate = DateTime(2026, 8, dateOffset);
-      for (final sess in t2Sessions.take(2)) {
-        for (final sid in [s1Id, s3Id]) {
-          await db.into(db.attendance).insert(AttendanceCompanion(
-            id: Value(UuidHelper.generate()),
-            studentId: Value(sid),
-            personType: const Value('student'),
-            sessionId: Value(sess.id),
-            attendanceDate: Value(attDate),
-            checkInTime: Value(attDate),
-            status: const Value('present'),
-            deviceId: Value(deviceId),
-          ));
+      for (final sess in sessions.take(3)) {
+        final enrollments = await enrollingRepo.getBySubjectGroup(sess.subjectGroupId);
+        final active = enrollments.where((e) => e.status == 'active' && !e.isTransferred).take(2).toList();
+
+        for (int dateOffset = 1; dateOffset <= 3; dateOffset++) {
+          final attDate = DateTime(2026, 8, dateOffset);
+          for (final enrollment in active) {
+            await db.into(db.attendance).insert(AttendanceCompanion(
+              id: Value(UuidHelper.generate()),
+              studentId: Value(enrollment.studentId),
+              personType: const Value('student'),
+              sessionId: Value(sess.id),
+              attendanceDate: Value(attDate),
+              checkInTime: Value(attDate),
+              status: const Value('present'),
+              deviceId: Value(deviceId),
+            ));
+          }
         }
       }
     }
