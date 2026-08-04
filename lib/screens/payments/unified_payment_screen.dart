@@ -330,9 +330,9 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
               const SizedBox(width: 8),
               ...chips.map((v) => _buildFilterChip(chipLabels[v] ?? v, v)),
               const SizedBox(width: 8),
-              _buildExportBtn(l10n.exportPdf, PhosphorIcons.file),
+              _buildExportBtn(l10n.exportPdf, PhosphorIcons.file, _exportPdf),
               const SizedBox(width: 4),
-              _buildExportBtn(l10n.exportExcel, PhosphorIcons.table),
+              _buildExportBtn(l10n.exportExcel, PhosphorIcons.table, _exportExcel),
               const Spacer(),
               IconButton(icon: const Icon(PhosphorIcons.receipt, size: 16, color: ShellTokens.textSecondary),
                 onPressed: _openStudentHistory, tooltip: l10n.paymentHistory, padding: EdgeInsets.zero,
@@ -386,16 +386,12 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     );
   }
 
-  Widget _buildExportBtn(String label, IconData icon) {
+  Widget _buildExportBtn(String label, IconData icon, VoidCallback onTap) {
     return Material(
       color: ShellTokens.chromeSurface, borderRadius: BorderRadius.circular(5),
       child: InkWell(
         borderRadius: BorderRadius.circular(5),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context).comingSoon),
-            backgroundColor: ShellTokens.chromeSurface));
-        },
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -406,6 +402,52 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
         ),
       ),
     );
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _exportPdf() async {
+    if (_rows.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final pdf = pw.Document();
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      build: (_) => [
+        pw.Header(text: l10n.payments, level: 1),
+        pw.SizedBox(height: 8),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 7),
+          headers: [l10n.date, 'Type', l10n.name, l10n.code, l10n.amount, l10n.note],
+          data: _rows.map((r) {
+            final tx = r['transaction'] as Transaction;
+            final name = (r['studentName'] as String?) ?? (r['teacherName'] as String?) ?? '';
+            final code = (r['studentCode'] as String?) ?? (r['teacherCode'] as String?) ?? '';
+            return [_fmtDate(tx.transactionDate), tx.type, name, code, '${tx.amount.toStringAsFixed(0)} ${AppConstants.currencySymbol}', tx.note ?? ''];
+          }).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportExcel() async {
+    if (_rows.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
+    final excel = Excel.createExcel();
+    final sheet = excel[l10n.payments];
+    sheet.appendRow([TextCellValue(l10n.date), TextCellValue('Type'), TextCellValue(l10n.name), TextCellValue(l10n.code), TextCellValue(l10n.amount), TextCellValue(l10n.note)]);
+    for (final r in _rows) {
+      final tx = r['transaction'] as Transaction;
+      final name = (r['studentName'] as String?) ?? (r['teacherName'] as String?) ?? '';
+      final code = (r['studentCode'] as String?) ?? (r['teacherCode'] as String?) ?? '';
+      sheet.appendRow([TextCellValue(_fmtDate(tx.transactionDate)), TextCellValue(tx.type), TextCellValue(name), TextCellValue(code), TextCellValue(tx.amount.toStringAsFixed(0)), TextCellValue(tx.note ?? '')]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/payments_export.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
   }
 
   Widget _buildTabChip(String label, String value) {
