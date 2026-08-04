@@ -1,10 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
+import 'package:excel/excel.dart' hide Border;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
+import '../../constants/app_constants.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/teacher_repository.dart';
@@ -257,8 +262,54 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     );
   }
 
-  void _exportPdf(AppLocalizations l10n) {}
-  void _exportExcel(AppLocalizations l10n) {}
+  void _exportPdf(AppLocalizations l10n) async {
+    if (_rows.isEmpty) return;
+    final pdf = pw.Document();
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      build: (_) => [
+        pw.Header(text: l10n.teachers, level: 1),
+        pw.SizedBox(height: 8),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 7),
+          headers: [l10n.code, l10n.firstName, l10n.lastName, l10n.phone, 'Email', l10n.columnSalary, l10n.columnSubjects],
+          data: _rows.map((t) => [
+            t.code,
+            '${t.firstNameAr} ${t.firstNameFr ?? ''}',
+            '${t.lastNameAr} ${t.lastNameFr ?? ''}',
+            t.phone ?? '',
+            t.email ?? '',
+            _salaryLabel(t.salaryType, l10n),
+            _subjectNamesCache[t.id] ?? '',
+          ]).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  void _exportExcel(AppLocalizations l10n) async {
+    if (_rows.isEmpty) return;
+    final excel = Excel.createExcel();
+    final sheet = excel[l10n.teachers];
+    sheet.appendRow([TextCellValue(l10n.code), TextCellValue(l10n.firstName), TextCellValue(l10n.lastName), TextCellValue(l10n.phone), TextCellValue('Email'), TextCellValue(l10n.columnSalary), TextCellValue(l10n.columnSubjects)]);
+    for (final t in _rows) {
+      sheet.appendRow([
+        TextCellValue(t.code),
+        TextCellValue('${t.firstNameAr} ${t.firstNameFr ?? ''}'),
+        TextCellValue('${t.lastNameAr} ${t.lastNameFr ?? ''}'),
+        TextCellValue(t.phone ?? ''),
+        TextCellValue(t.email ?? ''),
+        TextCellValue(_salaryLabel(t.salaryType, l10n)),
+        TextCellValue(_subjectNamesCache[t.id] ?? ''),
+      ]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/teachers_export.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+  }
 
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const AppLoading();
