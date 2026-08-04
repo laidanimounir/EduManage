@@ -846,7 +846,7 @@ class _PayoutHistoryListState extends State<_PayoutHistoryList> {
       FilledButton.icon(
         onPressed: () => _payNow(),
         icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 14),
-        label: Text(widget.l10n.payTeacher, style: const TextStyle(fontSize: 12)),
+        label: const Text('الدفع', style: TextStyle(fontSize: 12)),
         style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
       ),
     ]);
