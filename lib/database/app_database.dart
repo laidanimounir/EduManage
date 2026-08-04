@@ -641,7 +641,7 @@ class AppDatabase extends _$AppDatabase {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '
       'WHEN type IN (\'teacher_payout\', \'correction\') THEN amount '
-      'WHEN type IN (\'reversal\') THEN -amount '
+      'WHEN type IN (\'reversal\', \'session_cancellation_reversal\') THEN -amount '
       'ELSE 0 END), 0) AS total '
       'FROM transactions WHERE teacher_id = ?',
       variables: [Variable.withString(teacherId)],
