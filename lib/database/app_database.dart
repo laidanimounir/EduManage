@@ -500,12 +500,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(specialCases);
       }
       if (from < 14) {
-        await customStatement('DELETE FROM enrollments');
-        await m.alterTable(TableMigration(enrollments,
-          newColumns: [
-            enrollments.sessionId,
-          ],
-        ));
+        await customStatement('DELETE FROM transactions WHERE enrollment_id IS NOT NULL');
+        await m.deleteTable('enrollments');
+        await m.createTable(enrollments);
       }
     },
   );
