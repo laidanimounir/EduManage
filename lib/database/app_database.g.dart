@@ -2929,719 +2929,6 @@ class ClassroomsCompanion extends UpdateCompanion<Classroom> {
   }
 }
 
-class $SubjectGroupsTable extends SubjectGroups
-    with TableInfo<$SubjectGroupsTable, SubjectGroup> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SubjectGroupsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nameArMeta = const VerificationMeta('nameAr');
-  @override
-  late final GeneratedColumn<String> nameAr = GeneratedColumn<String>(
-    'name_ar',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nameFrMeta = const VerificationMeta('nameFr');
-  @override
-  late final GeneratedColumn<String> nameFr = GeneratedColumn<String>(
-    'name_fr',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _subjectArMeta = const VerificationMeta(
-    'subjectAr',
-  );
-  @override
-  late final GeneratedColumn<String> subjectAr = GeneratedColumn<String>(
-    'subject_ar',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _subjectFrMeta = const VerificationMeta(
-    'subjectFr',
-  );
-  @override
-  late final GeneratedColumn<String> subjectFr = GeneratedColumn<String>(
-    'subject_fr',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _schoolLevelMeta = const VerificationMeta(
-    'schoolLevel',
-  );
-  @override
-  late final GeneratedColumn<String> schoolLevel = GeneratedColumn<String>(
-    'school_level',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _capacityMeta = const VerificationMeta(
-    'capacity',
-  );
-  @override
-  late final GeneratedColumn<int> capacity = GeneratedColumn<int>(
-    'capacity',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
-    'isArchived',
-  );
-  @override
-  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
-    'is_archived',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_archived" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
-    'deviceId',
-  );
-  @override
-  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
-    'device_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    nameAr,
-    nameFr,
-    subjectAr,
-    subjectFr,
-    schoolLevel,
-    description,
-    capacity,
-    isArchived,
-    createdAt,
-    updatedAt,
-    deviceId,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'subject_groups';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<SubjectGroup> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('name_ar')) {
-      context.handle(
-        _nameArMeta,
-        nameAr.isAcceptableOrUnknown(data['name_ar']!, _nameArMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameArMeta);
-    }
-    if (data.containsKey('name_fr')) {
-      context.handle(
-        _nameFrMeta,
-        nameFr.isAcceptableOrUnknown(data['name_fr']!, _nameFrMeta),
-      );
-    }
-    if (data.containsKey('subject_ar')) {
-      context.handle(
-        _subjectArMeta,
-        subjectAr.isAcceptableOrUnknown(data['subject_ar']!, _subjectArMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_subjectArMeta);
-    }
-    if (data.containsKey('subject_fr')) {
-      context.handle(
-        _subjectFrMeta,
-        subjectFr.isAcceptableOrUnknown(data['subject_fr']!, _subjectFrMeta),
-      );
-    }
-    if (data.containsKey('school_level')) {
-      context.handle(
-        _schoolLevelMeta,
-        schoolLevel.isAcceptableOrUnknown(
-          data['school_level']!,
-          _schoolLevelMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_schoolLevelMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('capacity')) {
-      context.handle(
-        _capacityMeta,
-        capacity.isAcceptableOrUnknown(data['capacity']!, _capacityMeta),
-      );
-    }
-    if (data.containsKey('is_archived')) {
-      context.handle(
-        _isArchivedMeta,
-        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    }
-    if (data.containsKey('device_id')) {
-      context.handle(
-        _deviceIdMeta,
-        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_deviceIdMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  SubjectGroup map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SubjectGroup(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      nameAr: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name_ar'],
-      )!,
-      nameFr: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name_fr'],
-      ),
-      subjectAr: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}subject_ar'],
-      )!,
-      subjectFr: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}subject_fr'],
-      ),
-      schoolLevel: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}school_level'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      ),
-      capacity: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}capacity'],
-      ),
-      isArchived: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_archived'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      deviceId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}device_id'],
-      )!,
-    );
-  }
-
-  @override
-  $SubjectGroupsTable createAlias(String alias) {
-    return $SubjectGroupsTable(attachedDatabase, alias);
-  }
-}
-
-class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
-  final String id;
-  final String nameAr;
-  final String? nameFr;
-  final String subjectAr;
-  final String? subjectFr;
-  final String schoolLevel;
-  final String? description;
-  final int? capacity;
-  final bool isArchived;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final String deviceId;
-  const SubjectGroup({
-    required this.id,
-    required this.nameAr,
-    this.nameFr,
-    required this.subjectAr,
-    this.subjectFr,
-    required this.schoolLevel,
-    this.description,
-    this.capacity,
-    required this.isArchived,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.deviceId,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['name_ar'] = Variable<String>(nameAr);
-    if (!nullToAbsent || nameFr != null) {
-      map['name_fr'] = Variable<String>(nameFr);
-    }
-    map['subject_ar'] = Variable<String>(subjectAr);
-    if (!nullToAbsent || subjectFr != null) {
-      map['subject_fr'] = Variable<String>(subjectFr);
-    }
-    map['school_level'] = Variable<String>(schoolLevel);
-    if (!nullToAbsent || description != null) {
-      map['description'] = Variable<String>(description);
-    }
-    if (!nullToAbsent || capacity != null) {
-      map['capacity'] = Variable<int>(capacity);
-    }
-    map['is_archived'] = Variable<bool>(isArchived);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['device_id'] = Variable<String>(deviceId);
-    return map;
-  }
-
-  SubjectGroupsCompanion toCompanion(bool nullToAbsent) {
-    return SubjectGroupsCompanion(
-      id: Value(id),
-      nameAr: Value(nameAr),
-      nameFr: nameFr == null && nullToAbsent
-          ? const Value.absent()
-          : Value(nameFr),
-      subjectAr: Value(subjectAr),
-      subjectFr: subjectFr == null && nullToAbsent
-          ? const Value.absent()
-          : Value(subjectFr),
-      schoolLevel: Value(schoolLevel),
-      description: description == null && nullToAbsent
-          ? const Value.absent()
-          : Value(description),
-      capacity: capacity == null && nullToAbsent
-          ? const Value.absent()
-          : Value(capacity),
-      isArchived: Value(isArchived),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      deviceId: Value(deviceId),
-    );
-  }
-
-  factory SubjectGroup.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SubjectGroup(
-      id: serializer.fromJson<String>(json['id']),
-      nameAr: serializer.fromJson<String>(json['nameAr']),
-      nameFr: serializer.fromJson<String?>(json['nameFr']),
-      subjectAr: serializer.fromJson<String>(json['subjectAr']),
-      subjectFr: serializer.fromJson<String?>(json['subjectFr']),
-      schoolLevel: serializer.fromJson<String>(json['schoolLevel']),
-      description: serializer.fromJson<String?>(json['description']),
-      capacity: serializer.fromJson<int?>(json['capacity']),
-      isArchived: serializer.fromJson<bool>(json['isArchived']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      deviceId: serializer.fromJson<String>(json['deviceId']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'nameAr': serializer.toJson<String>(nameAr),
-      'nameFr': serializer.toJson<String?>(nameFr),
-      'subjectAr': serializer.toJson<String>(subjectAr),
-      'subjectFr': serializer.toJson<String?>(subjectFr),
-      'schoolLevel': serializer.toJson<String>(schoolLevel),
-      'description': serializer.toJson<String?>(description),
-      'capacity': serializer.toJson<int?>(capacity),
-      'isArchived': serializer.toJson<bool>(isArchived),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'deviceId': serializer.toJson<String>(deviceId),
-    };
-  }
-
-  SubjectGroup copyWith({
-    String? id,
-    String? nameAr,
-    Value<String?> nameFr = const Value.absent(),
-    String? subjectAr,
-    Value<String?> subjectFr = const Value.absent(),
-    String? schoolLevel,
-    Value<String?> description = const Value.absent(),
-    Value<int?> capacity = const Value.absent(),
-    bool? isArchived,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? deviceId,
-  }) => SubjectGroup(
-    id: id ?? this.id,
-    nameAr: nameAr ?? this.nameAr,
-    nameFr: nameFr.present ? nameFr.value : this.nameFr,
-    subjectAr: subjectAr ?? this.subjectAr,
-    subjectFr: subjectFr.present ? subjectFr.value : this.subjectFr,
-    schoolLevel: schoolLevel ?? this.schoolLevel,
-    description: description.present ? description.value : this.description,
-    capacity: capacity.present ? capacity.value : this.capacity,
-    isArchived: isArchived ?? this.isArchived,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    deviceId: deviceId ?? this.deviceId,
-  );
-  SubjectGroup copyWithCompanion(SubjectGroupsCompanion data) {
-    return SubjectGroup(
-      id: data.id.present ? data.id.value : this.id,
-      nameAr: data.nameAr.present ? data.nameAr.value : this.nameAr,
-      nameFr: data.nameFr.present ? data.nameFr.value : this.nameFr,
-      subjectAr: data.subjectAr.present ? data.subjectAr.value : this.subjectAr,
-      subjectFr: data.subjectFr.present ? data.subjectFr.value : this.subjectFr,
-      schoolLevel: data.schoolLevel.present
-          ? data.schoolLevel.value
-          : this.schoolLevel,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-      capacity: data.capacity.present ? data.capacity.value : this.capacity,
-      isArchived: data.isArchived.present
-          ? data.isArchived.value
-          : this.isArchived,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SubjectGroup(')
-          ..write('id: $id, ')
-          ..write('nameAr: $nameAr, ')
-          ..write('nameFr: $nameFr, ')
-          ..write('subjectAr: $subjectAr, ')
-          ..write('subjectFr: $subjectFr, ')
-          ..write('schoolLevel: $schoolLevel, ')
-          ..write('description: $description, ')
-          ..write('capacity: $capacity, ')
-          ..write('isArchived: $isArchived, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deviceId: $deviceId')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    nameAr,
-    nameFr,
-    subjectAr,
-    subjectFr,
-    schoolLevel,
-    description,
-    capacity,
-    isArchived,
-    createdAt,
-    updatedAt,
-    deviceId,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SubjectGroup &&
-          other.id == this.id &&
-          other.nameAr == this.nameAr &&
-          other.nameFr == this.nameFr &&
-          other.subjectAr == this.subjectAr &&
-          other.subjectFr == this.subjectFr &&
-          other.schoolLevel == this.schoolLevel &&
-          other.description == this.description &&
-          other.capacity == this.capacity &&
-          other.isArchived == this.isArchived &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.deviceId == this.deviceId);
-}
-
-class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
-  final Value<String> id;
-  final Value<String> nameAr;
-  final Value<String?> nameFr;
-  final Value<String> subjectAr;
-  final Value<String?> subjectFr;
-  final Value<String> schoolLevel;
-  final Value<String?> description;
-  final Value<int?> capacity;
-  final Value<bool> isArchived;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<String> deviceId;
-  final Value<int> rowid;
-  const SubjectGroupsCompanion({
-    this.id = const Value.absent(),
-    this.nameAr = const Value.absent(),
-    this.nameFr = const Value.absent(),
-    this.subjectAr = const Value.absent(),
-    this.subjectFr = const Value.absent(),
-    this.schoolLevel = const Value.absent(),
-    this.description = const Value.absent(),
-    this.capacity = const Value.absent(),
-    this.isArchived = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.deviceId = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  SubjectGroupsCompanion.insert({
-    required String id,
-    required String nameAr,
-    this.nameFr = const Value.absent(),
-    required String subjectAr,
-    this.subjectFr = const Value.absent(),
-    required String schoolLevel,
-    this.description = const Value.absent(),
-    this.capacity = const Value.absent(),
-    this.isArchived = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    required String deviceId,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       nameAr = Value(nameAr),
-       subjectAr = Value(subjectAr),
-       schoolLevel = Value(schoolLevel),
-       deviceId = Value(deviceId);
-  static Insertable<SubjectGroup> custom({
-    Expression<String>? id,
-    Expression<String>? nameAr,
-    Expression<String>? nameFr,
-    Expression<String>? subjectAr,
-    Expression<String>? subjectFr,
-    Expression<String>? schoolLevel,
-    Expression<String>? description,
-    Expression<int>? capacity,
-    Expression<bool>? isArchived,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<String>? deviceId,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (nameAr != null) 'name_ar': nameAr,
-      if (nameFr != null) 'name_fr': nameFr,
-      if (subjectAr != null) 'subject_ar': subjectAr,
-      if (subjectFr != null) 'subject_fr': subjectFr,
-      if (schoolLevel != null) 'school_level': schoolLevel,
-      if (description != null) 'description': description,
-      if (capacity != null) 'capacity': capacity,
-      if (isArchived != null) 'is_archived': isArchived,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (deviceId != null) 'device_id': deviceId,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  SubjectGroupsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? nameAr,
-    Value<String?>? nameFr,
-    Value<String>? subjectAr,
-    Value<String?>? subjectFr,
-    Value<String>? schoolLevel,
-    Value<String?>? description,
-    Value<int?>? capacity,
-    Value<bool>? isArchived,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<String>? deviceId,
-    Value<int>? rowid,
-  }) {
-    return SubjectGroupsCompanion(
-      id: id ?? this.id,
-      nameAr: nameAr ?? this.nameAr,
-      nameFr: nameFr ?? this.nameFr,
-      subjectAr: subjectAr ?? this.subjectAr,
-      subjectFr: subjectFr ?? this.subjectFr,
-      schoolLevel: schoolLevel ?? this.schoolLevel,
-      description: description ?? this.description,
-      capacity: capacity ?? this.capacity,
-      isArchived: isArchived ?? this.isArchived,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      deviceId: deviceId ?? this.deviceId,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (nameAr.present) {
-      map['name_ar'] = Variable<String>(nameAr.value);
-    }
-    if (nameFr.present) {
-      map['name_fr'] = Variable<String>(nameFr.value);
-    }
-    if (subjectAr.present) {
-      map['subject_ar'] = Variable<String>(subjectAr.value);
-    }
-    if (subjectFr.present) {
-      map['subject_fr'] = Variable<String>(subjectFr.value);
-    }
-    if (schoolLevel.present) {
-      map['school_level'] = Variable<String>(schoolLevel.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (capacity.present) {
-      map['capacity'] = Variable<int>(capacity.value);
-    }
-    if (isArchived.present) {
-      map['is_archived'] = Variable<bool>(isArchived.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (deviceId.present) {
-      map['device_id'] = Variable<String>(deviceId.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SubjectGroupsCompanion(')
-          ..write('id: $id, ')
-          ..write('nameAr: $nameAr, ')
-          ..write('nameFr: $nameFr, ')
-          ..write('subjectAr: $subjectAr, ')
-          ..write('subjectFr: $subjectFr, ')
-          ..write('schoolLevel: $schoolLevel, ')
-          ..write('description: $description, ')
-          ..write('capacity: $capacity, ')
-          ..write('isArchived: $isArchived, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deviceId: $deviceId, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $SubjectsTable extends Subjects with TableInfo<$SubjectsTable, Subject> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -4091,6 +3378,771 @@ class SubjectsCompanion extends UpdateCompanion<Subject> {
           ..write('id: $id, ')
           ..write('nameAr: $nameAr, ')
           ..write('nameFr: $nameFr, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SubjectGroupsTable extends SubjectGroups
+    with TableInfo<$SubjectGroupsTable, SubjectGroup> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubjectGroupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameArMeta = const VerificationMeta('nameAr');
+  @override
+  late final GeneratedColumn<String> nameAr = GeneratedColumn<String>(
+    'name_ar',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameFrMeta = const VerificationMeta('nameFr');
+  @override
+  late final GeneratedColumn<String> nameFr = GeneratedColumn<String>(
+    'name_fr',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _subjectArMeta = const VerificationMeta(
+    'subjectAr',
+  );
+  @override
+  late final GeneratedColumn<String> subjectAr = GeneratedColumn<String>(
+    'subject_ar',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectFrMeta = const VerificationMeta(
+    'subjectFr',
+  );
+  @override
+  late final GeneratedColumn<String> subjectFr = GeneratedColumn<String>(
+    'subject_fr',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _subjectIdMeta = const VerificationMeta(
+    'subjectId',
+  );
+  @override
+  late final GeneratedColumn<String> subjectId = GeneratedColumn<String>(
+    'subject_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subjects (id)',
+    ),
+  );
+  static const VerificationMeta _schoolLevelMeta = const VerificationMeta(
+    'schoolLevel',
+  );
+  @override
+  late final GeneratedColumn<String> schoolLevel = GeneratedColumn<String>(
+    'school_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _capacityMeta = const VerificationMeta(
+    'capacity',
+  );
+  @override
+  late final GeneratedColumn<int> capacity = GeneratedColumn<int>(
+    'capacity',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nameAr,
+    nameFr,
+    subjectAr,
+    subjectFr,
+    subjectId,
+    schoolLevel,
+    description,
+    capacity,
+    isArchived,
+    createdAt,
+    updatedAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subject_groups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SubjectGroup> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name_ar')) {
+      context.handle(
+        _nameArMeta,
+        nameAr.isAcceptableOrUnknown(data['name_ar']!, _nameArMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameArMeta);
+    }
+    if (data.containsKey('name_fr')) {
+      context.handle(
+        _nameFrMeta,
+        nameFr.isAcceptableOrUnknown(data['name_fr']!, _nameFrMeta),
+      );
+    }
+    if (data.containsKey('subject_ar')) {
+      context.handle(
+        _subjectArMeta,
+        subjectAr.isAcceptableOrUnknown(data['subject_ar']!, _subjectArMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectArMeta);
+    }
+    if (data.containsKey('subject_fr')) {
+      context.handle(
+        _subjectFrMeta,
+        subjectFr.isAcceptableOrUnknown(data['subject_fr']!, _subjectFrMeta),
+      );
+    }
+    if (data.containsKey('subject_id')) {
+      context.handle(
+        _subjectIdMeta,
+        subjectId.isAcceptableOrUnknown(data['subject_id']!, _subjectIdMeta),
+      );
+    }
+    if (data.containsKey('school_level')) {
+      context.handle(
+        _schoolLevelMeta,
+        schoolLevel.isAcceptableOrUnknown(
+          data['school_level']!,
+          _schoolLevelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_schoolLevelMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('capacity')) {
+      context.handle(
+        _capacityMeta,
+        capacity.isAcceptableOrUnknown(data['capacity']!, _capacityMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SubjectGroup map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SubjectGroup(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nameAr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_ar'],
+      )!,
+      nameFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_fr'],
+      ),
+      subjectAr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_ar'],
+      )!,
+      subjectFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_fr'],
+      ),
+      subjectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_id'],
+      ),
+      schoolLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}school_level'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      capacity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}capacity'],
+      ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $SubjectGroupsTable createAlias(String alias) {
+    return $SubjectGroupsTable(attachedDatabase, alias);
+  }
+}
+
+class SubjectGroup extends DataClass implements Insertable<SubjectGroup> {
+  final String id;
+  final String nameAr;
+  final String? nameFr;
+  final String subjectAr;
+  final String? subjectFr;
+  final String? subjectId;
+  final String schoolLevel;
+  final String? description;
+  final int? capacity;
+  final bool isArchived;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String deviceId;
+  const SubjectGroup({
+    required this.id,
+    required this.nameAr,
+    this.nameFr,
+    required this.subjectAr,
+    this.subjectFr,
+    this.subjectId,
+    required this.schoolLevel,
+    this.description,
+    this.capacity,
+    required this.isArchived,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name_ar'] = Variable<String>(nameAr);
+    if (!nullToAbsent || nameFr != null) {
+      map['name_fr'] = Variable<String>(nameFr);
+    }
+    map['subject_ar'] = Variable<String>(subjectAr);
+    if (!nullToAbsent || subjectFr != null) {
+      map['subject_fr'] = Variable<String>(subjectFr);
+    }
+    if (!nullToAbsent || subjectId != null) {
+      map['subject_id'] = Variable<String>(subjectId);
+    }
+    map['school_level'] = Variable<String>(schoolLevel);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || capacity != null) {
+      map['capacity'] = Variable<int>(capacity);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  SubjectGroupsCompanion toCompanion(bool nullToAbsent) {
+    return SubjectGroupsCompanion(
+      id: Value(id),
+      nameAr: Value(nameAr),
+      nameFr: nameFr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nameFr),
+      subjectAr: Value(subjectAr),
+      subjectFr: subjectFr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subjectFr),
+      subjectId: subjectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subjectId),
+      schoolLevel: Value(schoolLevel),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      capacity: capacity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(capacity),
+      isArchived: Value(isArchived),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory SubjectGroup.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SubjectGroup(
+      id: serializer.fromJson<String>(json['id']),
+      nameAr: serializer.fromJson<String>(json['nameAr']),
+      nameFr: serializer.fromJson<String?>(json['nameFr']),
+      subjectAr: serializer.fromJson<String>(json['subjectAr']),
+      subjectFr: serializer.fromJson<String?>(json['subjectFr']),
+      subjectId: serializer.fromJson<String?>(json['subjectId']),
+      schoolLevel: serializer.fromJson<String>(json['schoolLevel']),
+      description: serializer.fromJson<String?>(json['description']),
+      capacity: serializer.fromJson<int?>(json['capacity']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nameAr': serializer.toJson<String>(nameAr),
+      'nameFr': serializer.toJson<String?>(nameFr),
+      'subjectAr': serializer.toJson<String>(subjectAr),
+      'subjectFr': serializer.toJson<String?>(subjectFr),
+      'subjectId': serializer.toJson<String?>(subjectId),
+      'schoolLevel': serializer.toJson<String>(schoolLevel),
+      'description': serializer.toJson<String?>(description),
+      'capacity': serializer.toJson<int?>(capacity),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  SubjectGroup copyWith({
+    String? id,
+    String? nameAr,
+    Value<String?> nameFr = const Value.absent(),
+    String? subjectAr,
+    Value<String?> subjectFr = const Value.absent(),
+    Value<String?> subjectId = const Value.absent(),
+    String? schoolLevel,
+    Value<String?> description = const Value.absent(),
+    Value<int?> capacity = const Value.absent(),
+    bool? isArchived,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? deviceId,
+  }) => SubjectGroup(
+    id: id ?? this.id,
+    nameAr: nameAr ?? this.nameAr,
+    nameFr: nameFr.present ? nameFr.value : this.nameFr,
+    subjectAr: subjectAr ?? this.subjectAr,
+    subjectFr: subjectFr.present ? subjectFr.value : this.subjectFr,
+    subjectId: subjectId.present ? subjectId.value : this.subjectId,
+    schoolLevel: schoolLevel ?? this.schoolLevel,
+    description: description.present ? description.value : this.description,
+    capacity: capacity.present ? capacity.value : this.capacity,
+    isArchived: isArchived ?? this.isArchived,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  SubjectGroup copyWithCompanion(SubjectGroupsCompanion data) {
+    return SubjectGroup(
+      id: data.id.present ? data.id.value : this.id,
+      nameAr: data.nameAr.present ? data.nameAr.value : this.nameAr,
+      nameFr: data.nameFr.present ? data.nameFr.value : this.nameFr,
+      subjectAr: data.subjectAr.present ? data.subjectAr.value : this.subjectAr,
+      subjectFr: data.subjectFr.present ? data.subjectFr.value : this.subjectFr,
+      subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
+      schoolLevel: data.schoolLevel.present
+          ? data.schoolLevel.value
+          : this.schoolLevel,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      capacity: data.capacity.present ? data.capacity.value : this.capacity,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubjectGroup(')
+          ..write('id: $id, ')
+          ..write('nameAr: $nameAr, ')
+          ..write('nameFr: $nameFr, ')
+          ..write('subjectAr: $subjectAr, ')
+          ..write('subjectFr: $subjectFr, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('schoolLevel: $schoolLevel, ')
+          ..write('description: $description, ')
+          ..write('capacity: $capacity, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nameAr,
+    nameFr,
+    subjectAr,
+    subjectFr,
+    subjectId,
+    schoolLevel,
+    description,
+    capacity,
+    isArchived,
+    createdAt,
+    updatedAt,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SubjectGroup &&
+          other.id == this.id &&
+          other.nameAr == this.nameAr &&
+          other.nameFr == this.nameFr &&
+          other.subjectAr == this.subjectAr &&
+          other.subjectFr == this.subjectFr &&
+          other.subjectId == this.subjectId &&
+          other.schoolLevel == this.schoolLevel &&
+          other.description == this.description &&
+          other.capacity == this.capacity &&
+          other.isArchived == this.isArchived &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deviceId == this.deviceId);
+}
+
+class SubjectGroupsCompanion extends UpdateCompanion<SubjectGroup> {
+  final Value<String> id;
+  final Value<String> nameAr;
+  final Value<String?> nameFr;
+  final Value<String> subjectAr;
+  final Value<String?> subjectFr;
+  final Value<String?> subjectId;
+  final Value<String> schoolLevel;
+  final Value<String?> description;
+  final Value<int?> capacity;
+  final Value<bool> isArchived;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const SubjectGroupsCompanion({
+    this.id = const Value.absent(),
+    this.nameAr = const Value.absent(),
+    this.nameFr = const Value.absent(),
+    this.subjectAr = const Value.absent(),
+    this.subjectFr = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    this.schoolLevel = const Value.absent(),
+    this.description = const Value.absent(),
+    this.capacity = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubjectGroupsCompanion.insert({
+    required String id,
+    required String nameAr,
+    this.nameFr = const Value.absent(),
+    required String subjectAr,
+    this.subjectFr = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    required String schoolLevel,
+    this.description = const Value.absent(),
+    this.capacity = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       nameAr = Value(nameAr),
+       subjectAr = Value(subjectAr),
+       schoolLevel = Value(schoolLevel),
+       deviceId = Value(deviceId);
+  static Insertable<SubjectGroup> custom({
+    Expression<String>? id,
+    Expression<String>? nameAr,
+    Expression<String>? nameFr,
+    Expression<String>? subjectAr,
+    Expression<String>? subjectFr,
+    Expression<String>? subjectId,
+    Expression<String>? schoolLevel,
+    Expression<String>? description,
+    Expression<int>? capacity,
+    Expression<bool>? isArchived,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nameAr != null) 'name_ar': nameAr,
+      if (nameFr != null) 'name_fr': nameFr,
+      if (subjectAr != null) 'subject_ar': subjectAr,
+      if (subjectFr != null) 'subject_fr': subjectFr,
+      if (subjectId != null) 'subject_id': subjectId,
+      if (schoolLevel != null) 'school_level': schoolLevel,
+      if (description != null) 'description': description,
+      if (capacity != null) 'capacity': capacity,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubjectGroupsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? nameAr,
+    Value<String?>? nameFr,
+    Value<String>? subjectAr,
+    Value<String?>? subjectFr,
+    Value<String?>? subjectId,
+    Value<String>? schoolLevel,
+    Value<String?>? description,
+    Value<int?>? capacity,
+    Value<bool>? isArchived,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return SubjectGroupsCompanion(
+      id: id ?? this.id,
+      nameAr: nameAr ?? this.nameAr,
+      nameFr: nameFr ?? this.nameFr,
+      subjectAr: subjectAr ?? this.subjectAr,
+      subjectFr: subjectFr ?? this.subjectFr,
+      subjectId: subjectId ?? this.subjectId,
+      schoolLevel: schoolLevel ?? this.schoolLevel,
+      description: description ?? this.description,
+      capacity: capacity ?? this.capacity,
+      isArchived: isArchived ?? this.isArchived,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nameAr.present) {
+      map['name_ar'] = Variable<String>(nameAr.value);
+    }
+    if (nameFr.present) {
+      map['name_fr'] = Variable<String>(nameFr.value);
+    }
+    if (subjectAr.present) {
+      map['subject_ar'] = Variable<String>(subjectAr.value);
+    }
+    if (subjectFr.present) {
+      map['subject_fr'] = Variable<String>(subjectFr.value);
+    }
+    if (subjectId.present) {
+      map['subject_id'] = Variable<String>(subjectId.value);
+    }
+    if (schoolLevel.present) {
+      map['school_level'] = Variable<String>(schoolLevel.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (capacity.present) {
+      map['capacity'] = Variable<int>(capacity.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubjectGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('nameAr: $nameAr, ')
+          ..write('nameFr: $nameFr, ')
+          ..write('subjectAr: $subjectAr, ')
+          ..write('subjectFr: $subjectFr, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('schoolLevel: $schoolLevel, ')
+          ..write('description: $description, ')
+          ..write('capacity: $capacity, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -14214,8 +14266,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $StudentsTable students = $StudentsTable(this);
   late final $TeachersTable teachers = $TeachersTable(this);
   late final $ClassroomsTable classrooms = $ClassroomsTable(this);
-  late final $SubjectGroupsTable subjectGroups = $SubjectGroupsTable(this);
   late final $SubjectsTable subjects = $SubjectsTable(this);
+  late final $SubjectGroupsTable subjectGroups = $SubjectGroupsTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
   late final $EnrollmentsTable enrollments = $EnrollmentsTable(this);
   late final $EnrollmentWaitlistTable enrollmentWaitlist =
@@ -14245,8 +14297,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     students,
     teachers,
     classrooms,
-    subjectGroups,
     subjects,
+    subjectGroups,
     sessions,
     enrollments,
     enrollmentWaitlist,
@@ -16773,6 +16825,348 @@ typedef $$ClassroomsTableProcessedTableManager =
       Classroom,
       PrefetchHooks Function({bool sessionsRefs})
     >;
+typedef $$SubjectsTableCreateCompanionBuilder =
+    SubjectsCompanion Function({
+      required String id,
+      required String nameAr,
+      Value<String?> nameFr,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$SubjectsTableUpdateCompanionBuilder =
+    SubjectsCompanion Function({
+      Value<String> id,
+      Value<String> nameAr,
+      Value<String?> nameFr,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$SubjectsTableReferences
+    extends BaseReferences<_$AppDatabase, $SubjectsTable, Subject> {
+  $$SubjectsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$SubjectGroupsTable, List<SubjectGroup>>
+  _subjectGroupsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.subjectGroups,
+    aliasName: 'subjects__id__subject_groups__subject_id',
+  );
+
+  $$SubjectGroupsTableProcessedTableManager get subjectGroupsRefs {
+    final manager = $$SubjectGroupsTableTableManager(
+      $_db,
+      $_db.subjectGroups,
+    ).filter((f) => f.subjectId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_subjectGroupsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SubjectsTableFilterComposer
+    extends Composer<_$AppDatabase, $SubjectsTable> {
+  $$SubjectsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameAr => $composableBuilder(
+    column: $table.nameAr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameFr => $composableBuilder(
+    column: $table.nameFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> subjectGroupsRefs(
+    Expression<bool> Function($$SubjectGroupsTableFilterComposer f) f,
+  ) {
+    final $$SubjectGroupsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subjectGroups,
+      getReferencedColumn: (t) => t.subjectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectGroupsTableFilterComposer(
+            $db: $db,
+            $table: $db.subjectGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SubjectsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SubjectsTable> {
+  $$SubjectsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameAr => $composableBuilder(
+    column: $table.nameAr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameFr => $composableBuilder(
+    column: $table.nameFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SubjectsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SubjectsTable> {
+  $$SubjectsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nameAr =>
+      $composableBuilder(column: $table.nameAr, builder: (column) => column);
+
+  GeneratedColumn<String> get nameFr =>
+      $composableBuilder(column: $table.nameFr, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  Expression<T> subjectGroupsRefs<T extends Object>(
+    Expression<T> Function($$SubjectGroupsTableAnnotationComposer a) f,
+  ) {
+    final $$SubjectGroupsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subjectGroups,
+      getReferencedColumn: (t) => t.subjectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectGroupsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subjectGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SubjectsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SubjectsTable,
+          Subject,
+          $$SubjectsTableFilterComposer,
+          $$SubjectsTableOrderingComposer,
+          $$SubjectsTableAnnotationComposer,
+          $$SubjectsTableCreateCompanionBuilder,
+          $$SubjectsTableUpdateCompanionBuilder,
+          (Subject, $$SubjectsTableReferences),
+          Subject,
+          PrefetchHooks Function({bool subjectGroupsRefs})
+        > {
+  $$SubjectsTableTableManager(_$AppDatabase db, $SubjectsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubjectsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubjectsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubjectsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> nameAr = const Value.absent(),
+                Value<String?> nameFr = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SubjectsCompanion(
+                id: id,
+                nameAr: nameAr,
+                nameFr: nameFr,
+                isArchived: isArchived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String nameAr,
+                Value<String?> nameFr = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => SubjectsCompanion.insert(
+                id: id,
+                nameAr: nameAr,
+                nameFr: nameFr,
+                isArchived: isArchived,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SubjectsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({subjectGroupsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (subjectGroupsRefs) db.subjectGroups,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (subjectGroupsRefs)
+                    await $_getPrefetchedData<
+                      Subject,
+                      $SubjectsTable,
+                      SubjectGroup
+                    >(
+                      currentTable: table,
+                      referencedTable: $$SubjectsTableReferences
+                          ._subjectGroupsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$SubjectsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).subjectGroupsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.subjectId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SubjectsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SubjectsTable,
+      Subject,
+      $$SubjectsTableFilterComposer,
+      $$SubjectsTableOrderingComposer,
+      $$SubjectsTableAnnotationComposer,
+      $$SubjectsTableCreateCompanionBuilder,
+      $$SubjectsTableUpdateCompanionBuilder,
+      (Subject, $$SubjectsTableReferences),
+      Subject,
+      PrefetchHooks Function({bool subjectGroupsRefs})
+    >;
 typedef $$SubjectGroupsTableCreateCompanionBuilder =
     SubjectGroupsCompanion Function({
       required String id,
@@ -16780,6 +17174,7 @@ typedef $$SubjectGroupsTableCreateCompanionBuilder =
       Value<String?> nameFr,
       required String subjectAr,
       Value<String?> subjectFr,
+      Value<String?> subjectId,
       required String schoolLevel,
       Value<String?> description,
       Value<int?> capacity,
@@ -16796,6 +17191,7 @@ typedef $$SubjectGroupsTableUpdateCompanionBuilder =
       Value<String?> nameFr,
       Value<String> subjectAr,
       Value<String?> subjectFr,
+      Value<String?> subjectId,
       Value<String> schoolLevel,
       Value<String?> description,
       Value<int?> capacity,
@@ -16813,6 +17209,23 @@ final class $$SubjectGroupsTableReferences
     super.$_table,
     super.$_typedResult,
   );
+
+  static $SubjectsTable _subjectIdTable(_$AppDatabase db) =>
+      db.subjects.createAlias('subject_groups__subject_id__subjects__id');
+
+  $$SubjectsTableProcessedTableManager? get subjectId {
+    final $_column = $_itemColumn<String>('subject_id');
+    if ($_column == null) return null;
+    final manager = $$SubjectsTableTableManager(
+      $_db,
+      $_db.subjects,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_subjectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$SessionsTable, List<Session>> _sessionsRefsTable(
     _$AppDatabase db,
@@ -16970,6 +17383,29 @@ class $$SubjectGroupsTableFilterComposer
     column: $table.deviceId,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$SubjectsTableFilterComposer get subjectId {
+    final $$SubjectsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectId,
+      referencedTable: $db.subjects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectsTableFilterComposer(
+            $db: $db,
+            $table: $db.subjects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> sessionsRefs(
     Expression<bool> Function($$SessionsTableFilterComposer f) f,
@@ -17140,6 +17576,29 @@ class $$SubjectGroupsTableOrderingComposer
     column: $table.deviceId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$SubjectsTableOrderingComposer get subjectId {
+    final $$SubjectsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectId,
+      referencedTable: $db.subjects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectsTableOrderingComposer(
+            $db: $db,
+            $table: $db.subjects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$SubjectGroupsTableAnnotationComposer
@@ -17192,6 +17651,29 @@ class $$SubjectGroupsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  $$SubjectsTableAnnotationComposer get subjectId {
+    final $$SubjectsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subjectId,
+      referencedTable: $db.subjects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubjectsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subjects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> sessionsRefs<T extends Object>(
     Expression<T> Function($$SessionsTableAnnotationComposer a) f,
@@ -17310,6 +17792,7 @@ class $$SubjectGroupsTableTableManager
           (SubjectGroup, $$SubjectGroupsTableReferences),
           SubjectGroup,
           PrefetchHooks Function({
+            bool subjectId,
             bool sessionsRefs,
             bool enrollmentsRefs,
             bool enrollmentWaitlistRefs,
@@ -17334,6 +17817,7 @@ class $$SubjectGroupsTableTableManager
                 Value<String?> nameFr = const Value.absent(),
                 Value<String> subjectAr = const Value.absent(),
                 Value<String?> subjectFr = const Value.absent(),
+                Value<String?> subjectId = const Value.absent(),
                 Value<String> schoolLevel = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int?> capacity = const Value.absent(),
@@ -17348,6 +17832,7 @@ class $$SubjectGroupsTableTableManager
                 nameFr: nameFr,
                 subjectAr: subjectAr,
                 subjectFr: subjectFr,
+                subjectId: subjectId,
                 schoolLevel: schoolLevel,
                 description: description,
                 capacity: capacity,
@@ -17364,6 +17849,7 @@ class $$SubjectGroupsTableTableManager
                 Value<String?> nameFr = const Value.absent(),
                 required String subjectAr,
                 Value<String?> subjectFr = const Value.absent(),
+                Value<String?> subjectId = const Value.absent(),
                 required String schoolLevel,
                 Value<String?> description = const Value.absent(),
                 Value<int?> capacity = const Value.absent(),
@@ -17378,6 +17864,7 @@ class $$SubjectGroupsTableTableManager
                 nameFr: nameFr,
                 subjectAr: subjectAr,
                 subjectFr: subjectFr,
+                subjectId: subjectId,
                 schoolLevel: schoolLevel,
                 description: description,
                 capacity: capacity,
@@ -17397,6 +17884,7 @@ class $$SubjectGroupsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                subjectId = false,
                 sessionsRefs = false,
                 enrollmentsRefs = false,
                 enrollmentWaitlistRefs = false,
@@ -17410,7 +17898,40 @@ class $$SubjectGroupsTableTableManager
                     if (enrollmentWaitlistRefs) db.enrollmentWaitlist,
                     if (teacherSubjectGroupsRefs) db.teacherSubjectGroups,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (subjectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.subjectId,
+                                    referencedTable:
+                                        $$SubjectGroupsTableReferences
+                                            ._subjectIdTable(db),
+                                    referencedColumn:
+                                        $$SubjectGroupsTableReferences
+                                            ._subjectIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (sessionsRefs)
@@ -17518,245 +18039,12 @@ typedef $$SubjectGroupsTableProcessedTableManager =
       (SubjectGroup, $$SubjectGroupsTableReferences),
       SubjectGroup,
       PrefetchHooks Function({
+        bool subjectId,
         bool sessionsRefs,
         bool enrollmentsRefs,
         bool enrollmentWaitlistRefs,
         bool teacherSubjectGroupsRefs,
       })
-    >;
-typedef $$SubjectsTableCreateCompanionBuilder =
-    SubjectsCompanion Function({
-      required String id,
-      required String nameAr,
-      Value<String?> nameFr,
-      Value<bool> isArchived,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      required String deviceId,
-      Value<int> rowid,
-    });
-typedef $$SubjectsTableUpdateCompanionBuilder =
-    SubjectsCompanion Function({
-      Value<String> id,
-      Value<String> nameAr,
-      Value<String?> nameFr,
-      Value<bool> isArchived,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String> deviceId,
-      Value<int> rowid,
-    });
-
-class $$SubjectsTableFilterComposer
-    extends Composer<_$AppDatabase, $SubjectsTable> {
-  $$SubjectsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get nameAr => $composableBuilder(
-    column: $table.nameAr,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get nameFr => $composableBuilder(
-    column: $table.nameFr,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get deviceId => $composableBuilder(
-    column: $table.deviceId,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$SubjectsTableOrderingComposer
-    extends Composer<_$AppDatabase, $SubjectsTable> {
-  $$SubjectsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get nameAr => $composableBuilder(
-    column: $table.nameAr,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get nameFr => $composableBuilder(
-    column: $table.nameFr,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get deviceId => $composableBuilder(
-    column: $table.deviceId,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$SubjectsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $SubjectsTable> {
-  $$SubjectsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get nameAr =>
-      $composableBuilder(column: $table.nameAr, builder: (column) => column);
-
-  GeneratedColumn<String> get nameFr =>
-      $composableBuilder(column: $table.nameFr, builder: (column) => column);
-
-  GeneratedColumn<bool> get isArchived => $composableBuilder(
-    column: $table.isArchived,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<String> get deviceId =>
-      $composableBuilder(column: $table.deviceId, builder: (column) => column);
-}
-
-class $$SubjectsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $SubjectsTable,
-          Subject,
-          $$SubjectsTableFilterComposer,
-          $$SubjectsTableOrderingComposer,
-          $$SubjectsTableAnnotationComposer,
-          $$SubjectsTableCreateCompanionBuilder,
-          $$SubjectsTableUpdateCompanionBuilder,
-          (Subject, BaseReferences<_$AppDatabase, $SubjectsTable, Subject>),
-          Subject,
-          PrefetchHooks Function()
-        > {
-  $$SubjectsTableTableManager(_$AppDatabase db, $SubjectsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SubjectsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SubjectsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SubjectsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> nameAr = const Value.absent(),
-                Value<String?> nameFr = const Value.absent(),
-                Value<bool> isArchived = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<String> deviceId = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SubjectsCompanion(
-                id: id,
-                nameAr: nameAr,
-                nameFr: nameFr,
-                isArchived: isArchived,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deviceId: deviceId,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String nameAr,
-                Value<String?> nameFr = const Value.absent(),
-                Value<bool> isArchived = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                required String deviceId,
-                Value<int> rowid = const Value.absent(),
-              }) => SubjectsCompanion.insert(
-                id: id,
-                nameAr: nameAr,
-                nameFr: nameFr,
-                isArchived: isArchived,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deviceId: deviceId,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$SubjectsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $SubjectsTable,
-      Subject,
-      $$SubjectsTableFilterComposer,
-      $$SubjectsTableOrderingComposer,
-      $$SubjectsTableAnnotationComposer,
-      $$SubjectsTableCreateCompanionBuilder,
-      $$SubjectsTableUpdateCompanionBuilder,
-      (Subject, BaseReferences<_$AppDatabase, $SubjectsTable, Subject>),
-      Subject,
-      PrefetchHooks Function()
     >;
 typedef $$SessionsTableCreateCompanionBuilder =
     SessionsCompanion Function({
@@ -26314,10 +26602,10 @@ class $AppDatabaseManager {
       $$TeachersTableTableManager(_db, _db.teachers);
   $$ClassroomsTableTableManager get classrooms =>
       $$ClassroomsTableTableManager(_db, _db.classrooms);
-  $$SubjectGroupsTableTableManager get subjectGroups =>
-      $$SubjectGroupsTableTableManager(_db, _db.subjectGroups);
   $$SubjectsTableTableManager get subjects =>
       $$SubjectsTableTableManager(_db, _db.subjects);
+  $$SubjectGroupsTableTableManager get subjectGroups =>
+      $$SubjectGroupsTableTableManager(_db, _db.subjectGroups);
   $$SessionsTableTableManager get sessions =>
       $$SessionsTableTableManager(_db, _db.sessions);
   $$EnrollmentsTableTableManager get enrollments =>

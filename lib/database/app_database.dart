@@ -86,6 +86,7 @@ class SubjectGroups extends Table {
   TextColumn get nameFr => text().nullable()();
   TextColumn get subjectAr => text()();
   TextColumn get subjectFr => text().nullable()();
+  TextColumn get subjectId => text().nullable().references(Subjects, #id)();
   TextColumn get schoolLevel => text()();
   TextColumn get description => text().nullable()();
   IntColumn get capacity => integer().nullable()();
@@ -407,7 +408,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -531,9 +532,18 @@ class AppDatabase extends _$AppDatabase {
             id: Value(UuidHelper.generate()),
             nameAr: Value(ar),
             nameFr: Value(fr),
-            deviceId: Value(await DeviceId.get()),
-          ));
-        }
+deviceId: Value(await DeviceId.get()),
+        ));
+      }
+      }
+      if (from < 16) {
+        await m.alterTable(TableMigration(subjectGroups,
+          newColumns: [subjectGroups.subjectId],
+        ));
+        await customStatement(
+          'UPDATE subject_groups SET subject_id = '
+          '(SELECT s.id FROM subjects s WHERE s.name_ar = subject_groups.subject_ar LIMIT 1) '
+          'WHERE subject_id IS NULL');
       }
     },
   );
