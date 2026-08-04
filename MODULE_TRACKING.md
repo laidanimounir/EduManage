@@ -1101,3 +1101,55 @@ for (final s in sessions) {
 
 ### Discount cap bug fix
 - Fixed an over-application bug in `createSessionCharge`: the computed discount is now capped at the charge that survives credit application, so an oversized discount can no longer mint a fabricated credit balance.
+
+---
+
+## ENROLLMENT OPERATIONS
+
+- [ ] **227. Rename verification**
+  - Open sidebar → "Enrollment Operations" (was "Enrollments"). Verify the screen loads and routes correctly from the sidebar; all existing table columns (checkbox, student, group, date, status, actions) and status filter chips are unchanged.
+- [ ] **228. School-level filter**
+  - In the Enrollment Operations toolbar, open the "Level" dropdown → pick a school level. Verify the list narrows to enrollments whose student is at that level.
+- [ ] **229. Subject-group filter**
+  - In the toolbar, open the "Group" dropdown → pick a subject group (archived groups excluded). Verify the list narrows to enrollments in that group.
+- [ ] **230. Date-range filter**
+  - Click "From" → pick a date. Click "To" → pick a later date. Verify only enrollments whose enrollment date falls within the range are shown.
+- [ ] **231. Filters combine (AND logic)**
+  - Apply status + level + group + date filters simultaneously. Verify each applied filter narrows the list further (intersection, not union).
+- [ ] **232. Clear filters**
+  - With any advanced filter active, click "Clear". Verify level/group/date filters reset to empty and the full list returns. Status chips are independent.
+- [ ] **233. Bulk apply special case — creation**
+  - Select 1+ enrollment rows → selection bar → "Apply Special Case". In the dialog enter case type, discount (if partial), reason, optional review date → confirm. Verify one `special_case` record is created per selected student (deduplicated by studentId) with a summary SnackBar "N special case(s) created".
+- [ ] **234. Bulk apply special case — skip if already active**
+  - Select rows where at least one student already has an active special case. Apply a new case. Verify the already-active student is skipped and the SnackBar reads "N created, M skipped (already active)". No duplicate active case exists (checked via `getActiveSpecialCase`).
+- [ ] **235. Bulk apply special case — audit + device id**
+  - After bulk apply, check the audit log → `special_case` entity shows `special_case_created_updated` entries with the correct audit id/device id (no missing-id bug). Verify the created rows carry `device_id`.
+- [ ] **236. Bulk transfer — same source group**
+  - Select multiple active rows all in the same source group → "Transfer Selected" is enabled. Pick a destination group → confirm. Verify each selected student is transferred (old row `transferred_out`, new active row in destination) with a summary SnackBar.
+- [ ] **237. Bulk transfer — multiple source groups disabled**
+  - Select active rows spanning two or more source groups → "Transfer Selected" is disabled and shows a tooltip "Only rows within a single source group can be bulk-transferred".
+- [ ] **238. Bulk transfer — capacity handling**
+  - Select N active rows from one group and target a destination that cannot fit all N. Confirm → dialog shows "Only X of N can fit". Choose "Increase Capacity" → capacity auto-suggested to fit all N → transfer proceeds. Choose "Cancel Transfer" → nothing changes.
+- [ ] **239. Bulk drop — confirmation dialog**
+  - Select rows → "Drop Enrollment". Verify a confirmation dialog appears showing the count of records that will be affected and requiring confirmation before any status changes.
+- [ ] **240. Bulk drop — cutoff date**
+  - In the drop confirmation dialog, set a cutoff date. Verify the affected count narrows to enrollments older than the cutoff. Confirm → only those records become inactive. Cancel → nothing changes.
+
+---
+
+## Round 13 — Enrollment Operations Hub (2026-08-04)
+
+### Task 1 — Rename
+- Sidebar label changed from "Enrollments" to "Enrollment Operations" (`main_shell.dart`). Class/file name kept as `EnrollmentScreen`/`enrollment_screen.dart` (single nav reference; display-string-only rename avoids churn).
+
+### Task 2 — Advanced filters
+- Added three additive filters above the existing All/Active/Inactive chips: school-level dropdown (from the student's level), subject-group dropdown (archived groups excluded), and From/To enrollment-date range pickers. Filters combine with the status filter via AND logic in the `filtered` getter. A "Clear" button (shown when any advanced filter is active) resets level/group/date filters; status chips are independent.
+
+### Task 3 — Bulk apply Special Case
+- New "Apply Special Case" button in the multi-select selection bar (enabled with 1+ rows). Opens a dialog reusing the Special Case form fields (Full/Partial, % vs fixed discount, reason, review date) WITHOUT the student picker, since students come from the selected rows. On confirm it creates one `special_case` per unique selected studentId using the correct id/`device_id` generation and the shared `AuditLogRepository` pattern (action `special_case_created_updated`). Students with an active case are skipped via `getActiveSpecialCase`. Summary SnackBar reports created/skipped counts.
+
+### Task 4 — Bulk transfer
+- New "Transfer Selected" button in the selection bar, enabled only when all selected active rows share one source group (otherwise disabled with an explanatory tooltip). Opens a dialog with a single destination-group dropdown (excludes source group and archived groups). On confirm it reuses `transferEnrollment` per selected row with the single-transfer capacity-check pattern made bulk-aware: the full-capacity dialog reports "Only X of N can fit" and pre-fills the capacity increase to fit all N.
+
+### Task 5 — Bulk archive/drop
+- Schema decision: `enrollments` has no `isArchived` column — `status` text ('active'/'inactive'/'transferred_out'/'dropped') is the record lifecycle, so "inactive" is already the archive-equivalent. No new schema or state was added. Instead, the existing bulk "Drop Enrollment" action now requires a confirmation dialog showing the affected count, with an optional cutoff date that restricts the action to enrollments older than the date. Already-inactive rows are skipped; a summary SnackBar reports the dropped count.
