@@ -98,7 +98,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         _NavEntry(icon: PhosphorIcons.table, label: l10n.timetable, screen: TimetableScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.usersThree, label: l10n.groups, screen: SubjectGroupListScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.building, label: l10n.classrooms, screen: ClassroomListScreen(database: db), section: NavSection.manage),
-        _NavEntry(icon: PhosphorIcons.notebook, label: l10n.enrollments, screen: EnrollmentScreen(database: db), section: NavSection.manage),
+        _NavEntry(icon: PhosphorIcons.notebook, label: 'Enrollment Operations', screen: EnrollmentScreen(database: db), section: NavSection.manage),
         _NavEntry(icon: PhosphorIcons.usersThree, label: 'Families', screen: FamilyScreen(database: db), section: NavSection.finance),
         _NavEntry(icon: PhosphorIcons.warning, label: 'Special Cases', screen: SpecialCasesScreen(database: db, createdByUserId: widget.userId), section: NavSection.finance),
         _NavEntry(icon: PhosphorIcons.currencyCircleDollar, label: l10n.payments, screen: UnifiedPaymentScreen(database: db), section: NavSection.finance),
