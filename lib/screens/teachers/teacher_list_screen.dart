@@ -572,10 +572,6 @@ class _TeacherDetailDialog extends StatelessWidget {
         const SizedBox(height: 8),
         _TeacherFinancialSummary(database: database, teacherId: teacher.id, l10n: l10n),
         const SizedBox(height: 16),
-        ShellSectionHeader(text: l10n.perSessionEarnings),
-        const SizedBox(height: 8),
-        _PerSessionEarningsList(database: database, teacherId: teacher.id, l10n: l10n),
-        const SizedBox(height: 16),
         ShellSectionHeader(text: l10n.teacherPayoutHistory),
         const SizedBox(height: 8),
         _PayoutHistoryList(database: database, teacherId: teacher.id, l10n: l10n),
@@ -793,66 +789,6 @@ class _TeacherFinancialSummaryState extends State<_TeacherFinancialSummary> {
         Text(label.contains('Count') ? '$amount' : '${amount.toStringAsFixed(0)} DA', style: TextStyle(fontSize: 11, fontWeight: bold ? FontWeight.w700 : FontWeight.w400, color: color)),
       ]),
     );
-  }
-}
-
-class _PerSessionEarningsList extends StatefulWidget {
-  final AppDatabase database;
-  final String teacherId;
-  final AppLocalizations l10n;
-  const _PerSessionEarningsList({required this.database, required this.teacherId, required this.l10n});
-  @override
-  State<_PerSessionEarningsList> createState() => _PerSessionEarningsListState();
-}
-
-class _PerSessionEarningsListState extends State<_PerSessionEarningsList> {
-  List<Map<String, dynamic>> _earnings = [];
-  bool _loading = true;
-
-  @override
-  void initState() { super.initState(); _load(); }
-
-  Future<void> _load() async {
-    _earnings = await widget.database.getTeacherSessionEarnings(widget.teacherId);
-    if (mounted) setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
-    if (_earnings.isEmpty) return Text(widget.l10n.noData, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
-
-    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
-    return Column(children: _earnings.map((e) {
-      final day = days[e['day_of_week'] as int? ?? 0];
-      final h = (e['start_time'] as DateTime).hour;
-      final m = (e['start_time'] as DateTime).minute.toString().padLeft(2, '0');
-      final att = e['attendance_count'] ?? 0;
-      final paid = (e['paid'] as double?) ?? 0.0;
-      final deducted = (e['deducted'] as double?) ?? 0.0;
-      final monthPrice = (e['monthly_price'] as double?) ?? 0.0;
-      final sessionsPerMonth = (e['sessions_per_month'] as int?) ?? 1;
-      final perSessionPrice = sessionsPerMonth > 0 ? monthPrice / sessionsPerMonth : 0.0;
-      final sharePct = e['teacher_share_pct'] as double?;
-      final fixedAmt = e['teacher_fixed_amount'] as double?;
-      final rateStr = fixedAmt != null ? '${fixedAmt.toStringAsFixed(0)} DA' : sharePct != null ? '${sharePct.toStringAsFixed(0)}%' : 'def';
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: ShellTokens.accent, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${e['group_name'] ?? ''}', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
-            Text('$day $h:$m · Rate: $rateStr · $att @{widget.l10n.attendance.toLowerCase()} · ${perSessionPrice.toStringAsFixed(0)}/session', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
-          ])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${paid.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600)),
-            if (deducted > 0) Text('-${deducted.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 9, color: SemanticTokens.error)),
-          ]),
-        ]),
-      );
-    }).toList());
   }
 }
 
