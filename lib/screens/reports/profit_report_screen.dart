@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
+import '../../constants/phosphor_icons.dart';
+import '../../constants/theme_tokens.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../repositories/student_repository.dart';
 import '../../constants/app_constants.dart';
@@ -17,6 +19,9 @@ class ProfitReportScreen extends StatefulWidget {
 class _ProfitReportScreenState extends State<ProfitReportScreen> {
   late final TransactionRepository _txRepo;
   late final StudentRepository _studentRepo;
+
+  int _tabIndex = 0;
+  static const _tabs = ['الأرباح الشهرية'];
 
   DateTime _selectedDate = DateTime.now();
   bool _loading = true;
@@ -164,23 +169,70 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     ];
 
     return Scaffold(
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildMonthSelector(l10n, monthNames),
-                  const SizedBox(height: 16),
-                  _buildSummaryCard(l10n),
-                  const SizedBox(height: 12),
-                  _buildBreakdownCard(l10n),
-                  const SizedBox(height: 12),
-                  _buildDebtorsCard(l10n),
-                ],
+      body: Column(
+        children: [
+          _buildTabBar(),
+          Expanded(
+            child: _buildTabContent(l10n, monthNames),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: ShellTokens.chromeSurface,
+        border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: List.generate(_tabs.length, (i) {
+          final selected = _tabIndex == i;
+          return Padding(
+            padding: const EdgeInsetsDirectional.only(end: 4),
+            child: GestureDetector(
+              onTap: () { setState(() => _tabIndex = i); },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected ? ShellTokens.accent : Colors.transparent,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                ),
+                child: Text(
+                  _tabs[i],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? ShellTokens.chromeBase : ShellTokens.textSecondary,
+                  ),
+                ),
               ),
             ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildTabContent(AppLocalizations l10n, List<String> monthNames) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildMonthSelector(l10n, monthNames),
+          const SizedBox(height: 16),
+          _buildSummaryCard(l10n),
+          const SizedBox(height: 12),
+          _buildBreakdownCard(l10n),
+          const SizedBox(height: 12),
+          _buildDebtorsCard(l10n),
+        ],
+      ),
     );
   }
 
