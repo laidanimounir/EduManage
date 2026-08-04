@@ -466,8 +466,24 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     );
   }
 
+  void _openTeachingInfo(Teacher t) {
+    showDialog(context: context, builder: (_) => _TeacherTeachingInfoDialog(
+      database: widget.database, teacherId: t.id,
+      teacherName: '${t.firstNameAr} ${t.lastNameAr}',
+    ));
+  }
+
+  void _openPayment(Teacher t) {
+    showDialog(context: context, builder: (_) => _TeacherPaymentDialog(
+      database: widget.database, teacherId: t.id,
+      teacherName: '${t.firstNameAr} ${t.lastNameAr}',
+    )).then((_) => _preloadOverdueStatus());
+  }
+
   Widget _buildActionsCell(Teacher t) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
+      IconButton(icon: const Icon(PhosphorIcons.info, size: 13), onPressed: () => _openTeachingInfo(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.accent, tooltip: 'معلومات التدريس'),
+      IconButton(icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 13), onPressed: () => _openPayment(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: SemanticTokens.success, tooltip: 'الدفع'),
       IconButton(icon: const Icon(PhosphorIcons.pencilSimple, size: 13), onPressed: () => _openEdit(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.textSecondary),
       IconButton(icon: Icon(t.isArchived ? PhosphorIcons.arrowRight : PhosphorIcons.archive, size: 13), onPressed: () => _confirmArchive(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: t.isArchived ? ShellTokens.accent : ShellTokens.textSecondary),
     ]);
@@ -574,7 +590,7 @@ class _TeacherDetailDialog extends StatelessWidget {
         const SizedBox(height: 16),
         ShellSectionHeader(text: l10n.teacherPayoutHistory),
         const SizedBox(height: 8),
-        _PayoutHistoryList(database: database, teacherId: teacher.id, l10n: l10n),
+        _PayoutHistoryList(database: database, teacherId: teacher.id, l10n: l10n, teacherName: '${teacher.firstNameAr} ${teacher.lastNameAr}'),
         const SizedBox(height: 16),
         ShellSectionHeader(text: l10n.salaryChangeHistory),
         const SizedBox(height: 8),
@@ -796,7 +812,8 @@ class _PayoutHistoryList extends StatefulWidget {
   final AppDatabase database;
   final String teacherId;
   final AppLocalizations l10n;
-  const _PayoutHistoryList({required this.database, required this.teacherId, required this.l10n});
+  final String teacherName;
+  const _PayoutHistoryList({required this.database, required this.teacherId, required this.l10n, required this.teacherName});
   @override
   State<_PayoutHistoryList> createState() => _PayoutHistoryListState();
 }
@@ -842,7 +859,7 @@ class _PayoutHistoryListState extends State<_PayoutHistoryList> {
       builder: (ctx) => _TeacherPaymentDialog(
         database: widget.database,
         teacherId: widget.teacherId,
-        teacherName: '',
+        teacherName: widget.teacherName,
       ),
     );
     if (result != null && result.confirmed && mounted) {
