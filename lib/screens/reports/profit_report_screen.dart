@@ -30,6 +30,8 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   static const _tabs = ['الأرباح الشهرية'];
 
   DateTime _selectedDate = DateTime.now();
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
   bool _loading = true;
 
   double _studentPaymentIncome = 0;
@@ -51,12 +53,17 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
 
-    final startOfMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
-    final endOfMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
-    final endOfMonthInclusive =
-        DateTime(endOfMonth.year, endOfMonth.month, endOfMonth.day, 23, 59, 59);
+    final DateTime start, end;
+    if (_dateFrom != null && _dateTo != null) {
+      start = _dateFrom!;
+      end = DateTime(_dateTo!.year, _dateTo!.month, _dateTo!.day, 23, 59, 59);
+    } else {
+      start = DateTime(_selectedDate.year, _selectedDate.month, 1);
+      final endOfMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0);
+      end = DateTime(endOfMonth.year, endOfMonth.month, endOfMonth.day, 23, 59, 59);
+    }
 
-    final allTx = await _txRepo.getByDateRange(startOfMonth, endOfMonthInclusive);
+    final allTx = await _txRepo.getByDateRange(start, end);
 
     double studentPayment = 0;
     double sessionCharge = 0;
@@ -189,7 +196,10 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
   Future<void> _exportPdf() async {
     final pdf = pw.Document();
     const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final periodLabel = '${monthLabels[_selectedDate.month]} ${_selectedDate.year}';
+    final hasRange = _dateFrom != null && _dateTo != null;
+    final periodLabel = hasRange
+        ? '${_fmtDate(_dateFrom!)} — ${_fmtDate(_dateTo!)}'
+        : '${monthLabels[_selectedDate.month]} ${_selectedDate.year}';
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       build: (_) => [
@@ -252,7 +262,11 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
       sheet.appendRow([TextCellValue(d.studentName), TextCellValue(d.studentCode), TextCellValue('${d.debt.toStringAsFixed(2)}')]);
     }
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/monthly_profit_${_selectedDate.year}_${_selectedDate.month.toString().padLeft(2, '0')}.xlsx');
+    final hasRange = _dateFrom != null && _dateTo != null;
+    final filePart = hasRange
+        ? '${_fmtDate(_dateFrom!)}_${_fmtDate(_dateTo!)}'
+        : '${_selectedDate.year}_${_selectedDate.month.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/monthly_profit_$filePart.xlsx');
     await file.writeAsBytes(excel.encode()!);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
@@ -315,30 +329,60 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
     );
   }
 
+  String _fmtDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   Widget _buildMonthSelector(AppLocalizations l10n, List<String> monthNames) {
+    final hasRange = _dateFrom != null && _dateTo != null;
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: _previousMonth,
-              tooltip: l10n.previous,
-            ),
-            GestureDetector(
-              onTap: _selectYear,
-              child: Text(
-                '${monthNames[_selectedDate.month]} ${_selectedDate.year}',
-                style: Theme.of(context).textTheme.titleMedium,
+            if (!hasRange) ...[
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _previousMonth,
+                tooltip: l10n.previous,
+              ),
+              GestureDetector(
+                onTap: _selectYear,
+                child: Text(
+                  '${monthNames[_selectedDate.month]} ${_selectedDate.year}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _nextMonth,
+                tooltip: l10n.next,
+              ),
+            ] else ...[
+              _buildDateButton('من ${_fmtDate(_dateFrom!)}', () => _pickDate(from: true)),
+              const SizedBox(width: 4),
+              _buildDateButton('إلى ${_fmtDate(_dateTo!)}', () => _pickDate(from: false)),
+              const SizedBox(width: 4),
+              SizedBox(
+                height: 34,
+                child: IconButton(
+                  icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary),
+                  onPressed: () { setState(() { _dateFrom = null; _dateTo = null; }); _loadData(); },
+                  tooltip: 'Clear',
+                  style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeBase),
+                ),
+              ),
+            ],
+            const Spacer(),
+            SizedBox(
+              height: 34,
+              child: IconButton(
+                icon: Icon(hasRange ? Icons.calendar_view_month : Icons.date_range, size: 16, color: hasRange ? ShellTokens.accent : ShellTokens.textSecondary),
+                onPressed: hasRange ? () { setState(() { _dateFrom = null; _dateTo = null; }); _loadData(); } : _pickDate,
+                tooltip: hasRange ? 'Show month' : 'Custom Range',
+                style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: _nextMonth,
-              tooltip: l10n.next,
-            ),
-            const Spacer(),
+            const SizedBox(width: 4),
             SizedBox(
               height: 34,
               child: IconButton(
@@ -362,6 +406,41 @@ class _ProfitReportScreenState extends State<ProfitReportScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDateButton(String label, VoidCallback onTap) {
+    return SizedBox(
+      height: 34,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          backgroundColor: ShellTokens.chromeSurface,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: const BorderSide(color: ShellTokens.chromeBorder)),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+      ),
+    );
+  }
+
+  Future<void> _pickDate({bool from = true}) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (from) {
+        _dateFrom = picked;
+        if (_dateTo == null) _dateTo = picked;
+      } else {
+        _dateTo = picked;
+        if (_dateFrom == null) _dateFrom = picked;
+      }
+    });
+    _loadData();
   }
 
   Widget _buildSummaryCard(AppLocalizations l10n) {
