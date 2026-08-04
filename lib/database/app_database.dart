@@ -1493,4 +1493,25 @@ class AppDatabase extends _$AppDatabase {
       };
     }).toList();
   }
+
+  Future<List<Map<String, dynamic>>> getTeacherWorkloadReport({DateTime? from, DateTime? to}) async {
+    final rows = await customSelect(
+      'SELECT t.id, t.first_name_ar, t.last_name_ar, t.code, '
+      '(SELECT COUNT(*) FROM sessions s WHERE s.teacher_id = t.id AND s.is_active = 1 AND s.is_archived = 0) AS session_count, '
+      'COALESCE((SELECT SUM((julianday(s.end_time) - julianday(s.start_time)) * 24) FROM sessions s WHERE s.teacher_id = t.id AND s.is_active = 1 AND s.is_archived = 0), 0) AS weekly_hours, '
+      '(SELECT COUNT(DISTINCT e.student_id) FROM enrollments e JOIN sessions s ON e.subject_group_id = s.subject_group_id WHERE s.teacher_id = t.id AND e.status = \'active\' AND e.is_transferred = 0 AND s.is_archived = 0) AS students_taught, '
+      'COALESCE((SELECT SUM(tx.amount) FROM transactions tx WHERE tx.teacher_id = t.id AND tx.type = \'teacher_payout\'), 0) AS earnings '
+      'FROM teachers t WHERE t.is_archived = 0 AND t.employment_end_date IS NULL ORDER BY t.first_name_ar',
+    ).get();
+
+    return rows.map((r) => {
+      'id': r.read<String>('id'),
+      'name': '${r.read<String>('first_name_ar')} ${r.read<String>('last_name_ar')}',
+      'code': r.read<String>('code'),
+      'session_count': r.read<int>('session_count'),
+      'weekly_hours': r.read<double>('weekly_hours'),
+      'students_taught': r.read<int>('students_taught'),
+      'earnings': r.read<double>('earnings'),
+    }).toList();
+  }
 }
