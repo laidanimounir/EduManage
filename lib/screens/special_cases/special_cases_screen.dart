@@ -191,8 +191,10 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
   String _discountType = 'percentage';
   final _discountCtrl = TextEditingController();
   final _reasonCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
   DateTime? _reviewDate;
   List<Student> _students = [];
+  List<Student> _filteredStudents = [];
   bool _loading = true;
   bool _saving = false;
   String? _loadError;
@@ -207,7 +209,29 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
   void dispose() {
     _discountCtrl.dispose();
     _reasonCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _filter(String query) {
+    final q = query.trim().toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filteredStudents = _students;
+        return;
+      }
+      _filteredStudents = _students.where((s) {
+        return s.firstNameAr.toLowerCase().contains(q) ||
+               s.lastNameAr.toLowerCase().contains(q) ||
+               (s.firstNameFr?.toLowerCase().contains(q) ?? false) ||
+               (s.lastNameFr?.toLowerCase().contains(q) ?? false) ||
+               s.code.toLowerCase().contains(q);
+      }).toList();
+    });
+  }
+
+  void _selectStudent(Student s) {
+    setState(() => _selectedStudentId = s.id);
   }
 
   Future<void> _load() async {
@@ -227,7 +251,7 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
         _reasonCtrl.text = c.reason;
         _reviewDate = c.reviewDate;
       }
-      if (mounted) setState(() { _students = list; _loading = false; _loadError = null; });
+      if (mounted) setState(() { _students = list; _filteredStudents = list; _loading = false; _loadError = null; });
     } catch (e) {
       if (mounted) setState(() { _loading = false; _loadError = 'Failed to load students: $e'; });
     }
@@ -323,17 +347,57 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
               : ListView(
                   shrinkWrap: true,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedStudentId,
-                      isExpanded: true,
-                      decoration: ShellInputDecoration.dropdown(),
-                      hint: const Text('Select student', style: TextStyle(fontSize: 12, color: ShellTokens.textDisabled)),
-                      style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
-                      items: _students.map((s) => DropdownMenuItem(
-                        value: s.id,
-                        child: Text('${s.firstNameAr} ${s.lastNameAr} — ${s.code}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
-                      )).toList(),
-                      onChanged: (v) => setState(() => _selectedStudentId = v),
+                    SizedBox(
+                      height: 34,
+                      child: TextField(
+                        controller: _searchCtrl,
+                        style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or code...',
+                          hintStyle: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled),
+                          prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 14, color: ShellTokens.textSecondary),
+                          filled: true,
+                          fillColor: ShellTokens.chromeBase,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+                          isDense: true,
+                        ),
+                        onChanged: _filter,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('${_filteredStudents.length} of ${_students.length} students',
+                      style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 150,
+                      child: _filteredStudents.isEmpty
+                          ? const Center(child: Text('No students match', style: TextStyle(fontSize: 11, color: ShellTokens.textDisabled)))
+                          : ListView.builder(
+                              itemCount: _filteredStudents.length,
+                              itemBuilder: (_, i) {
+                                final s = _filteredStudents[i];
+                                final selected = s.id == _selectedStudentId;
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: ShellTokens.accentMuted,
+                                    child: Text(s.firstNameAr.isNotEmpty ? s.firstNameAr[0] : '?',
+                                      style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+                                  ),
+                                  title: Text('${s.firstNameAr} ${s.lastNameAr}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: ShellTokens.textPrimary)),
+                                  subtitle: Text(s.code, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+                                  trailing: selected ? const Icon(PhosphorIcons.checkCircle, size: 14, color: ShellTokens.accent) : null,
+                                  selected: selected,
+                                  onTap: () => _selectStudent(s),
+                                );
+                              },
+                            ),
                     ),
                     const SizedBox(height: 12),
                     Row(children: [
