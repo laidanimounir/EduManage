@@ -195,9 +195,12 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
   DateTime? _reviewDate;
   List<Student> _students = [];
   List<Student> _filteredStudents = [];
+  List<String> _scheduleLines = [];
   bool _loading = true;
   bool _saving = false;
   String? _loadError;
+
+  static const _dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   void initState() {
@@ -232,6 +235,20 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
 
   void _selectStudent(Student s) {
     setState(() => _selectedStudentId = s.id);
+    _loadSchedule(s.id);
+  }
+
+  Future<void> _loadSchedule(String studentId) async {
+    final schedule = await widget.database.getStudentSessionSchedule(studentId);
+    if (!mounted) return;
+    final lines = <String>[];
+    for (final s in schedule) {
+      final dow = _dayNames.length > (s['day_of_week'] as int) ? _dayNames[s['day_of_week'] as int] : 'Day ${s['day_of_week']}';
+      final st = s['start_time'] as DateTime;
+      final et = s['end_time'] as DateTime;
+      lines.add('${s['group_name']} — $dow ${st.hour}:${st.minute.toString().padLeft(2, '0')}–${et.hour}:${et.minute.toString().padLeft(2, '0')}');
+    }
+    setState(() => _scheduleLines = lines.isEmpty ? ['No enrolled sessions'] : lines);
   }
 
   Future<void> _load() async {
@@ -251,7 +268,10 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
         _reasonCtrl.text = c.reason;
         _reviewDate = c.reviewDate;
       }
-      if (mounted) setState(() { _students = list; _filteredStudents = list; _loading = false; _loadError = null; });
+      if (mounted) {
+        setState(() { _students = list; _filteredStudents = list; _loading = false; _loadError = null; });
+        if (_selectedStudentId != null) _loadSchedule(_selectedStudentId!);
+      }
     } catch (e) {
       if (mounted) setState(() { _loading = false; _loadError = 'Failed to load students: $e'; });
     }
@@ -399,6 +419,26 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
                               },
                             ),
                     ),
+                    if (_selectedStudentId != null) ...[
+                      const SizedBox(height: 10),
+                      const ShellSectionHeader(text: 'Student Schedule', withBorder: false),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: ShellTokens.chromeBase,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: ShellTokens.chromeBorder),
+                        ),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          for (final i in _scheduleLines.asMap().entries) ...[
+                            Text(_scheduleLines[i.key], style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+                            if (i.key < _scheduleLines.length - 1) const SizedBox(height: 3),
+                          ],
+                        ]),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(children: [
                       Expanded(
