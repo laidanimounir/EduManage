@@ -5,10 +5,9 @@ import '../constants/theme_tokens.dart';
 import '../database/app_database.dart';
 import '../l10n/app_localizations.dart';
 import '../repositories/enrollment_repository.dart';
-import '../repositories/session_repository.dart';
+import '../repositories/subject_repository.dart';
 import '../repositories/subject_group_repository.dart';
 import '../utils/device_id.dart';
-import '../utils/uuid_helper.dart';
 
 class GroupAssignmentDialog extends StatefulWidget {
   final AppDatabase database;
@@ -26,12 +25,24 @@ class GroupAssignmentDialog extends StatefulWidget {
   State<GroupAssignmentDialog> createState() => _GroupAssignmentDialogState();
 }
 
+class _GroupData {
+  _GroupData(this.group, this.sessions);
+  final SubjectGroup group;
+  final List<Session> sessions;
+}
+
+class _SubjectData {
+  _SubjectData(this.subject, this.groups);
+  final Subject subject;
+  final List<_GroupData> groups;
+}
+
 class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
   late final EnrollmentRepository _enrollRepo;
-  List<Session> _sessions = [];
-  Map<String, SubjectGroup> _groupMap = {};
+  List<_SubjectData> _subjects = [];
   Set<String> _selectedSessionIds = {};
   Set<String> _alreadyEnrolledIds = {};
+  String? _currentSubjectId;
   bool _loading = true;
   bool _saving = false;
 
@@ -42,26 +53,72 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
     _load();
   }
 
+  static const _days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+
   Future<void> _load() async {
     final allSessions = await (widget.database.select(widget.database.sessions)
       ..where((t) => t.isActive.equals(true) & t.isArchived.equals(false)))
         .get();
+
     final groupRepo = SubjectGroupRepository(widget.database);
+    final subjectRepo = SubjectRepository(widget.database);
+
+    final allGroups = await groupRepo.getAll();
+    final groupsById = <String, SubjectGroup>{
+      for (final g in allGroups) g.id: g,
+    };
+    final archivedGroupIds = allGroups.where((g) => g.isArchived).map((g) => g.id).toSet();
+
+    // Sessions grouped by subject_group (only those belonging to a non-archived group).
+    final sessionsByGroup = <String, List<Session>>{};
     for (final s in allSessions) {
-      if (!_groupMap.containsKey(s.subjectGroupId)) {
-        final g = await groupRepo.getById(s.subjectGroupId);
-        if (g != null && !g.isArchived) _groupMap[s.subjectGroupId] = g;
+      final g = groupsById[s.subjectGroupId];
+      if (g != null && !archivedGroupIds.contains(g.id)) {
+        sessionsByGroup.putIfAbsent(s.subjectGroupId, () => []).add(s);
       }
     }
-    final activeSessions = allSessions.where((s) => _groupMap.containsKey(s.subjectGroupId)).toList();
+
+    // Resolve subjects for each group (prefer subject_id, fall back to subjectAr match).
+    final subjects = await subjectRepo.getAllActive();
+    final subjectById = <String, Subject>{for (final s in subjects) s.id: s};
+    final subjectByAr = <String, Subject>{
+      for (final s in subjects) if (s.nameAr.isNotEmpty) s.nameAr: s,
+    };
+
+    Subject? subjectOf(SubjectGroup g) {
+      if (g.subjectId != null && subjectById.containsKey(g.subjectId)) {
+        return subjectById[g.subjectId];
+      }
+      return subjectByAr[g.subjectAr];
+    }
+
+    final groupsBySubject = <String, List<_GroupData>>{};
+    for (final g in allGroups) {
+      if (g.isArchived) continue;
+      final sessions = sessionsByGroup[g.id];
+      if (sessions == null || sessions.isEmpty) continue;
+      final subj = subjectOf(g);
+      if (subj == null) continue;
+      groupsBySubject.putIfAbsent(subj.id, () => []).add(_GroupData(g, sessions));
+    }
+
+    final subjectData = <_SubjectData>[];
+    for (final s in subjects) {
+      final gs = groupsBySubject[s.id];
+      if (gs == null || gs.isEmpty) continue;
+      subjectData.add(_SubjectData(s, gs));
+    }
 
     final enrollments = await _enrollRepo.getActiveEnrollments(widget.studentId);
     final enrolledIds = enrollments.map((e) => e.sessionId).toSet();
 
     if (mounted) {
       setState(() {
-        _sessions = activeSessions;
+        _subjects = subjectData;
         _alreadyEnrolledIds = enrolledIds;
+        // Preselect the first subject for the two-step drill-down, keeping
+        // already-enrolled selections pre-checked.
+        _currentSubjectId = subjectData.isNotEmpty ? subjectData.first.subject.id : null;
         _selectedSessionIds = Set.from(enrolledIds);
         _loading = false;
       });
@@ -74,7 +131,8 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
 
     for (final sid in _selectedSessionIds) {
       if (!_alreadyEnrolledIds.contains(sid)) {
-        final sess = _sessions.firstWhere((s) => s.id == sid);
+        final sess = _sessionById(sid);
+        if (sess == null) continue;
         await _enrollRepo.create(EnrollmentsCompanion(
           studentId: Value(widget.studentId),
           sessionId: Value(sid),
@@ -98,7 +156,28 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
     if (mounted) Navigator.pop(context, true);
   }
 
-  static const _days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+  Session? _sessionById(String id) {
+    for (final sd in _subjects) {
+      for (final gd in sd.groups) {
+        for (final s in gd.sessions) {
+          if (s.id == id) return s;
+        }
+      }
+    }
+    return null;
+  }
+
+  String _dayLabel(Session s) => '${_days[s.dayOfWeek]} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}–${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}';
+
+  String _level(String l) {
+    final l10n = widget.l10n;
+    return switch (l) {
+      'primary' => l10n.schoolLevelPrimary,
+      'middle' => l10n.schoolLevelMiddle,
+      'secondary' => l10n.schoolLevelSecondary,
+      _ => l,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,9 +196,21 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
               ),
               child: Row(
                 children: [
-                  const Text('تسجيل في الحصص',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-                  const Spacer(),
+                  if (_currentSubjectId != null)
+                    IconButton(
+                      icon: const Icon(PhosphorIcons.arrowLeft, size: 18, color: ShellTokens.textSecondary),
+                      onPressed: _loading ? null : () => setState(() => _currentSubjectId = null),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      padding: EdgeInsets.zero,
+                    ),
+                  Expanded(
+                    child: Text(
+                      _currentSubjectId == null ? 'تسجيل في الحصص' : _subjects.firstWhere((s) => s.subject.id == _currentSubjectId, orElse: () => _subjects.first).subject.nameAr,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary),
                     onPressed: () => Navigator.pop(context),
@@ -137,7 +228,7 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)),
                       ),
                     )
-                  : _sessions.isEmpty
+                  : _subjects.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(40),
                           child: Center(
@@ -145,38 +236,16 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
                               style: TextStyle(color: ShellTokens.textDisabled, fontSize: 13)),
                           ),
                         )
-                      : ListView(
-                          padding: const EdgeInsets.all(8),
-                          children: _sessions.map((s) {
-                            final checked = _selectedSessionIds.contains(s.id);
-                            final alreadyEnrolled = _alreadyEnrolledIds.contains(s.id);
-                            final group = _groupMap[s.subjectGroupId];
-                            final day = _days[s.dayOfWeek];
-                            return CheckboxListTile(
-                              value: checked,
-                              onChanged: (v) {
-                                setState(() {
-                                  if (v == true) {
-                                    _selectedSessionIds.add(s.id);
-                                  } else {
-                                    _selectedSessionIds.remove(s.id);
-                                  }
-                                });
-                              },
-                              activeColor: ShellTokens.accent,
-                              checkColor: ShellTokens.chromeBase,
-                              title: Text(group?.nameAr ?? '',
-                                style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary)),
-                              subtitle: Text('$day ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}–${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}',
-                                style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                              secondary: alreadyEnrolled
-                                  ? const Icon(PhosphorIcons.checkCircle, size: 16, color: SemanticTokens.success)
-                                  : null,
-                              dense: true,
-                              contentPadding: const EdgeInsetsDirectional.only(start: 8, end: 12),
-                            );
-                          }).toList(),
-                        ),
+                      : _currentSubjectId == null
+                          ? ListView(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              children: _subjects.map((sd) => _SubjectRow(
+                                data: sd,
+                                selectedCount: sd.groups.fold<int>(0, (acc, gd) => acc + gd.sessions.where((s) => _selectedSessionIds.contains(s.id)).length),
+                                onTap: () => setState(() => _currentSubjectId = sd.subject.id),
+                              )).toList(),
+                            )
+                          : _buildSubjectDetail(),
             ),
             const Divider(height: 1, color: ShellTokens.chromeBorder),
             Padding(
@@ -205,6 +274,84 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectDetail() {
+    final sd = _subjects.firstWhere((s) => s.subject.id == _currentSubjectId,
+        orElse: () => _subjects.first);
+    return ListView(
+      padding: const EdgeInsets.all(8),
+      children: [
+        for (final gd in sd.groups) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
+            child: Row(children: [
+              Expanded(child: Text(gd.group.nameAr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary))),
+              Text(_level(gd.group.schoolLevel), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            ]),
+          ),
+          for (final s in gd.sessions)
+            CheckboxListTile(
+              value: _selectedSessionIds.contains(s.id),
+              onChanged: (v) {
+                setState(() {
+                  if (v == true) {
+                    _selectedSessionIds.add(s.id);
+                  } else {
+                    _selectedSessionIds.remove(s.id);
+                  }
+                });
+              },
+              activeColor: ShellTokens.accent,
+              checkColor: ShellTokens.chromeBase,
+              title: Text(_dayLabel(s), style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary)),
+              secondary: _alreadyEnrolledIds.contains(s.id)
+                  ? const Icon(PhosphorIcons.checkCircle, size: 16, color: SemanticTokens.success)
+                  : null,
+              dense: true,
+              contentPadding: const EdgeInsetsDirectional.only(start: 8, end: 12),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SubjectRow extends StatelessWidget {
+  final _SubjectData data;
+  final int selectedCount;
+  final VoidCallback onTap;
+  const _SubjectRow({required this.data, required this.selectedCount, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSessions = data.groups.fold<int>(0, (acc, gd) => acc + gd.sessions.length);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(children: [
+          const Icon(PhosphorIcons.notebook, size: 18, color: ShellTokens.accent),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(data.subject.nameAr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+            if (data.subject.nameFr != null && data.subject.nameFr!.isNotEmpty)
+              Text(data.subject.nameFr!, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+            const SizedBox(height: 2),
+            Text('${data.groups.length} قسم · $totalSessions حصة', style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
+          ])),
+          const SizedBox(width: 8),
+          if (selectedCount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: ShellTokens.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+              child: Text('$selectedCount', style: const TextStyle(fontSize: 10, color: ShellTokens.accent, fontWeight: FontWeight.w700)),
+            ),
+          const SizedBox(width: 4),
+          const Icon(PhosphorIcons.caretRight, size: 14, color: ShellTokens.textDisabled),
+        ]),
       ),
     );
   }
