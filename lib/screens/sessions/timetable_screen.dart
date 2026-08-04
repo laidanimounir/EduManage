@@ -1,7 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
+import 'package:excel/excel.dart' hide Border;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
+import '../../constants/app_constants.dart';
 import '../../database/app_database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../repositories/session_repository.dart';
@@ -161,9 +168,9 @@ class _TimetableScreenState extends State<TimetableScreen> with WidgetsBindingOb
       child: Row(children: [
         Text(l10n.weeklyTimetable, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
         const Spacer(),
-        SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.file, size: 16, color: ShellTokens.textSecondary), onPressed: () {}, tooltip: l10n.export, style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+        SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.file, size: 16, color: ShellTokens.textSecondary), onPressed: _exportPdf, tooltip: l10n.exportPdf, style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
         const SizedBox(width: 4),
-        SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.table, size: 16, color: ShellTokens.textSecondary), onPressed: () {}, tooltip: l10n.exportExcel, style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
+        SizedBox(height: 34, child: IconButton(icon: const Icon(PhosphorIcons.table, size: 16, color: ShellTokens.textSecondary), onPressed: _exportExcel, tooltip: l10n.exportExcel, style: IconButton.styleFrom(backgroundColor: ShellTokens.chromeSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))))),
       ]),
     );
   }
@@ -229,5 +236,59 @@ class _TimetableScreenState extends State<TimetableScreen> with WidgetsBindingOb
       color: bgColor,
       child: Text(text, style: TextStyle(fontSize: fontSize, fontWeight: bold ? FontWeight.w700 : FontWeight.w400, color: ShellTokens.textPrimary)),
     );
+  }
+
+  String _fmtTime(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _exportPdf() async {
+    final l10n = AppLocalizations.of(context);
+    final sessions = _allSessions.where((s) => !s.isArchived && s.isActive && (_teacherFilter.isEmpty || s.teacherId == _teacherFilter)).toList();
+    final pdf = pw.Document();
+    final dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.landscape,
+      build: (_) => [
+        pw.Header(text: l10n.weeklyTimetable, level: 1),
+        pw.SizedBox(height: 8),
+        pw.TableHelper.fromTextArray(
+          headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 7),
+          headers: ['Day', 'Start', 'End', 'Group', 'Teacher', 'Classroom', 'Price'],
+          data: sessions.map((s) => [
+            dayNames[s.dayOfWeek],
+            _fmtTime(s.startTime),
+            _fmtTime(s.endTime),
+            _groupNames[s.subjectGroupId] ?? '',
+            _teacherNames[s.teacherId] ?? '',
+            _roomNames[s.classroomId] ?? '',
+            '${s.monthlyPrice.toStringAsFixed(0)} ${AppConstants.currencySymbol}',
+          ]).toList(),
+        ),
+      ],
+    ));
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  Future<void> _exportExcel() async {
+    final sessions = _allSessions.where((s) => !s.isArchived && s.isActive && (_teacherFilter.isEmpty || s.teacherId == _teacherFilter)).toList();
+    final excel = Excel.createExcel();
+    final sheet = excel['Timetable'];
+    final dayNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    sheet.appendRow([TextCellValue('Day'), TextCellValue('Start'), TextCellValue('End'), TextCellValue('Group'), TextCellValue('Teacher'), TextCellValue('Classroom'), TextCellValue('Price')]);
+    for (final s in sessions) {
+      sheet.appendRow([
+        TextCellValue(dayNames[s.dayOfWeek]),
+        TextCellValue(_fmtTime(s.startTime)),
+        TextCellValue(_fmtTime(s.endTime)),
+        TextCellValue(_groupNames[s.subjectGroupId] ?? ''),
+        TextCellValue(_teacherNames[s.teacherId] ?? ''),
+        TextCellValue(_roomNames[s.classroomId] ?? ''),
+        TextCellValue('${s.monthlyPrice.toStringAsFixed(0)}'),
+      ]);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/timetable_export.xlsx');
+    await file.writeAsBytes(excel.encode()!);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export Excel: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
   }
 }
