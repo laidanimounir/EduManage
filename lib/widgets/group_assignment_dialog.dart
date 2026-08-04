@@ -8,6 +8,7 @@ import '../repositories/enrollment_repository.dart';
 import '../repositories/subject_repository.dart';
 import '../repositories/subject_group_repository.dart';
 import '../utils/device_id.dart';
+import '../widgets/shell_input_decoration.dart';
 
 class GroupAssignmentDialog extends StatefulWidget {
   final AppDatabase database;
@@ -26,9 +27,10 @@ class GroupAssignmentDialog extends StatefulWidget {
 }
 
 class _GroupData {
-  _GroupData(this.group, this.sessions);
+  _GroupData(this.group, this.sessions, this.enrollCount);
   final SubjectGroup group;
   final List<Session> sessions;
+  final int enrollCount;
 }
 
 class _SubjectData {
@@ -99,7 +101,8 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
       if (sessions == null || sessions.isEmpty) continue;
       final subj = subjectOf(g);
       if (subj == null) continue;
-      groupsBySubject.putIfAbsent(subj.id, () => []).add(_GroupData(g, sessions));
+      final enrollCount = await groupRepo.activeEnrollmentCount(g.id);
+      groupsBySubject.putIfAbsent(subj.id, () => []).add(_GroupData(g, sessions, enrollCount));
     }
 
     final subjectData = <_SubjectData>[];
@@ -175,6 +178,53 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
       if (_selectedSessionIds.contains(s.id) || _alreadyEnrolledIds.contains(s.id)) count++;
     }
     return count > 1;
+  }
+
+  bool _isFull(_GroupData gd) =>
+      gd.group.capacity != null && gd.enrollCount >= gd.group.capacity!;
+
+  Future<void> _onSessionToggle(_GroupData gd, Session s, bool? v) async {
+    if (v != true) {
+      setState(() => _selectedSessionIds.remove(s.id));
+      return;
+    }
+    if (!_isFull(gd)) {
+      setState(() => _selectedSessionIds.add(s.id));
+      return;
+    }
+
+    // Group is at/over capacity — reuse the capacity flow used by the
+    // standalone Enrollment screen and group detail dialog.
+    final l10n = widget.l10n;
+    final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: const Text('القسم ممتلئ', style: TextStyle(color: ShellTokens.textPrimary)),
+      content: Text('Active enrollments (${gd.enrollCount}) equals capacity (${gd.group.capacity}). Increase capacity, add to waitlist, or cancel.', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: Text(l10n.cancel)),
+        TextButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), child: const Text('Add to Waitlist', style: TextStyle(color: ShellTokens.accent))),
+        TextButton(onPressed: () => Navigator.pop(ctx, 'increase'), child: const Text('Increase Capacity', style: TextStyle(color: ShellTokens.accent))),
+      ],
+    ));
+    if (!mounted) return;
+
+    if (action == 'increase') {
+      final groupRepo = SubjectGroupRepository(widget.database);
+      final ctrl = TextEditingController(text: '${gd.group.capacity! + 1}');
+      final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: const Text('تعيين سعة جديدة', style: TextStyle(color: ShellTokens.textPrimary)),
+        content: TextField(controller: ctrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
+      ));
+      if (ok == true && mounted) {
+        await groupRepo.update(gd.group.id, SubjectGroupsCompanion(capacity: Value(int.tryParse(ctrl.text))));
+        setState(() => _selectedSessionIds.add(s.id));
+      }
+    } else if (action == 'waitlist' && mounted) {
+      await _enrollRepo.addToWaitlist(widget.studentId, gd.group.id);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تمت الإضافة إلى قائمة الانتظار')));
+    }
   }
 
   String _level(String l) {
@@ -297,6 +347,13 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
             padding: const EdgeInsets.fromLTRB(8, 10, 8, 2),
             child: Row(children: [
               Expanded(child: Text(gd.group.nameAr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary))),
+              if (_isFull(gd))
+                Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: SemanticTokens.error.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                  child: Text('Full', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: SemanticTokens.error)),
+                ),
               Text(_level(gd.group.schoolLevel), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
             ]),
           ),
@@ -318,15 +375,7 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
           for (final s in gd.sessions)
             CheckboxListTile(
               value: _selectedSessionIds.contains(s.id),
-              onChanged: (v) {
-                setState(() {
-                  if (v == true) {
-                    _selectedSessionIds.add(s.id);
-                  } else {
-                    _selectedSessionIds.remove(s.id);
-                  }
-                });
-              },
+              onChanged: (v) => _onSessionToggle(gd, s, v),
               activeColor: ShellTokens.accent,
               checkColor: ShellTokens.chromeBase,
               title: Text(_dayLabel(s), style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary)),
