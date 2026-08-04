@@ -93,6 +93,11 @@ class TransactionService extends BaseRepository {
       if (amount < 0) amount = 0;
     }
 
+    // Cap the discount so it never exceeds the charge that survives credit
+    // application. Without this a discount computed on the pre-credit amount
+    // could exceed the final charge and mint a fabricated credit balance.
+    if (familyDiscountAmount > amount) familyDiscountAmount = amount;
+
     final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';
 
     final priorCount = await _countSessionCharges(enrollmentId);
