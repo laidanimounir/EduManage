@@ -84,6 +84,22 @@ class TransactionService extends BaseRepository {
       }
     }
 
+    double specialCaseDiscountAmount = 0;
+    String? specialCaseDiscountNote;
+    final specialCase = await db.getActiveSpecialCase(studentId);
+    if (specialCase != null) {
+      if (specialCase.caseType == 'full') {
+        specialCaseDiscountAmount = amount;
+        specialCaseDiscountNote = 'Special case exemption (${specialCase.reason}) — 100%';
+      } else if (specialCase.discountPercent != null) {
+        specialCaseDiscountAmount = amount * specialCase.discountPercent! / 100;
+        specialCaseDiscountNote = 'Special case exemption (${specialCase.reason}) — ${specialCase.discountPercent!.toStringAsFixed(0)}%';
+      } else if (specialCase.discountFixed != null) {
+        specialCaseDiscountAmount = specialCase.discountFixed!;
+        specialCaseDiscountNote = 'Special case exemption (${specialCase.reason}) — ${specialCase.discountFixed!.toStringAsFixed(0)} DA';
+      }
+    }
+
     if (amount < 0) amount = 0;
 
     final currentBalance = await db.getStudentBalance(studentId);
@@ -93,10 +109,13 @@ class TransactionService extends BaseRepository {
       if (amount < 0) amount = 0;
     }
 
-    // Cap the discount so it never exceeds the charge that survives credit
-    // application. Without this a discount computed on the pre-credit amount
-    // could exceed the final charge and mint a fabricated credit balance.
+    // Cap the discounts so combined family + special case exemptions never
+    // exceed the charge that survives credit application. Without this a
+    // discount computed on the pre-credit amount could exceed the final charge
+    // and mint a fabricated credit balance.
     if (familyDiscountAmount > amount) familyDiscountAmount = amount;
+    final specialCaseBudget = amount - familyDiscountAmount;
+    if (specialCaseDiscountAmount > specialCaseBudget) specialCaseDiscountAmount = specialCaseBudget;
 
     final priceSnapshotStr = 'price:${amount.toStringAsFixed(0)},monthly:${session?.monthlyPrice.toStringAsFixed(0) ?? '0'},perMonth:${session?.sessionsPerMonth ?? 0}';
 
@@ -149,6 +168,27 @@ class TransactionService extends BaseRepository {
         entityType: const Value('transaction'),
         entityId: Value(discountId),
         details: Value('Student: $studentId, Charge: $id, Discount: $familyDiscountAmount, Family: ${familyDiscountNote}'),
+      ));
+    }
+
+    if (specialCaseDiscountAmount > 0 && specialCaseDiscountNote != null) {
+      final discountId = await _txRepo.insert(TransactionsCompanion(
+        studentId: Value(studentId),
+        enrollmentId: Value(enrollmentId),
+        sessionId: Value(sessionId),
+        type: const Value('discount'),
+        amount: Value(specialCaseDiscountAmount),
+        transactionDate: Value(txDate),
+        note: Value(specialCaseDiscountNote),
+        referenceTransactionId: Value(id),
+        createdByUserId: Value(createdByUserId),
+      ));
+      await _auditRepo.create(AuditLogCompanion(
+        userId: Value(createdByUserId ?? 'system'),
+        action: const Value('special_case_discount_applied'),
+        entityType: const Value('transaction'),
+        entityId: Value(discountId),
+        details: Value('Student: $studentId, Charge: $id, Discount: $specialCaseDiscountAmount, Case: $specialCaseDiscountNote'),
       ));
     }
 
