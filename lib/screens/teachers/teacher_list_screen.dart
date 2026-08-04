@@ -126,6 +126,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   Future<void> _confirmArchive(Teacher t) async {
     final l10n = AppLocalizations.of(context);
     final hasTxns = await widget.database.hasTeacherTransactions(t.id);
+    final unpaidAttendance = await widget.database.getTeacherUnpaidAttendanceCount(t.id);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -143,6 +144,25 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                 const SizedBox(width: 8),
                 Expanded(child: Text(l10n.archiveTeacherWarning, style: const TextStyle(color: SemanticTokens.warning, fontSize: 12))),
               ]),
+            ],
+            if (unpaidAttendance > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: SemanticTokens.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: SemanticTokens.error.withValues(alpha: 0.3)),
+                ),
+                child: Row(children: [
+                  const Icon(PhosphorIcons.warning, size: 16, color: SemanticTokens.error),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(
+                    '$unpaidAttendance حصة غير مدفوعة المستحقات لهذا الأستاذ',
+                    style: const TextStyle(color: SemanticTokens.error, fontSize: 12, fontWeight: FontWeight.w500),
+                  )),
+                ]),
+              ),
             ],
           ],
         ),

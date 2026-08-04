@@ -674,6 +674,24 @@ class AppDatabase extends _$AppDatabase {
     return result.read<int>('cnt') > 0;
   }
 
+  Future<int> getTeacherUnpaidAttendanceCount(String teacherId) async {
+    final result = await customSelect(
+      'SELECT COUNT(*) AS cnt FROM ('
+      'SELECT DISTINCT a.session_id, a.attendance_date '
+      'FROM attendance a JOIN sessions s ON a.session_id = s.id '
+      'WHERE s.teacher_id = ? AND a.student_id IS NOT NULL '
+      'AND NOT EXISTS ('
+      '  SELECT 1 FROM transactions t '
+      '  WHERE t.teacher_id = s.teacher_id '
+      '  AND t.session_id = a.session_id '
+      '  AND t.type = \'teacher_payout\' '
+      '  AND date(t.transaction_date) = date(a.attendance_date)'
+      '))',
+      variables: [Variable.withString(teacherId)],
+    ).getSingle();
+    return result.read<int>('cnt');
+  }
+
   Future<DateTime?> getTeacherLastPayoutDate(String teacherId) async {
     final result = await customSelect(
       'SELECT transaction_date FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\' ORDER BY transaction_date DESC LIMIT 1',
