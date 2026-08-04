@@ -31,15 +31,28 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   List<SubjectGroup> _groups = [];
   bool _loading = true;
   String _statusFilter = 'all';
+  String? _levelFilter;
+  String? _groupFilter;
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
+  Map<String, String> _studentLevels = {};
+  Set<String> _levelOptions = {};
   Set<String> _selectedIds = {};
   Map<String, String> _studentNames = {};
   Map<String, String> _groupNames = {};
 
   @override
   void initState() { super.initState(); _enrollRepo = EnrollmentRepository(widget.database); _studentRepo = StudentRepository(widget.database); _groupRepo = SubjectGroupRepository(widget.database); _load(); }
-  Future<void> _load() async { setState(() => _loading = true); _enrollments = await _enrollRepo.getAll(); _students = await _studentRepo.getAll(); _groups = await _groupRepo.getAll(); _studentNames.clear(); _groupNames.clear(); for (final s in _students) { _studentNames[s.id] = '${s.firstNameAr} ${s.lastNameAr}'; } for (final g in _groups) { _groupNames[g.id] = g.nameAr; } _selectedIds.clear(); if (mounted) setState(() => _loading = false); }
+  Future<void> _load() async { setState(() => _loading = true); _enrollments = await _enrollRepo.getAll(); _students = await _studentRepo.getAll(); _groups = await _groupRepo.getAll(); _studentNames.clear(); _groupNames.clear(); for (final s in _students) { _studentNames[s.id] = '${s.firstNameAr} ${s.lastNameAr}'; _studentLevels[s.id] = s.schoolLevel ?? ''; } _levelOptions = _students.map((s) => s.schoolLevel ?? '').where((l) => l.isNotEmpty).toSet(); for (final g in _groups) { _groupNames[g.id] = g.nameAr; } _selectedIds.clear(); if (mounted) setState(() => _loading = false); }
 
-  List<Enrollment> get filtered => _enrollments.where((e) => _statusFilter == 'all' || e.status == _statusFilter).toList();
+  List<Enrollment> get filtered => _enrollments.where((e) {
+    if (_statusFilter != 'all' && e.status != _statusFilter) return false;
+    if (_levelFilter != null && _studentLevels[e.studentId] != _levelFilter) return false;
+    if (_groupFilter != null && e.subjectGroupId != _groupFilter) return false;
+    if (_dateFrom != null && e.enrollmentDate.isBefore(_dateFrom!)) return false;
+    if (_dateTo != null && e.enrollmentDate.isAfter(_dateTo!.add(const Duration(days: 1)))) return false;
+    return true;
+  }).toList();
 
   void _toggleSelectAll() {
     setState(() { if (_selectedIds.length == filtered.length) { _selectedIds.clear(); } else { _selectedIds = filtered.map((e) => e.id).toSet(); } });
@@ -180,15 +193,97 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   }
 
   Widget _buildToolbar(AppLocalizations l10n) {
-    return Padding(padding: const EdgeInsets.fromLTRB(12, 10, 12, 6), child: Row(children: [
-      Expanded(child: Row(children: [
-        ShellFilterChip(label: l10n.all, selected: _statusFilter == 'all', onTap: () { _statusFilter = 'all'; setState(() {}); }),
-        ShellFilterChip(label: l10n.active, selected: _statusFilter == 'active', onTap: () { _statusFilter = 'active'; setState(() {}); }),
-        ShellFilterChip(label: l10n.inactive, selected: _statusFilter == 'inactive', onTap: () { _statusFilter = 'inactive'; setState(() {}); }),
-      ])),
-      SizedBox(height: 34, child: FilledButton.icon(onPressed: _showAddDialog, icon: const Icon(PhosphorIcons.plus, size: 14), label: Text(l10n.enrollStudent, style: const TextStyle(fontSize: 12)), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12)))),
-    ]));
+    final hasAdvanced = _levelFilter != null || _groupFilter != null || _dateFrom != null || _dateTo != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+      child: Column(children: [
+        Row(children: [
+          Expanded(child: Row(children: [
+            ShellFilterChip(label: l10n.all, selected: _statusFilter == 'all', onTap: () { _statusFilter = 'all'; setState(() {}); }),
+            ShellFilterChip(label: l10n.active, selected: _statusFilter == 'active', onTap: () { _statusFilter = 'active'; setState(() {}); }),
+            ShellFilterChip(label: l10n.inactive, selected: _statusFilter == 'inactive', onTap: () { _statusFilter = 'inactive'; setState(() {}); }),
+          ])),
+          SizedBox(height: 34, child: FilledButton.icon(onPressed: _showAddDialog, icon: const Icon(PhosphorIcons.plus, size: 14), label: Text(l10n.enrollStudent, style: const TextStyle(fontSize: 12)), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12)))),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _buildLevelFilter(l10n)),
+          const SizedBox(width: 6),
+          Expanded(child: _buildGroupFilter()),
+          const SizedBox(width: 6),
+          _buildDateButton(_dateFrom == null ? 'From' : _fmtDate(_dateFrom!), onTap: () async {
+            final picked = await showDatePicker(context: context, initialDate: _dateFrom ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2035));
+            if (picked != null) setState(() => _dateFrom = picked);
+          }),
+          const SizedBox(width: 4),
+          _buildDateButton(_dateTo == null ? 'To' : _fmtDate(_dateTo!), onTap: () async {
+            final picked = await showDatePicker(context: context, initialDate: _dateTo ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2035));
+            if (picked != null) setState(() => _dateTo = picked);
+          }),
+          if (hasAdvanced) TextButton(onPressed: () { setState(() { _levelFilter = null; _groupFilter = null; _dateFrom = null; _dateTo = null; }); }, child: const Text('Clear', style: TextStyle(fontSize: 10, color: ShellTokens.accent))),
+        ]),
+      ]),
+    );
   }
+
+  Widget _buildLevelFilter(AppLocalizations l10n) {
+    return DropdownButtonFormField<String>(
+      value: _levelFilter,
+      isExpanded: true,
+      decoration: ShellInputDecoration.dropdown(hintText: 'Level'),
+      style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+      items: [
+        for (final l in _levelOptions.toList()..sort())
+          DropdownMenuItem(value: l, child: Text(_levelLabel(l, l10n), style: const TextStyle(fontSize: 11))),
+      ],
+      onChanged: (v) => setState(() => _levelFilter = v),
+    );
+  }
+
+  Widget _buildGroupFilter() {
+    return DropdownButtonFormField<String>(
+      value: _groupFilter,
+      isExpanded: true,
+      decoration: _inputDropdown('Group'),
+      style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+      items: _groups.where((g) => !g.isArchived).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 11)))).toList(),
+      onChanged: (v) => setState(() => _groupFilter = v),
+    );
+  }
+
+  Widget _buildDateButton(String label, {required VoidCallback onTap}) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(PhosphorIcons.calendar, size: 12, color: ShellTokens.textSecondary),
+      label: Text(label, style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: ShellTokens.chromeBorder),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        minimumSize: const Size(0, 34),
+      ),
+    );
+  }
+
+  InputDecoration _inputDropdown(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+      );
+
+  String _levelLabel(String level, AppLocalizations l10n) {
+    switch (level) {
+      case 'primary': return l10n.schoolLevelPrimary;
+      case 'middle': return l10n.schoolLevelMiddle;
+      case 'secondary': return l10n.schoolLevelSecondary;
+      default: return level;
+    }
+  }
+
+  String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const AppLoading();
