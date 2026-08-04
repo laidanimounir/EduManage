@@ -8,6 +8,7 @@ import '../../widgets/shell_section_header.dart';
 import '../../widgets/shell_input_decoration.dart';
 import '../../widgets/app_loading.dart';
 import '../../widgets/app_empty_state.dart';
+import '../../utils/device_id.dart';
 
 class SpecialCasesScreen extends StatefulWidget {
   final AppDatabase database;
@@ -284,6 +285,7 @@ class _SpecialCaseEditDialogState extends State<_SpecialCaseEditDialog> {
               reason: Value(_reasonCtrl.text.trim()),
               approvedByUserId: Value(widget.currentUserId),
               reviewDate: Value(_reviewDate),
+              deviceId: Value(await DeviceId.get()),
             ));
             await widget.database.into(widget.database.auditLog).insert(AuditLogCompanion(
               userId: Value(widget.currentUserId),
