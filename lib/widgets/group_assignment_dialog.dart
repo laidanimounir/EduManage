@@ -169,6 +169,14 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
 
   String _dayLabel(Session s) => '${_days[s.dayOfWeek]} ${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')}–${s.endTime.hour}:${s.endTime.minute.toString().padLeft(2, '0')}';
 
+  bool _isDuplicateGroupSelection(_GroupData gd) {
+    var count = 0;
+    for (final s in gd.sessions) {
+      if (_selectedSessionIds.contains(s.id) || _alreadyEnrolledIds.contains(s.id)) count++;
+    }
+    return count > 1;
+  }
+
   String _level(String l) {
     final l10n = widget.l10n;
     return switch (l) {
@@ -292,6 +300,21 @@ class _GroupAssignmentDialogState extends State<GroupAssignmentDialog> {
               Text(_level(gd.group.schoolLevel), style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
             ]),
           ),
+          if (_isDuplicateGroupSelection(gd)) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(color: SemanticTokens.warning.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6), border: Border.all(color: SemanticTokens.warning.withValues(alpha: 0.4))),
+                child: Row(children: [
+                  const Icon(PhosphorIcons.warning, size: 14, color: SemanticTokens.warning),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('يتم تسجيل الطالب في أكثر من حصة لنفس القسم — قد يؤدي هذا إلى ازدواج في الفوترة', style: const TextStyle(fontSize: 11, color: SemanticTokens.warning))),
+                ]),
+              ),
+            ),
+          ],
           for (final s in gd.sessions)
             CheckboxListTile(
               value: _selectedSessionIds.contains(s.id),
