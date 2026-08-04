@@ -6,6 +6,9 @@ import '../repositories/enrollment_repository.dart';
 import '../repositories/classroom_repository.dart';
 import '../repositories/school_level_repository.dart';
 import '../repositories/teacher_subject_group_repository.dart';
+import '../repositories/attendance_repository.dart';
+import '../utils/uuid_helper.dart';
+import '../utils/device_id.dart';
 import '../database/app_database.dart';
 import 'package:drift/drift.dart';
 
@@ -122,6 +125,20 @@ class SampleDataSeeder {
       ));
     }
 
+    for (int day = 1; day <= 7; day++) {
+      await sessionRepo.create(SessionsCompanion(
+        subjectGroupId: Value(g2Id),
+        teacherId: Value(t2Id),
+        classroomId: Value(classroomId),
+        dayOfWeek: Value(day),
+        startTime: Value(startTime),
+        endTime: Value(endTime),
+        monthlyPrice: const Value(4000),
+        sessionsPerMonth: const Value(8),
+        teacherFixedAmount: const Value(30000),
+      ));
+    }
+
     final enrollingRepo = EnrollmentRepository(db);
     await enrollingRepo.create(EnrollmentsCompanion(
       studentId: Value(s1Id),
@@ -146,5 +163,46 @@ class SampleDataSeeder {
       subjectGroupId: Value(g2Id),
       status: const Value('active'),
     ));
+
+    final t1Sessions = await sessionRepo.getByTeacher(t1Id);
+    final t2Sessions = await sessionRepo.getByTeacher(t2Id);
+    final attendanceRepo = AttendanceRepository(db);
+    final deviceId = await DeviceId.get();
+
+    for (int dateOffset = 1; dateOffset <= 3; dateOffset++) {
+      final attDate = DateTime(2026, 8, dateOffset);
+      for (final sess in t1Sessions.take(3)) {
+        for (final sid in [s1Id, s2Id]) {
+          await db.into(db.attendance).insert(AttendanceCompanion(
+            id: Value(UuidHelper.generate()),
+            studentId: Value(sid),
+            personType: const Value('student'),
+            sessionId: Value(sess.id),
+            attendanceDate: Value(attDate),
+            checkInTime: Value(attDate),
+            status: const Value('present'),
+            deviceId: Value(deviceId),
+          ));
+        }
+      }
+    }
+
+    for (int dateOffset = 2; dateOffset <= 3; dateOffset++) {
+      final attDate = DateTime(2026, 8, dateOffset);
+      for (final sess in t2Sessions.take(2)) {
+        for (final sid in [s1Id, s3Id]) {
+          await db.into(db.attendance).insert(AttendanceCompanion(
+            id: Value(UuidHelper.generate()),
+            studentId: Value(sid),
+            personType: const Value('student'),
+            sessionId: Value(sess.id),
+            attendanceDate: Value(attDate),
+            checkInTime: Value(attDate),
+            status: const Value('present'),
+            deviceId: Value(deviceId),
+          ));
+        }
+      }
+    }
   }
 }
