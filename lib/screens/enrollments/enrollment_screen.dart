@@ -224,6 +224,80 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     }
   }
 
+  Future<void> _showBulkTransferDialog() async {
+    final l10n = AppLocalizations.of(context);
+    final active = _selectedEnrollmentRows().where((e) => e.status == 'active').toList();
+    if (active.isEmpty) return;
+    final sourceGroupId = active.first.subjectGroupId;
+    final rows = active.where((e) => e.subjectGroupId == sourceGroupId).toList();
+    final selectedCount = rows.length;
+
+    String? toGroupId;
+    final result = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => ShellDialog(
+      maxWidth: 450, title: 'Transfer Selected Students',
+      body: Column(children: [
+        Text('From: ${_groupNames[sourceGroupId] ?? sourceGroupId} ($selectedCount students)', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(value: toGroupId, decoration: ShellInputDecoration.dropdown(hintText: 'Destination group'), items: _groups.where((g) => !g.isArchived && g.id != sourceGroupId).map((g) => DropdownMenuItem(value: g.id, child: Text(g.nameAr, style: const TextStyle(fontSize: 12)))).toList(), onChanged: (v) => setSt(() => toGroupId = v)),
+        const SizedBox(height: 20),
+        SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)), child: const Text('Transfer Selected'))),
+      ]),
+    )));
+    if (result != true || toGroupId == null || !mounted) return;
+
+    final groupRepo = SubjectGroupRepository(widget.database);
+    final g = await groupRepo.getById(toGroupId!);
+    final currentCount = await groupRepo.activeEnrollmentCount(toGroupId!);
+    final remaining = g?.capacity != null ? g!.capacity! - currentCount : null;
+
+    if (remaining != null && remaining < selectedCount) {
+      if (context.mounted) {
+        final action = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+          backgroundColor: ShellTokens.chromeSurface,
+          title: Text('Destination group is full', style: const TextStyle(color: ShellTokens.textPrimary)),
+          content: Text('Capacity: ${g!.capacity}, current: $currentCount. Only $remaining of $selectedCount selected student(s) can fit. Choose an action:', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: Text(l10n.cancel)),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'increase'), child: Text('Increase Capacity', style: const TextStyle(color: ShellTokens.accent))),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'waitlist'), child: const Text('Cancel Transfer', style: TextStyle(color: SemanticTokens.error))),
+          ],
+        ));
+        if (action == 'increase') {
+          final newCapCtrl = TextEditingController(text: '${g!.capacity! + (selectedCount - remaining)}');
+          final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+            backgroundColor: ShellTokens.chromeSurface, title: Text('Set new capacity', style: const TextStyle(color: ShellTokens.textPrimary)),
+            content: TextField(controller: newCapCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: ShellTokens.textPrimary), decoration: ShellInputDecoration.textField()),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.save))],
+          ));
+          if (ok == true) await groupRepo.update(toGroupId!, SubjectGroupsCompanion(capacity: Value(int.tryParse(newCapCtrl.text))));
+          else return;
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
+    int done = 0;
+    int skipped = 0;
+    for (final e in rows) {
+      try {
+        await _enrollRepo.transferEnrollment(studentId: e.studentId, fromGroupId: e.subjectGroupId, toGroupId: toGroupId!);
+        done++;
+      } catch (_) {
+        skipped++;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(skipped > 0 ? '$done transferred, $skipped skipped' : '$done student(s) transferred'),
+        backgroundColor: ShellTokens.chromeSurface,
+      ));
+      _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -240,14 +314,28 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   }
 
   Widget _buildSelectionBar(AppLocalizations l10n) {
+    final bulkTransferable = _canBulkTransfer();
     return Container(padding: const EdgeInsetsDirectional.only(start: 12, end: 12, top: 8, bottom: 8), decoration: const BoxDecoration(color: ShellTokens.accentMuted, border: Border(bottom: BorderSide(color: ShellTokens.accent))), child: Row(children: [
       Text('${_selectedIds.length} ${l10n.selected}', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
       const Spacer(),
       TextButton(onPressed: () => _bulkSetStatus('active'), child: Text(l10n.active, style: const TextStyle(fontSize: 11, color: SemanticTokens.success))),
       TextButton(onPressed: () => _bulkSetStatus('inactive'), child: Text(l10n.dropEnrollment, style: const TextStyle(fontSize: 11, color: SemanticTokens.error))),
       TextButton(onPressed: _selectedIds.isNotEmpty ? _showBulkSpecialCaseDialog : null, child: const Text('Apply Special Case', style: TextStyle(fontSize: 11, color: SemanticTokens.success))),
+      Tooltip(
+        message: bulkTransferable ? '' : 'Only rows within a single source group can be bulk-transferred',
+        child: TextButton(
+          onPressed: bulkTransferable ? _showBulkTransferDialog : null,
+          child: const Text('Transfer Selected', style: TextStyle(fontSize: 11, color: ShellTokens.accent)),
+        ),
+      ),
       TextButton.icon(onPressed: _toggleSelectAll, icon: Icon(_selectedIds.length == filtered.length ? PhosphorIcons.arrowLeft : PhosphorIcons.squaresFour, size: 16), label: Text(_selectedIds.length == filtered.length ? l10n.clearSelection : l10n.selectAll), style: TextButton.styleFrom(foregroundColor: ShellTokens.textPrimary)),
     ]));
+  }
+
+  bool _canBulkTransfer() {
+    final active = _selectedEnrollmentRows().where((e) => e.status == 'active').toList();
+    if (active.isEmpty) return false;
+    return active.map((e) => e.subjectGroupId).toSet().length == 1;
   }
 
   Widget _buildToolbar(AppLocalizations l10n) {
