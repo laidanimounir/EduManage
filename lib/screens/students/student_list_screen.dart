@@ -917,6 +917,13 @@ class _StudentListScreenState extends State<StudentListScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
+            icon: const Icon(PhosphorIcons.wallet, size: 14, color: ShellTokens.accent),
+            onPressed: () => _openPayDialog(s),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            tooltip: '\u062F\u0641\u0639',
+          ),
+          IconButton(
             icon: const Icon(PhosphorIcons.pencilSimple, size: 14, color: ShellTokens.textSecondary),
             onPressed: () => _openEdit(s),
             padding: EdgeInsets.zero,
@@ -955,6 +962,22 @@ class _StudentListScreenState extends State<StudentListScreen> {
     _barcodePaused = false;
     _restoreBarcodeFocus();
     if (result == true) _fetchPage();
+  }
+
+  void _openPayDialog(Student s) {
+    _barcodePaused = true;
+    showDialog(
+      context: context,
+      builder: (_) => _StudentPayDialog(
+        database: widget.database,
+        student: s,
+        l10n: AppLocalizations.of(context),
+      ),
+    ).then((_) {
+      _barcodePaused = false;
+      _restoreBarcodeFocus();
+      _fetchPage();
+    });
   }
 
   Future<void> _confirmArchive(Student s) async {
@@ -1352,23 +1375,6 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
     if (mounted) setState(() { _feeAmount = amount; _feePaid = feePaid; _loading = false; });
   }
 
-  Future<void> _markFeePaid() async {
-    final l10n = widget.l10n;
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      backgroundColor: ShellTokens.chromeSurface,
-      title: Text('\u062A\u0623\u0643\u064A\u062F \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
-      content: Text('\u0633\u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0642\u064A\u0645\u0629 ${_feeAmount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: Text('\u062A\u0623\u0643\u064A\u062F')),
-      ],
-    ));
-    if (confirmed != true) return;
-    final txService = TransactionService(widget.database);
-    await txService.createRegistrationFeePayment(studentId: widget.studentId, amount: _feeAmount);
-    _load();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
@@ -1381,11 +1387,7 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
       if (_feePaid)
         Text(widget.l10n.feePaid, style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600))
       else
-        FilledButton(
-          onPressed: _markFeePaid,
-          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-          child: Text(widget.l10n.markAsPaid, style: const TextStyle(fontSize: 11)),
-        ),
+        Text('\u063A\u064A\u0631 \u0645\u062F\u0641\u0648\u0639', style: const TextStyle(fontSize: 11, color: SemanticTokens.error, fontWeight: FontWeight.w600)),
     ]);
   }
 }
@@ -2236,6 +2238,306 @@ class _SpecialCaseBannerState extends State<_SpecialCaseBanner> {
           Text(c.reason,
             style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary)),
         ])),
+      ]),
+    );
+  }
+}
+
+class _StudentPayDialog extends StatefulWidget {
+  final AppDatabase database;
+  final Student student;
+  final AppLocalizations l10n;
+  const _StudentPayDialog({required this.database, required this.student, required this.l10n});
+  @override
+  State<_StudentPayDialog> createState() => _StudentPayDialogState();
+}
+
+class _StudentPayDialogState extends State<_StudentPayDialog> {
+  List<Map<String, dynamic>> _charges = [];
+  List<Transaction> _recentPayments = [];
+  bool _feePaid = false;
+  double _feeAmount = 0;
+  double _totalUnpaid = 0;
+  bool _loading = true;
+  bool _saving = false;
+  bool _success = false;
+  String _successMsg = '';
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  String _method = 'cash';
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final db = widget.database;
+    final txService = TransactionService(db);
+    final prefs = await SharedPreferences.getInstance();
+    final globalFee = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final studentRow = await (db.select(db.students)..where((t) => t.id.equals(widget.student.id))).getSingleOrNull();
+    final override = studentRow?.registrationFeeOverride;
+    _feeAmount = override ?? globalFee;
+    _feePaid = await db.isRegistrationFeePaid(widget.student.id);
+    _charges = await txService.getUnpaidCharges(widget.student.id);
+    _totalUnpaid = _charges.fold(0.0, (s, c) => s + ((c['remaining'] as double?) ?? 0));
+    final now = DateTime.now();
+    final cutoff = now.subtract(const Duration(hours: 48));
+    final allTxns = await (db.select(db.transactions)..where((t) => t.studentId.equals(widget.student.id) & t.type.isIn(['student_payment', 'registration_fee_payment']))..orderBy([(t) => OrderingTerm.desc(t.transactionDate)])).get();
+    _recentPayments = allTxns.where((t) => t.transactionDate.isAfter(cutoff) && t.referenceTransactionId == null).toList();
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _pay() async {
+    final amount = double.tryParse(_amountCtrl.text) ?? 0;
+    if (amount <= 0) return;
+    setState(() => _saving = true);
+    try {
+      final txService = TransactionService(widget.database);
+      await txService.createStudentPayment(
+        studentId: widget.student.id,
+        amount: amount,
+        paymentMethod: _method,
+        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      );
+      setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u0627\u0644\u062F\u0641\u0639 \u0628\u0646\u062C\u0627\u062D'; });
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (mounted) { _load(); setState(() => _success = false); _amountCtrl.clear(); _noteCtrl.clear(); }
+    } catch (e) {
+      if (mounted) setState(() => _saving = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: ShellTokens.chromeSurface));
+    }
+  }
+
+  Future<void> _payRegistrationFee() async {
+    if (_feePaid) return;
+    setState(() => _saving = true);
+    try {
+      final txService = TransactionService(widget.database);
+      await txService.createRegistrationFeePayment(studentId: widget.student.id, amount: _feeAmount);
+      setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0646\u062C\u0627\u062D'; });
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (mounted) _load().then((_) { if (mounted) setState(() => _success = false); });
+    } catch (e) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _undoPayment(Transaction t) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: const Text('\u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062A\u0631\u0627\u062C\u0639', style: TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
+      content: Text('\u0633\u064A\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0639\u0645\u0644\u064A\u0629 \u0639\u0643\u0633 \u0644\u0644\u062F\u0641\u0639\u0629 \u0628\u0642\u064A\u0645\u0629 ${t.amount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('\u0625\u0644\u063A\u0627\u0621', style: TextStyle(color: ShellTokens.textSecondary))), FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: const Text('\u062A\u0623\u0643\u064A\u062F'))],
+    ));
+    if (confirmed != true) return;
+    setState(() => _saving = true);
+    try {
+      final txService = TransactionService(widget.database);
+      await txService.createReversal(referenceTransactionId: t.id, note: '\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0627\u0644\u062F\u0641\u0639');
+      setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0628\u0646\u062C\u0627\u062D'; });
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) _load().then((_) { if (mounted) setState(() => _success = false); });
+    } catch (e) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  String _methodLabel(String m) {
+    switch (m) {
+      case 'card': return '\u0634\u064A\u0643';
+      case 'bank_transfer': return '\u062A\u062D\u0648\u064A\u0644';
+      case 'mobile_payment': return '\u062F\u0641\u0639 \u062C\u0648\u0627\u0644';
+      default: return '\u0646\u0642\u062F\u064A';
+    }
+  }
+
+  @override
+  void dispose() { _amountCtrl.dispose(); _noteCtrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          _buildHeader(),
+          if (_success) _buildSuccess() else Flexible(child: SingleChildScrollView(padding: const EdgeInsets.all(14), child: _buildContent())),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder))),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('\u062F\u0641\u0639: ${widget.student.firstNameAr} ${widget.student.lastNameAr}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+          Text(widget.student.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+        ])),
+        IconButton(icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary), onPressed: () => Navigator.pop(context), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+      ]),
+    );
+  }
+
+  Widget _buildSuccess() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(children: [
+        TweenAnimationBuilder<double>(tween: Tween(begin: 0.0, end: 1.0), duration: const Duration(milliseconds: 400), builder: (_, v, __) => Transform.scale(scale: v, child: const Icon(PhosphorIcons.checkCircle, size: 40, color: SemanticTokens.success))),
+        const SizedBox(height: 12),
+        Text(_successMsg, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_loading) return const SizedBox(height: 80, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _buildRegFeeSection(),
+      const SizedBox(height: 12),
+      _buildChargesSection(),
+      if (_charges.isNotEmpty || !_feePaid) ...[
+        const SizedBox(height: 14),
+        _buildPaymentForm(),
+      ],
+      if (_recentPayments.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        _buildRecentPayments(),
+      ],
+      const SizedBox(height: 8),
+    ]);
+  }
+
+  Widget _buildRegFeeSection() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
+      child: Row(children: [
+        const Icon(PhosphorIcons.identificationCard, size: 16, color: ShellTokens.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(child: Text('\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644: ${_feeAmount.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
+        if (_feePaid)
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: SemanticTokens.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: const Text('\u0645\u062F\u0641\u0648\u0639', style: TextStyle(fontSize: 10, color: SemanticTokens.success, fontWeight: FontWeight.w600)))
+        else if (!_saving)
+          FilledButton(onPressed: _payRegistrationFee, style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)), child: Text('\u062F\u0641\u0639', style: const TextStyle(fontSize: 11))),
+      ]),
+    );
+  }
+
+  Widget _buildChargesSection() {
+    if (_charges.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('\u0631\u0633\u0648\u0645 \u0627\u0644\u062D\u0635\u0635 \u063A\u064A\u0631 \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 6),
+        ..._charges.map((c) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(children: [
+            Expanded(child: Text('${c['type'] ?? ''} ${c['date'] ?? ''}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Text('${(c['remaining'] as double?)?.toStringAsFixed(0) ?? '0'} \u062F\u062C', style: const TextStyle(fontSize: 11, color: SemanticTokens.error, fontWeight: FontWeight.w600)),
+          ]),
+        )),
+        const SizedBox(height: 4),
+        Text('\u0627\u0644\u0645\u062C\u0645\u0648\u0639: ${_totalUnpaid.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+    );
+  }
+
+  Widget _buildPaymentForm() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
+      child: Column(children: [
+        Row(children: [
+          Expanded(
+            child: TextFormField(
+              controller: _amountCtrl,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary),
+              decoration: InputDecoration(
+                hintText: '\u0627\u0644\u0645\u0628\u0644\u063A',
+                filled: true, fillColor: ShellTokens.chromeSurface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              final total = _totalUnpaid + (_feePaid ? 0 : _feeAmount);
+              _amountCtrl.text = total.toStringAsFixed(0);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(color: ShellTokens.accentMuted, borderRadius: BorderRadius.circular(4)),
+              child: Text('\u062F\u0641\u0639 \u0627\u0644\u0643\u0644', style: TextStyle(fontSize: 10, color: ShellTokens.accent)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _method,
+              items: ['cash', 'card', 'bank_transfer', 'mobile_payment'].map((m) => DropdownMenuItem(value: m, child: Text(_methodLabel(m), style: const TextStyle(fontSize: 11)))).toList(),
+              onChanged: (v) => setState(() => _method = v!),
+              style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+              decoration: InputDecoration(filled: true, fillColor: ShellTokens.chromeSurface, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder))),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _saving ? null : _pay,
+            style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+            child: Text('\u062F\u0641\u0639', style: const TextStyle(fontSize: 12)),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _noteCtrl,
+          style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+          decoration: const InputDecoration(
+            hintText: '\u0645\u0644\u0627\u062D\u0638\u0629',
+            filled: true, fillColor: ShellTokens.chromeSurface,
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(6)), borderSide: BorderSide(color: ShellTokens.chromeBorder)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildRecentPayments() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('\u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0627\u062A \u0627\u0644\u0623\u062E\u064A\u0631\u0629', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 6),
+        ..._recentPayments.map((t) {
+          final hoursSince = DateTime.now().difference(t.transactionDate).inHours;
+          final canUndo = hoursSince < 48;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${t.type == 'registration_fee_payment' ? '\u062D\u0642\u0648\u0642 \u062A\u0633\u062C\u064A\u0644' : '\u0631\u0633\u0648\u0645 \u062D\u0635\u0635'}: ${t.amount.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+                Text('${t.transactionDate.year}-${t.transactionDate.month.toString().padLeft(2,'0')}-${t.transactionDate.day.toString().padLeft(2,'0')} ${t.transactionDate.hour.toString().padLeft(2,'0')}:${t.transactionDate.minute.toString().padLeft(2,'0')}', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+                if (!canUndo) const Text('\u0644\u0627 \u064A\u0645\u0643\u0646 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0647\u0630\u0647 \u0627\u0644\u0639\u0645\u0644\u064A\u0629', style: TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+              ])),
+              if (canUndo && !_saving)
+                TextButton(onPressed: () => _undoPayment(t), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), minimumSize: Size.zero), child: const Text('\u062A\u0631\u0627\u062C\u0639', style: TextStyle(fontSize: 10, color: SemanticTokens.error))),
+            ]),
+          );
+        }),
       ]),
     );
   }
