@@ -949,7 +949,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get markAsPaid => 'Marquer comme payé';
 
   @override
-  String get feeUnpaid => 'Frais impayés';
+  String get feeUnpaid => 'Frais d\'inscription impayés';
 
   @override
   String get feePaid => 'Frais payés';

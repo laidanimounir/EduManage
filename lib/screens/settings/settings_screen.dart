@@ -46,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     _registrationFeeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
     _feeAmountCtrl.text = _registrationFeeAmount.toStringAsFixed(0);
+    debugPrint('[SETTINGS] Loaded global fee from prefs: $_registrationFeeAmount');
     final ag1 = prefs.getInt('aging_bucket_1') ?? 30;
     final ag2 = prefs.getInt('aging_bucket_2') ?? 60;
     final ag3 = prefs.getInt('aging_bucket_3') ?? 90;
@@ -370,6 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             final amount = double.tryParse(_feeAmountCtrl.text) ?? 2000.0;
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setDouble('registration_fee_amount', amount);
+                            debugPrint('[SETTINGS] Saved global fee to prefs: $amount');
                             setState(() { _registrationFeeAmount = amount; _feeSaving = false; });
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

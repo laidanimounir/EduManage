@@ -948,7 +948,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get markAsPaid => 'Mark as Paid';
 
   @override
-  String get feeUnpaid => 'Fee Unpaid';
+  String get feeUnpaid => 'Registration Fee Unpaid';
 
   @override
   String get feePaid => 'Fee Paid';

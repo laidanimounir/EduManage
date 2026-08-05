@@ -1437,6 +1437,7 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
     final prefs = await SharedPreferences.getInstance();
     final globalFee = prefs.getDouble('registration_fee_amount') ?? 2000.0;
     final amount = row?.registrationFeeOverride ?? globalFee;
+    debugPrint('[REGFEEBLOCK] student=${widget.studentId} override=${row?.registrationFeeOverride} global=$globalFee final=$amount');
     final feePaid = await db.isRegistrationFeePaid(widget.studentId);
     if (mounted) setState(() { _feeAmount = amount; _feePaid = feePaid; _loading = false; });
   }
@@ -1744,6 +1745,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         final newId = await _repo.create(entry);
         final prefs = await SharedPreferences.getInstance();
         final feeAmount = double.tryParse(_feeOverrideCtrl.text.trim()) ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
+        debugPrint('[EDITSAVE] New student $newId overrideCtrl="${_feeOverrideCtrl.text.trim()}" global=${prefs.getDouble("registration_fee_amount")} final=$feeAmount');
         final txService = TransactionService(widget.database);
         await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
       }
@@ -2357,6 +2359,7 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
     final studentRow = await (db.select(db.students)..where((t) => t.id.equals(widget.student.id))).getSingleOrNull();
     final override = studentRow?.registrationFeeOverride;
     _feeAmount = override ?? globalFee;
+    debugPrint('[PAYLOAD] student=${widget.student.id} override=$override global=$globalFee _feeAmount=$_feeAmount');
     _feePaid = await db.isRegistrationFeePaid(widget.student.id);
     _charges = await txService.getUnpaidCharges(widget.student.id);
     _totalUnpaid = _charges.fold(0.0, (s, c) => s + ((c['remaining'] as double?) ?? 0));
@@ -2394,36 +2397,54 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   }
 
   Future<void> _payRegistrationFee() async {
+    debugPrint('[PAYREGFEE] _payRegistrationFee called, _feePaid=$_feePaid _feeAmount=$_feeAmount');
     if (_feePaid) return;
     setState(() => _saving = true);
     try {
       final txService = TransactionService(widget.database);
+      debugPrint('[PAYREGFEE] Calling createRegistrationFeePayment amount=$_feeAmount');
       await txService.createRegistrationFeePayment(studentId: widget.student.id, amount: _feeAmount);
+      debugPrint('[PAYREGFEE] Payment succeeded');
       setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0646\u062C\u0627\u062D'; });
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) _load().then((_) { if (mounted) setState(() => _success = false); });
     } catch (e) {
-      if (mounted) setState(() => _saving = false);
+      debugPrint('[PAYREGFEE] ERROR: $e');
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062E\u0637\u0623: $e'), backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 
   Future<void> _undoPayment(Transaction t) async {
+    debugPrint('[UNDO] _undoPayment called for tx id=${t.id} amount=${t.amount} type=${t.type}');
     final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: ShellTokens.chromeSurface,
       title: const Text('\u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062A\u0631\u0627\u062C\u0639', style: TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
       content: Text('\u0633\u064A\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0639\u0645\u0644\u064A\u0629 \u0639\u0643\u0633 \u0644\u0644\u062F\u0641\u0639\u0629 \u0628\u0642\u064A\u0645\u0629 ${t.amount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
       actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('\u0625\u0644\u063A\u0627\u0621', style: TextStyle(color: ShellTokens.textSecondary))), FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: const Text('\u062A\u0623\u0643\u064A\u062F'))],
     ));
+    debugPrint('[UNDO] Confirmation dialog returned: $confirmed');
     if (confirmed != true) return;
     setState(() => _saving = true);
     try {
+      debugPrint('[UNDO] Calling createReversal with referenceTransactionId=${t.id}');
       final txService = TransactionService(widget.database);
-      await txService.createReversal(referenceTransactionId: t.id, note: '\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0627\u0644\u062F\u0641\u0639');
+      final reversalId = await txService.createReversal(referenceTransactionId: t.id, note: '\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0627\u0644\u062F\u0641\u0639');
+      debugPrint('[UNDO] createReversal succeeded, reversal id=$reversalId');
       setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0628\u0646\u062C\u0627\u062D'; });
       await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) _load().then((_) { if (mounted) setState(() => _success = false); });
-    } catch (e) {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        await _load();
+        if (mounted) setState(() => _success = false);
+      }
+    } catch (e, stack) {
+      debugPrint('[UNDO] ERROR: $e\n$stack');
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u062A\u0631\u0627\u062C\u0639: $e'), backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 

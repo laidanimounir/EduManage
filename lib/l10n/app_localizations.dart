@@ -1963,7 +1963,7 @@ abstract class AppLocalizations {
   /// No description provided for @feeUnpaid.
   ///
   /// In en, this message translates to:
-  /// **'Fee Unpaid'**
+  /// **'Registration Fee Unpaid'**
   String get feeUnpaid;
 
   /// No description provided for @feePaid.

@@ -945,7 +945,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get markAsPaid => 'تأكيد الدفع';
 
   @override
-  String get feeUnpaid => 'رسوم غير مدفوعة';
+  String get feeUnpaid => 'حقوق التسجيل غير مدفوعة';
 
   @override
   String get feePaid => 'رسوم مدفوعة';
