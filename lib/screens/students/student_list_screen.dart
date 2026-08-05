@@ -9,7 +9,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:excel/excel.dart' hide Border;
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../../constants/phosphor_icons.dart';
 import '../../constants/theme_tokens.dart';
@@ -263,7 +262,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: () {},
+            onPressed: _generateCards,
             icon: const Icon(PhosphorIcons.identificationCard, size: 16),
             label: Text(l10n.generateCards),
             style: FilledButton.styleFrom(
@@ -285,17 +284,17 @@ class _StudentListScreenState extends State<StudentListScreen> {
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 34,
+                  height: 30,
                   child: TextField(
                     controller: _searchCtrl,
-                    style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary),
+                    style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
                     decoration: InputDecoration(
                       hintText: l10n.search,
-                      hintStyle: const TextStyle(color: ShellTokens.textDisabled, fontSize: 13),
-                      prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 16, color: ShellTokens.textSecondary),
+                      hintStyle: const TextStyle(color: ShellTokens.textDisabled, fontSize: 12),
+                      prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 15, color: ShellTokens.textSecondary),
                       suffixIcon: hasFilters
                           ? IconButton(
-                              icon: const Icon(PhosphorIcons.arrowLeft, size: 14, color: ShellTokens.textSecondary),
+                              icon: const Icon(PhosphorIcons.arrowLeft, size: 13, color: ShellTokens.textSecondary),
                               onPressed: _clearFilters,
                               tooltip: l10n.clearFilters,
                             )
@@ -322,18 +321,20 @@ class _StudentListScreenState extends State<StudentListScreen> {
               ),
               const SizedBox(width: 8),
               SizedBox(
-                width: 180,
-                height: 34,
+                width: 120,
+                height: 30,
                 child: TextField(
                   controller: _barcodeCtrl,
                   focusNode: _barcodeFocus,
-                  style: const TextStyle(fontSize: 12, color: ShellTokens.textSecondary),
+                  enabled: !_barcodePaused,
+                  style: TextStyle(fontSize: 11, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
                   decoration: InputDecoration(
-                    hintText: '📷 Barcode',
-                    hintStyle: const TextStyle(color: ShellTokens.textDisabled, fontSize: 11),
+                    hintText: _barcodePaused ? '\u0645\u062A\u0648\u0642\u0641' : 'Barcode',
+                    hintStyle: TextStyle(color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textDisabled, fontSize: 10),
+                    prefixIcon: const Icon(PhosphorIcons.barcode, size: 14, color: ShellTokens.textSecondary),
                     filled: true,
-                    fillColor: ShellTokens.chromeBase,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                    fillColor: _barcodePaused ? ShellTokens.chromeSurface.withValues(alpha: 0.5) : ShellTokens.chromeBase,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
                       borderSide: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.5)),
@@ -348,6 +349,17 @@ class _StudentListScreenState extends State<StudentListScreen> {
                     ),
                   ),
                   onSubmitted: _onBarcodeSubmit,
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 28, height: 30,
+                child: IconButton(
+                  icon: Icon(_barcodePaused ? PhosphorIcons.pushPinSimple : PhosphorIcons.pushPinSimpleSlash, size: 15, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
+                  onPressed: () { setState(() => _barcodePaused = !_barcodePaused); if (!_barcodePaused) _restoreBarcodeFocus(); },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  tooltip: _barcodePaused ? 'Enable barcode' : 'Disable barcode',
                 ),
               ),
             ],
@@ -412,6 +424,13 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   Future<void> _exportPdf() async {
     final l10n = AppLocalizations.of(context);
+    final rows = _selectedIds.isNotEmpty ? _rows.where((r) => _selectedIds.contains(r.id)).toList() : _rows;
+    if (_selectedIds.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('\u062A\u0635\u062F\u064A\u0631 ${rows.length} \u0637\u0627\u0644\u0628 \u0645\u062E\u062A\u0627\u0631'),
+        backgroundColor: ShellTokens.accentMuted, duration: const Duration(seconds: 2),
+      ));
+    }
     final pdf = pw.Document();
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4.landscape,
@@ -421,7 +440,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
           headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
           cellStyle: pw.TextStyle(fontSize: 7),
           headers: [l10n.code, l10n.firstName, l10n.lastName, l10n.schoolLevel, l10n.phone],
-          data: _rows.map((s) => [
+          data: rows.map((s) => [
             s.code,
             '${s.firstNameAr} ${s.firstNameFr ?? ''}',
             '${s.lastNameAr} ${s.lastNameFr ?? ''}',
@@ -436,6 +455,13 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   Future<void> _exportExcel() async {
     final l10n = AppLocalizations.of(context);
+    final rows = _selectedIds.isNotEmpty ? _rows.where((r) => _selectedIds.contains(r.id)).toList() : _rows;
+    if (_selectedIds.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('\u062A\u0635\u062F\u064A\u0631 ${rows.length} \u0637\u0627\u0644\u0628 \u0645\u062E\u062A\u0627\u0631'),
+        backgroundColor: ShellTokens.accentMuted, duration: const Duration(seconds: 2),
+      ));
+    }
     final excel = Excel.createExcel();
     final sheet = excel['Students'];
     sheet.appendRow([
@@ -445,7 +471,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
       TextCellValue(l10n.schoolLevel),
       TextCellValue(l10n.phone),
     ]);
-    for (final s in _rows) {
+    for (final s in rows) {
       sheet.appendRow([
         TextCellValue(s.code),
         TextCellValue('${s.firstNameAr} ${s.firstNameFr ?? ''}'),
@@ -462,6 +488,103 @@ class _StudentListScreenState extends State<StudentListScreen> {
         SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface),
       );
     }
+  }
+
+  Future<void> _generateCards() async {
+    final l10n = AppLocalizations.of(context);
+    final rows = _selectedIds.isNotEmpty ? _rows.where((r) => _selectedIds.contains(r.id)).toList() : _rows;
+    if (rows.isEmpty) return;
+
+    final pdf = pw.Document();
+    const cardW = 85.0 * PdfPageFormat.mm;
+    const cardH = 54.0 * PdfPageFormat.mm;
+    const margin = 5.0 * PdfPageFormat.mm;
+    const cols = 2;
+    const rowsPerPage = 5;
+    final pageW = PdfPageFormat.a4.width;
+
+    for (var batchStart = 0; batchStart < rows.length; batchStart += cols * rowsPerPage) {
+      final batch = rows.skip(batchStart).take(cols * rowsPerPage).toList();
+      pdf.addPage(pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (ctx) {
+          final widgets = <pw.Widget>[];
+          for (var i = 0; i < batch.length; i++) {
+            final s = batch[i];
+            final col = i % cols;
+            final row = i ~/ cols;
+            final x = pageW / 2 - cardW - margin + col * (cardW + 2 * margin);
+            final y = margin + row * (cardH + margin);
+
+            pw.Widget? photo;
+            if (s.photoPath != null && s.photoPath!.isNotEmpty) {
+              try {
+                final f = File(s.photoPath!);
+                if (f.existsSync()) {
+                  photo = pw.ClipOval(child: pw.Image(pw.MemoryImage(f.readAsBytesSync()), width: 28, height: 28, fit: pw.BoxFit.cover));
+                }
+              } catch (_) {}
+            }
+
+            widgets.add(pw.Positioned(
+              left: x,
+              top: y,
+              child: pw.Container(
+                width: cardW,
+                height: cardH,
+                padding: const pw.EdgeInsets.all(4 * PdfPageFormat.mm),
+                decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400, width: 0.5), borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3))),
+                child: pw.Row(children: [
+                  pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                    if (photo != null) photo else pw.Container(width: 28, height: 28, decoration: pw.BoxDecoration(color: PdfColors.grey200, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(14))), child: pw.Center(child: pw.Text(s.firstNameAr[0], style: pw.TextStyle(fontSize: 14, color: PdfColors.grey600)))),
+                    pw.SizedBox(height: 2),
+                    pw.Text('${s.firstNameAr} ${s.lastNameAr}', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold), maxLines: 1),
+                    pw.Text(s.code, style: pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
+                    if (s.schoolLevel != null && s.schoolLevel!.isNotEmpty) pw.Text(s.schoolLevel!, style: pw.TextStyle(fontSize: 6, color: PdfColors.grey500)),
+                    pw.Container(padding: const pw.EdgeInsets.only(top: 2), child: pw.Text(s.code, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, letterSpacing: 2, color: PdfColors.grey800))),
+                  ]),
+                ]),
+              ),
+            ));
+          }
+          return pw.Stack(children: widgets);
+        },
+      ));
+    }
+
+    final bytes = await pdf.save();
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: Text(l10n.generateCards, style: const TextStyle(color: ShellTokens.textPrimary)),
+        content: Text('${rows.length} \u0628\u0637\u0627\u0642\u0629 \u062C\u0627\u0647\u0632\u0629 \u0644\u0644\u0637\u0628\u0627\u0639\u0629', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final dir = await getApplicationDocumentsDirectory();
+              final file = File('${dir.path}/student_cards_${DateTime.now().millisecondsSinceEpoch}.pdf');
+              await file.writeAsBytes(bytes);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062A\u0645 \u0627\u0644\u062D\u0641\u0638 \u0641\u064A: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+              }
+            },
+            child: Text(l10n.save, style: const TextStyle(color: ShellTokens.textSecondary)),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Printing.layoutPdf(onLayout: (_) => bytes);
+            },
+            style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase),
+            child: Text('\u0637\u0628\u0627\u0639\u0629'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildFilterChip(String label, String value) {
@@ -509,7 +632,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
               columnWidths: _columnWidths(),
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
               border: TableBorder(
-                horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.3), width: 0.5),
+                horizontalInside: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.6), width: 0.5),
               ),
               children: _rows.asMap().entries.map((e) => _buildDataRow(e.value, e.key, l10n)).toList(),
             ),
@@ -615,13 +738,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
     return TableRow(
       decoration: BoxDecoration(
-        color: isSelected
-            ? ShellTokens.accentMuted.withValues(alpha: 0.3)
-      : !isEnrolled
-          ? SemanticTokens.error.withValues(alpha: 0.08)
-          : isEven
-                    ? Colors.transparent
-                    : ShellTokens.chromeBase.withValues(alpha: 0.3),
+        color: !isEnrolled
+            ? SemanticTokens.error.withValues(alpha: 0.15)
+            : isEven
+                ? Colors.transparent
+                : ShellTokens.chromeBase.withValues(alpha: 0.3),
+        border: isSelected
+            ? const Border(left: BorderSide(color: ShellTokens.accent, width: 3))
+            : null,
       ),
       children: [
         _buildCheckCell(s, isSelected),
