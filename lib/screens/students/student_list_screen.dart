@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' hide Column, Table;
@@ -463,7 +464,37 @@ class _StudentListScreenState extends State<StudentListScreen> {
         ),
       ],
     ));
-    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+    final bytes = await pdf.save();
+    if (!mounted) return;
+    _showPrintOrSave(bytes, 'students_export.pdf', l10n);
+  }
+
+  void _showPrintOrSave(Uint8List bytes, String defaultName, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: Text(l10n.exportPdf, style: const TextStyle(color: ShellTokens.textPrimary)),
+        content: Text('\u0627\u062E\u062A\u0631 \u0637\u0631\u064A\u0642\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final dir = await getApplicationDocumentsDirectory();
+              final file = File('${dir.path}/$defaultName');
+              await file.writeAsBytes(bytes);
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062A\u0645 \u0627\u0644\u062D\u0641\u0638 \u0641\u064A: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+            },
+            child: Text(l10n.save, style: const TextStyle(color: ShellTokens.textSecondary)),
+          ),
+          FilledButton(
+            onPressed: () { Navigator.pop(ctx); Printing.layoutPdf(onLayout: (_) => bytes); },
+            style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase),
+            child: Text('\u0637\u0628\u0627\u0639\u0629'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _exportExcel() async {
@@ -497,9 +528,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
     final file = File('${dir.path}/students_export.xlsx');
     await file.writeAsBytes(excel.encode()!);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface),
-      );
+      showDialog(context: context, builder: (ctx) => AlertDialog(
+        backgroundColor: ShellTokens.chromeSurface,
+        title: Text(l10n.exportExcel, style: const TextStyle(color: ShellTokens.textPrimary)),
+        content: Text('\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A Documents', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(ctx), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: Text('\u062D\u0633\u0646\u0627\u064B')),
+        ],
+      ));
     }
   }
 
@@ -1155,13 +1191,22 @@ class _StudentDetailDialog extends StatelessWidget {
                           receiptNumber: 'REC-${DateTime.now().millisecondsSinceEpoch}',
                         );
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Receipt saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                          final file = File(path);
+                          if (await file.exists()) {
+                            final bytes = await file.readAsBytes();
+                            showDialog(context: context, builder: (ctx) => AlertDialog(
+                              backgroundColor: ShellTokens.chromeSurface,
+                              title: Text('\u0637\u0628\u0627\u0639\u0629 \u0648\u0635\u0644', style: const TextStyle(color: ShellTokens.textPrimary)),
+                              content: Text('\u0627\u062E\u062A\u0631 \u0637\u0631\u064A\u0642\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: Text('\u062D\u0633\u0646\u0627\u064B', style: const TextStyle(color: ShellTokens.textSecondary))),
+                                FilledButton(onPressed: () { Navigator.pop(ctx); Printing.layoutPdf(onLayout: (_) => bytes); }, style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u0637\u0628\u0627\u0639\u0629')),
+                              ],
+                            ));
+                          }
                         }
                       } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                        }
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
                     },
                     tooltip: '\u0637\u0628\u0627\u0639\u0629 \u0648\u0635\u0644',
@@ -1193,12 +1238,22 @@ class _StudentDetailDialog extends StatelessWidget {
                         try {
                           final path = await PdfGenerator.generateStudentStatement(database: database, studentId: student.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Statement saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                            final file = File(path);
+                            if (await file.exists()) {
+                              final bytes = await file.readAsBytes();
+                              showDialog(context: context, builder: (ctx) => AlertDialog(
+                                backgroundColor: ShellTokens.chromeSurface,
+                                title: Text('\u0637\u0628\u0627\u0639\u0629 \u0643\u0634\u0641 \u0627\u0644\u062D\u0633\u0627\u0628', style: const TextStyle(color: ShellTokens.textPrimary)),
+                                content: Text('\u0627\u062E\u062A\u0631 \u0637\u0631\u064A\u0642\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx), child: Text('\u062D\u0633\u0646\u0627\u064B', style: const TextStyle(color: ShellTokens.textSecondary))),
+                                  FilledButton(onPressed: () { Navigator.pop(ctx); Printing.layoutPdf(onLayout: (_) => bytes); }, style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u0637\u0628\u0627\u0639\u0629')),
+                                ],
+                              ));
+                            }
                           }
                         } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                          }
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                         }
                       },
                       icon: const Icon(PhosphorIcons.file, size: 14, color: ShellTokens.textSecondary),
