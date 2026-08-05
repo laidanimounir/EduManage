@@ -283,85 +283,98 @@ class _StudentListScreenState extends State<StudentListScreen> {
           Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: 30,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: l10n.search,
-                      hintStyle: const TextStyle(color: ShellTokens.textDisabled, fontSize: 12),
-                      prefixIcon: const Icon(PhosphorIcons.magnifyingGlass, size: 15, color: ShellTokens.textSecondary),
-                      suffixIcon: hasFilters
-                          ? IconButton(
-                              icon: const Icon(PhosphorIcons.arrowLeft, size: 13, color: ShellTokens.textSecondary),
-                              onPressed: _clearFilters,
-                              tooltip: l10n.clearFilters,
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: ShellTokens.chromeSurface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: ShellTokens.chromeBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: ShellTokens.chromeBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: ShellTokens.accent),
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: ShellTokens.chromeSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ShellTokens.chromeBorder),
+                  ),
+                  child: Row(children: [
+                    const SizedBox(width: 8),
+                    const Icon(PhosphorIcons.magnifyingGlass, size: 15, color: ShellTokens.textSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: l10n.search,
+                          hintStyle: const TextStyle(color: ShellTokens.textDisabled, fontSize: 12),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onChanged: _onSearchChanged,
                       ),
                     ),
-                    onChanged: _onSearchChanged,
-                  ),
+                    if (hasFilters)
+                      InkWell(
+                        onTap: _clearFilters,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 24, height: 24,
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(color: ShellTokens.chromeBorder.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(PhosphorIcons.x, size: 12, color: ShellTokens.textSecondary),
+                        ),
+                      ),
+                  ]),
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(
-                width: 120,
-                height: 30,
-                child: TextField(
-                  controller: _barcodeCtrl,
-                  focusNode: _barcodeFocus,
-                  enabled: !_barcodePaused,
-                  style: TextStyle(fontSize: 11, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
-                  decoration: InputDecoration(
-                    hintText: _barcodePaused ? '\u0645\u062A\u0648\u0642\u0641' : 'Barcode',
-                    hintStyle: TextStyle(color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textDisabled, fontSize: 10),
-                    prefixIcon: const Icon(PhosphorIcons.barcode, size: 14, color: ShellTokens.textSecondary),
-                    filled: true,
-                    fillColor: _barcodePaused ? ShellTokens.chromeSurface.withValues(alpha: 0.5) : ShellTokens.chromeBase,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.5)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: ShellTokens.chromeBorder.withValues(alpha: 0.5)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: ShellTokens.accent.withValues(alpha: 0.5)),
+              Container(
+                width: 130,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _barcodePaused ? ShellTokens.chromeSurface.withValues(alpha: 0.4) : ShellTokens.chromeSurface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _barcodePaused ? ShellTokens.chromeBorder.withValues(alpha: 0.3) : ShellTokens.chromeBorder),
+                ),
+                child: Row(children: [
+                  const SizedBox(width: 8),
+                  Icon(PhosphorIcons.barcode, size: 14, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: TextField(
+                      controller: _barcodeCtrl,
+                      focusNode: _barcodeFocus,
+                      enabled: !_barcodePaused,
+                      style: TextStyle(fontSize: 11, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
+                      decoration: const InputDecoration(
+                        hintText: 'Barcode',
+                        hintStyle: TextStyle(color: ShellTokens.textDisabled, fontSize: 10),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onSubmitted: _onBarcodeSubmit,
                     ),
                   ),
-                  onSubmitted: _onBarcodeSubmit,
-                ),
+                ]),
               ),
-              const SizedBox(width: 4),
-              SizedBox(
-                width: 28, height: 30,
-                child: IconButton(
-                  icon: Icon(_barcodePaused ? PhosphorIcons.pushPinSimple : PhosphorIcons.pushPinSimpleSlash, size: 15, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
-                  onPressed: () { setState(() => _barcodePaused = !_barcodePaused); if (!_barcodePaused) _restoreBarcodeFocus(); },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  tooltip: _barcodePaused ? 'Enable barcode' : 'Disable barcode',
+              const SizedBox(width: 6),
+              InkWell(
+                onTap: () { setState(() => _barcodePaused = !_barcodePaused); if (!_barcodePaused) _restoreBarcodeFocus(); },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 24, height: 24,
+                  decoration: BoxDecoration(
+                    color: _barcodePaused ? Colors.transparent : ShellTokens.accent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _barcodePaused ? ShellTokens.chromeBorder.withValues(alpha: 0.4) : ShellTokens.accent.withValues(alpha: 0.5)),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 8, height: 8,
+                      decoration: BoxDecoration(
+                        color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                ),
             ],
           ),
           const SizedBox(height: 8),
