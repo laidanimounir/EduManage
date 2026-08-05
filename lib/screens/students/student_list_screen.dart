@@ -531,7 +531,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
       showDialog(context: context, builder: (ctx) => AlertDialog(
         backgroundColor: ShellTokens.chromeSurface,
         title: Text(l10n.exportExcel, style: const TextStyle(color: ShellTokens.textPrimary)),
-        content: Text('\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A Documents', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+        content: Text('\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A:\n${file.path}', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 11)),
         actions: [
           FilledButton(onPressed: () => Navigator.pop(ctx), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: Text('\u062D\u0633\u0646\u0627\u064B')),
         ],
@@ -1181,8 +1181,7 @@ class _StudentDetailDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(student.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
                   const Spacer(),
-                  IconButton(
-                    icon: const Icon(PhosphorIcons.receipt, size: 18, color: ShellTokens.accent),
+                  OutlinedButton.icon(
                     onPressed: () async {
                       try {
                         final path = await PdfGenerator.generateStudentReceipt(
@@ -1209,8 +1208,15 @@ class _StudentDetailDialog extends StatelessWidget {
                         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
                     },
-                    tooltip: '\u0637\u0628\u0627\u0639\u0629 \u0648\u0635\u0644',
+                    icon: const Icon(PhosphorIcons.receipt, size: 14),
+                    label: Text('\u0648\u0635\u0644', style: const TextStyle(fontSize: 11)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ShellTokens.accent,
+                      side: const BorderSide(color: ShellTokens.accent, width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
                   ),
+                  const SizedBox(width: 4),
                   IconButton(
                     icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary),
                     onPressed: () => Navigator.pop(context),
@@ -1725,14 +1731,14 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         birthDate: Value(birthDate),
         birthPlace: Value(_birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim()),
         photoPath: Value(photoPath),
-        registrationFeeOverride: Value(_registrationFeeOverride),
+        registrationFeeOverride: Value(double.tryParse(_feeOverrideCtrl.text.trim())),
       );
       if (_isEdit) {
         await _repo.update(widget.student!.id, entry);
       } else {
         final newId = await _repo.create(entry);
         final prefs = await SharedPreferences.getInstance();
-        final feeAmount = _registrationFeeOverride ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
+        final feeAmount = double.tryParse(_feeOverrideCtrl.text.trim()) ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
         final txService = TransactionService(widget.database);
         await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
       }
@@ -2318,6 +2324,13 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   double _feeAmount = 0;
   double _totalUnpaid = 0;
   bool _loading = true;
+
+  List<Map<String, dynamic>> get _sessionCharges {
+    return _charges.where((c) {
+      final t = c['transaction'] as Transaction;
+      return t.type != 'registration_fee';
+    }).toList();
+  }
   bool _saving = false;
   bool _success = false;
   String _successMsg = '';
@@ -2362,8 +2375,10 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) { _load(); setState(() => _success = false); _amountCtrl.clear(); _noteCtrl.clear(); }
     } catch (e) {
-      if (mounted) setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: ShellTokens.chromeSurface));
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062E\u0637\u0623: $e'), backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 
@@ -2489,14 +2504,16 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   }
 
   Widget _buildChargesSection() {
-    if (_charges.isEmpty) return const SizedBox.shrink();
+    final sessionCharges = _sessionCharges;
+    if (sessionCharges.isEmpty) return const SizedBox.shrink();
+    final sessionTotal = sessionCharges.fold(0.0, (s, c) => s + ((c['remaining'] as double?) ?? 0));
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('\u0631\u0633\u0648\u0645 \u0627\u0644\u062D\u0635\u0635 \u063A\u064A\u0631 \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
         const SizedBox(height: 6),
-        ..._charges.map((c) => Padding(
+        ...sessionCharges.map((c) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(children: [
             Expanded(child: Text('${c['type'] ?? ''} ${c['date'] ?? ''}', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
@@ -2504,7 +2521,7 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
           ]),
         )),
         const SizedBox(height: 4),
-        Text('\u0627\u0644\u0645\u062C\u0645\u0648\u0639: ${_totalUnpaid.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+        Text('\u0627\u0644\u0645\u062C\u0645\u0648\u0639: ${sessionTotal.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
       ]),
     );
   }
