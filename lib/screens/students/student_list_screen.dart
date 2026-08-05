@@ -56,6 +56,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
   Set<String> _selectedIds = {};
   Set<String> _enrolledIds = {};
   Set<String> _feePaidIds = {};
+  Map<String, List<({String phoneNumber, String? label})>> _studentPhones = {};
   String? _sortColumn;
   bool _sortAsc = true;
 
@@ -100,12 +101,15 @@ class _StudentListScreenState extends State<StudentListScreen> {
         final paid = await widget.database.isRegistrationFeePaid(s.id);
         if (paid) feePaidIds.add(s.id);
       }
+      final studentIds = result.students.map((s) => s.id).toList();
+      final phones = await _repo.getPhonesForStudents(studentIds);
       if (mounted) {
         setState(() {
           _rows = result.students;
           _total = result.total;
           _enrolledIds = enrolledIds;
           _feePaidIds = feePaidIds;
+          _studentPhones = phones;
           _loading = false;
           
         });
@@ -701,11 +705,19 @@ class _StudentListScreenState extends State<StudentListScreen> {
     0: FixedColumnWidth(44),
     1: FlexColumnWidth(2),
     2: FlexColumnWidth(2),
-    3: FlexColumnWidth(1.2),
+    3: FlexColumnWidth(1.5),
     4: FlexColumnWidth(1.2),
     5: FlexColumnWidth(1.2),
-    6: IntrinsicColumnWidth(),
+    6: FlexColumnWidth(1.2),
+    7: IntrinsicColumnWidth(),
   };
+
+  String? _carrierForPhone(String number) {
+    if (number.startsWith('07')) return 'djezzy';
+    if (number.startsWith('06')) return 'mobilis';
+    if (number.startsWith('05')) return 'ooredoo';
+    return null;
+  }
 
   TableRow _buildHeaderRow(AppLocalizations l10n) {
     return TableRow(
@@ -717,6 +729,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
         _buildHeaderCell(PhosphorIcons.checkSquare, null, l10n),
         _buildHeaderCell(null, l10n.columnName, l10n),
         _buildHeaderCell(null, l10n.columnSurname, l10n),
+        _buildHeaderCell(null, l10n.phone, l10n),
         _buildHeaderCell(null, l10n.columnLevel, l10n),
         _buildHeaderCell(null, l10n.columnBirthDate, l10n),
         _buildHeaderCell(null, l10n.columnRegistrationDate, l10n),
@@ -790,6 +803,8 @@ class _StudentListScreenState extends State<StudentListScreen> {
     final hasFee = true;
     final isSelected = _selectedIds.contains(s.id);
     final isEven = index.isEven;
+    final phones = _studentPhones[s.id] ?? [];
+    final primaryPhone = phones.isNotEmpty ? phones.first : null;
 
     return TableRow(
       decoration: BoxDecoration(
@@ -816,6 +831,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
         GestureDetector(
           onTap: () => _openDetail(s),
           behavior: HitTestBehavior.opaque,
+          child: _buildPhoneCell(primaryPhone, phones.length),
+        ),
+        GestureDetector(
+          onTap: () => _openDetail(s),
+          behavior: HitTestBehavior.opaque,
           child: _buildTextCell(_levelLabel(s.schoolLevel, l10n)),
         ),
         GestureDetector(
@@ -826,7 +846,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
         GestureDetector(
           onTap: () => _openDetail(s),
           behavior: HitTestBehavior.opaque,
-          child: _buildTextCell(_formatDate(s.registrationDate)),
+          child: _buildTextCell('${s.registrationDate.year}-${s.registrationDate.month.toString().padLeft(2,'0')}-${s.registrationDate.day.toString().padLeft(2,'0')} ${s.registrationDate.hour.toString().padLeft(2,'0')}:${s.registrationDate.minute.toString().padLeft(2,'0')}'),
         ),
         _buildActionsCell(s),
       ],
@@ -890,6 +910,33 @@ class _StudentListScreenState extends State<StudentListScreen> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
+    );
+  }
+
+  Widget _buildPhoneCell(({String phoneNumber, String? label})? phone, int totalPhones) {
+    if (phone == null) return const SizedBox.shrink();
+    final carrier = _carrierForPhone(phone.phoneNumber);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (carrier != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 4),
+            child: Image.asset('assets/logos/$carrier.png', width: 16, height: 16),
+          )
+        else
+          const Padding(
+            padding: EdgeInsetsDirectional.only(end: 4),
+            child: Icon(Icons.phone, size: 12, color: ShellTokens.textDisabled),
+          ),
+        Flexible(
+          child: Text(
+            '${phone.phoneNumber}${totalPhones > 1 ? ' +${totalPhones - 1}' : ''}',
+            style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
     );
   }
 
@@ -1208,8 +1255,9 @@ class _StudentDetailDialog extends StatelessWidget {
                                 FilledButton(onPressed: () { Navigator.pop(ctx); Printing.layoutPdf(onLayout: (_) => bytes); }, style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u0637\u0628\u0627\u0639\u0629')),
                               ],
                             ));
-                          }
-                        }
+  }
+}
+
                       } catch (e) {
                         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
@@ -1600,7 +1648,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   bool _saving = false;
   bool _created = false;
   bool _showFrenchNames = false;
-  String? _detectedCarrier;
   double? _registrationFeeOverride;
 
   late TextEditingController _codeCtrl;
@@ -1608,7 +1655,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   late TextEditingController _lastNameArCtrl;
   late TextEditingController _firstNameFrCtrl;
   late TextEditingController _lastNameFrCtrl;
-  late TextEditingController _phoneCtrl;
   late TextEditingController _addressCtrl;
   late TextEditingController _birthPlaceCtrl;
   late TextEditingController _feeOverrideCtrl;
@@ -1625,7 +1671,16 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   int? _birthMonth;
   int? _birthYear;
 
+  final List<_PhoneEntry> _phoneEntries = [];
+
   bool get _isEdit => widget.student != null;
+
+  static String? _carrierFor(String number) {
+    if (number.startsWith('07')) return 'djezzy';
+    if (number.startsWith('06')) return 'mobilis';
+    if (number.startsWith('05')) return 'ooredoo';
+    return null;
+  }
 
   @override
   void initState() {
@@ -1638,7 +1693,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _lastNameArCtrl = TextEditingController(text: s?.lastNameAr ?? '');
     _firstNameFrCtrl = TextEditingController(text: s?.firstNameFr ?? '');
     _lastNameFrCtrl = TextEditingController(text: s?.lastNameFr ?? '');
-    _phoneCtrl = TextEditingController(text: s?.phone ?? '');
     _addressCtrl = TextEditingController(text: s?.address ?? '');
     _birthPlaceCtrl = TextEditingController(text: s?.birthPlace ?? '');
     _dayCtrl = TextEditingController();
@@ -1647,7 +1701,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _dayFocus = FocusNode();
     _monthFocus = FocusNode();
     _yearFocus = FocusNode();
-    _phoneCtrl.addListener(_onPhoneChanged);
     _feeOverrideCtrl = TextEditingController();
     if (s != null) {
       _gender = s.gender ?? 'male';
@@ -1670,34 +1723,44 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       if (s.registrationFeeOverride != null) {
         _feeOverrideCtrl.text = s.registrationFeeOverride!.toStringAsFixed(0);
       }
+      _repo.getPhones(s.id).then((phones) {
+        if (mounted && _phoneEntries.isEmpty) {
+          setState(() {
+            if (phones.isEmpty) {
+              _phoneEntries.add(_PhoneEntry());
+            } else {
+              for (final p in phones) {
+                final entry = _PhoneEntry();
+                entry.controller.text = p.phoneNumber;
+                entry.labelCtrl.text = p.label ?? '';
+                entry.carrier = _carrierFor(p.phoneNumber);
+                _phoneEntries.add(entry);
+              }
+            }
+          });
+        }
+      });
     } else {
       _repo.generateCode().then((c) { try { if (mounted) _codeCtrl.text = c; } catch (_) {} });
+      _phoneEntries.add(_PhoneEntry());
     }
   }
 
-  void _onPhoneChanged() {
-    final v = _phoneCtrl.text.trim();
-    if (v.startsWith('07')) {
-      _detectedCarrier = 'djezzy';
-    } else if (v.startsWith('06')) {
-      _detectedCarrier = 'mobilis';
-    } else if (v.startsWith('05')) {
-      _detectedCarrier = 'ooredoo';
-    } else {
-      _detectedCarrier = null;
+  void _onPhoneChanged(_PhoneEntry entry) {
+    final v = entry.controller.text.trim();
+    final carrier = _carrierFor(v);
+    if (entry.carrier != carrier) {
+      setState(() => entry.carrier = carrier);
     }
-    setState(() {});
   }
 
   @override
   void dispose() {
-    _phoneCtrl.removeListener(_onPhoneChanged);
     _codeCtrl.dispose();
     _firstNameArCtrl.dispose();
     _lastNameArCtrl.dispose();
     _firstNameFrCtrl.dispose();
     _lastNameFrCtrl.dispose();
-    _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _birthPlaceCtrl.dispose();
     _dayCtrl.dispose();
@@ -1707,6 +1770,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _dayFocus.dispose();
     _monthFocus.dispose();
     _yearFocus.dispose();
+    for (final e in _phoneEntries) { e.dispose(); }
     super.dispose();
   }
 
@@ -1731,7 +1795,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         lastNameAr: Value(_lastNameArCtrl.text.trim()),
         firstNameFr: Value(_firstNameFrCtrl.text.trim().isEmpty ? null : _firstNameFrCtrl.text.trim()),
         lastNameFr: Value(_lastNameFrCtrl.text.trim().isEmpty ? null : _lastNameFrCtrl.text.trim()),
-        phone: Value(_phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim()),
         address: Value(_addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim()),
         gender: Value(_gender),
         status: Value(_status),
@@ -1741,16 +1804,23 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         photoPath: Value(photoPath),
         registrationFeeOverride: Value(double.tryParse(_feeOverrideCtrl.text.trim())),
       );
+      String studentId;
       if (_isEdit) {
-        await _repo.update(widget.student!.id, entry);
+        studentId = widget.student!.id;
+        await _repo.update(studentId, entry);
       } else {
-        final newId = await _repo.create(entry);
+        studentId = await _repo.create(entry);
         final prefs = await SharedPreferences.getInstance();
         final feeAmount = double.tryParse(_feeOverrideCtrl.text.trim()) ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
-        debugPrint('[EDITSAVE] New student $newId overrideCtrl="${_feeOverrideCtrl.text.trim()}" global=${prefs.getDouble("registration_fee_amount")} final=$feeAmount');
+        debugPrint('[EDITSAVE] New student $studentId overrideCtrl="${_feeOverrideCtrl.text.trim()}" global=${prefs.getDouble("registration_fee_amount")} final=$feeAmount');
         final txService = TransactionService(widget.database);
-        await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
+        await txService.createRegistrationFee(studentId: studentId, amount: feeAmount);
       }
+      final phoneEntries = _phoneEntries
+          .where((e) => e.controller.text.trim().isNotEmpty)
+          .map((e) => (number: e.controller.text.trim(), label: e.labelCtrl.text.trim().isEmpty ? null : e.labelCtrl.text.trim()))
+          .toList();
+      await _repo.savePhones(studentId, phoneEntries);
       if (!_isEdit && mounted) {
         setState(() { _created = true; _saving = false; });
         await Future.delayed(const Duration(milliseconds: 800));
@@ -1882,7 +1952,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         ]),
       ],
       const SizedBox(height: 8),
-      _buildPhoneField(l10n),
+      _buildPhoneSection(),
       const SizedBox(height: 8),
       _inputField(_addressCtrl, icon: PhosphorIcons.mapPin, maxLines: 2, hint: l10n.address),
       const SizedBox(height: 8),
@@ -1939,30 +2009,74 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     );
   }
 
-  Widget _buildPhoneField(AppLocalizations l10n) {
-    final isMobile = _detectedCarrier != null;
-    final isLandline = _phoneCtrl.text.trim().isNotEmpty && !isMobile;
-    return TextFormField(
-      controller: _phoneCtrl,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly, if (isMobile) LengthLimitingTextInputFormatter(10)],
-      style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
-      decoration: InputDecoration(
-        hintText: l10n.phone,
-        prefixIcon: const Padding(padding: EdgeInsets.all(10), child: Icon(PhosphorIcons.phone, size: 16, color: ShellTokens.textSecondary)),
-        suffixIcon: isMobile
-            ? Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/logos/$_detectedCarrier.png', width: 24, height: 24))
-            : isLandline
-                ? const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.phone, size: 12, color: ShellTokens.textDisabled), SizedBox(width: 4), Text('\u062E\u0637 \u0623\u0631\u0636\u064A \u062B\u0627\u0628\u062A', style: TextStyle(fontSize: 9, color: ShellTokens.textDisabled))]))
-                : null,
-        filled: true, fillColor: ShellTokens.chromeBase,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
-        errorStyle: const TextStyle(fontSize: 10),
+  Widget _buildPhoneSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      ..._phoneEntries.asMap().entries.map((e) {
+        final i = e.key;
+        final entry = e.value;
+        final isMobile = entry.carrier != null;
+        final hasText = entry.controller.text.trim().isNotEmpty;
+        final isLandline = hasText && !isMobile;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(children: [
+            Expanded(
+              child: TextFormField(
+                controller: entry.controller,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, if (isMobile) LengthLimitingTextInputFormatter(10)],
+                style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+                decoration: InputDecoration(
+                  hintText: '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641',
+                  prefixIcon: const Padding(padding: EdgeInsets.all(10), child: Icon(PhosphorIcons.phone, size: 16, color: ShellTokens.textSecondary)),
+                  suffixIcon: isMobile
+                      ? Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/logos/${entry.carrier}.png', width: 24, height: 24))
+                      : isLandline
+                          ? const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.phone, size: 12, color: ShellTokens.textDisabled), SizedBox(width: 4), Text('\u062E\u0637 \u0623\u0631\u0636\u064A \u062B\u0627\u0628\u062A', style: TextStyle(fontSize: 9, color: ShellTokens.textDisabled))]))
+                          : null,
+                  filled: true, fillColor: ShellTokens.chromeBase,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+                  errorStyle: const TextStyle(fontSize: 10),
+                ),
+                onChanged: (_) => _onPhoneChanged(entry),
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 60,
+              child: TextFormField(
+                controller: entry.labelCtrl,
+                style: const TextStyle(fontSize: 10, color: ShellTokens.textSecondary),
+                decoration: InputDecoration(
+                  hintText: '\u0627\u0644\u0623\u0628/\u0627\u0644\u0623\u0645',
+                  filled: true, fillColor: ShellTokens.chromeBase,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                ),
+              ),
+            ),
+            if (_phoneEntries.length > 1)
+              IconButton(
+                icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textDisabled),
+                onPressed: () => setState(() { _phoneEntries[i].dispose(); _phoneEntries.removeAt(i); }),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              )
+            else
+              const SizedBox(width: 24),
+          ]),
+        );
+      }),
+      TextButton.icon(
+        onPressed: () => setState(() => _phoneEntries.add(_PhoneEntry())),
+        icon: const Icon(PhosphorIcons.plus, size: 12, color: ShellTokens.accent),
+        label: Text('\u0625\u0636\u0627\u0641\u0629 \u0631\u0642\u0645 \u0622\u062E\u0631', style: const TextStyle(fontSize: 11, color: ShellTokens.accent)),
       ),
-    );
+    ]);
   }
 
   Widget _buildGenderSelector(AppLocalizations l10n) {
@@ -2695,5 +2809,16 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
         }),
       ]),
     );
+  }
+}
+
+class _PhoneEntry {
+  final TextEditingController controller = TextEditingController();
+  final TextEditingController labelCtrl = TextEditingController();
+  String? carrier;
+
+  void dispose() {
+    controller.dispose();
+    labelCtrl.dispose();
   }
 }

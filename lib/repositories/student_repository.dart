@@ -24,7 +24,6 @@ class StudentRepository extends BaseRepository {
             t.lastNameAr.like(q) |
             t.firstNameFr.like(q) |
             t.lastNameFr.like(q) |
-            t.phone.like(q) |
             t.code.like(q),
       ))
         .get();
@@ -56,6 +55,34 @@ class StudentRepository extends BaseRepository {
     final deviceId = await DeviceId.get();
     await (db.update(db.students)..where((t) => t.id.equals(id)))
         .write(entry.copyWith(deviceId: Value(deviceId)));
+  }
+
+  Future<void> savePhones(String studentId, List<({String number, String? label})> entries) async {
+    await (db.delete(db.studentPhones)..where((p) => p.studentId.equals(studentId))).go();
+    for (final entry in entries) {
+      await db.into(db.studentPhones).insert(StudentPhonesCompanion(
+        id: Value(UuidHelper.generate()),
+        studentId: Value(studentId),
+        phoneNumber: Value(entry.number),
+        label: Value(entry.label),
+        deviceId: Value(await DeviceId.get()),
+      ));
+    }
+  }
+
+  Future<List<({String phoneNumber, String? label})>> getPhones(String studentId) async {
+    final rows = await (db.select(db.studentPhones)..where((p) => p.studentId.equals(studentId))).get();
+    return rows.map((r) => (phoneNumber: r.phoneNumber, label: r.label)).toList();
+  }
+
+  Future<Map<String, List<({String phoneNumber, String? label})>>> getPhonesForStudents(List<String> studentIds) async {
+    if (studentIds.isEmpty) return {};
+    final rows = await (db.select(db.studentPhones)..where((p) => p.studentId.isIn(studentIds))).get();
+    final map = <String, List<({String phoneNumber, String? label})>>{};
+    for (final r in rows) {
+      map.putIfAbsent(r.studentId, () => []).add((phoneNumber: r.phoneNumber, label: r.label));
+    }
+    return map;
   }
 
   Future<void> archive(String id) async {
@@ -108,14 +135,22 @@ class StudentRepository extends BaseRepository {
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       final q = '%${searchQuery.trim()}%';
-      query = query..where((t) =>
-        t.firstNameAr.like(q) |
-        t.lastNameAr.like(q) |
-        t.firstNameFr.like(q) |
-        t.lastNameFr.like(q) |
-        t.phone.like(q) |
-        t.code.like(q),
-      );
+      final phoneRows = await db.customSelect(
+        'SELECT DISTINCT student_id FROM student_phones WHERE phone_number LIKE ?',
+        variables: [Variable.withString(q)],
+      ).get();
+      final phoneIds = phoneRows.map((r) => r.read<String>('student_id')).toList();
+      query = query..where((t) {
+        var condition = t.firstNameAr.like(q) |
+            t.lastNameAr.like(q) |
+            t.firstNameFr.like(q) |
+            t.lastNameFr.like(q) |
+            t.code.like(q);
+        if (phoneIds.isNotEmpty) {
+          condition = condition | t.id.isIn(phoneIds);
+        }
+        return condition;
+      });
     }
 
     final total = await query.map((r) => r.id).get().then((ids) => ids.length);

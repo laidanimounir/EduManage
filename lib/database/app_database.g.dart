@@ -14326,6 +14326,421 @@ class SpecialCasesCompanion extends UpdateCompanion<SpecialCase> {
   }
 }
 
+class $StudentPhonesTable extends StudentPhones
+    with TableInfo<$StudentPhonesTable, StudentPhone> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StudentPhonesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _studentIdMeta = const VerificationMeta(
+    'studentId',
+  );
+  @override
+  late final GeneratedColumn<String> studentId = GeneratedColumn<String>(
+    'student_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES students (id)',
+    ),
+  );
+  static const VerificationMeta _phoneNumberMeta = const VerificationMeta(
+    'phoneNumber',
+  );
+  @override
+  late final GeneratedColumn<String> phoneNumber = GeneratedColumn<String>(
+    'phone_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    studentId,
+    phoneNumber,
+    label,
+    createdAt,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'student_phones';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StudentPhone> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('student_id')) {
+      context.handle(
+        _studentIdMeta,
+        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_studentIdMeta);
+    }
+    if (data.containsKey('phone_number')) {
+      context.handle(
+        _phoneNumberMeta,
+        phoneNumber.isAcceptableOrUnknown(
+          data['phone_number']!,
+          _phoneNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_phoneNumberMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StudentPhone map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StudentPhone(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      studentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}student_id'],
+      )!,
+      phoneNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone_number'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+    );
+  }
+
+  @override
+  $StudentPhonesTable createAlias(String alias) {
+    return $StudentPhonesTable(attachedDatabase, alias);
+  }
+}
+
+class StudentPhone extends DataClass implements Insertable<StudentPhone> {
+  final String id;
+  final String studentId;
+  final String phoneNumber;
+  final String? label;
+  final DateTime createdAt;
+  final String deviceId;
+  const StudentPhone({
+    required this.id,
+    required this.studentId,
+    required this.phoneNumber,
+    this.label,
+    required this.createdAt,
+    required this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['student_id'] = Variable<String>(studentId);
+    map['phone_number'] = Variable<String>(phoneNumber);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  StudentPhonesCompanion toCompanion(bool nullToAbsent) {
+    return StudentPhonesCompanion(
+      id: Value(id),
+      studentId: Value(studentId),
+      phoneNumber: Value(phoneNumber),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      createdAt: Value(createdAt),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory StudentPhone.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StudentPhone(
+      id: serializer.fromJson<String>(json['id']),
+      studentId: serializer.fromJson<String>(json['studentId']),
+      phoneNumber: serializer.fromJson<String>(json['phoneNumber']),
+      label: serializer.fromJson<String?>(json['label']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'studentId': serializer.toJson<String>(studentId),
+      'phoneNumber': serializer.toJson<String>(phoneNumber),
+      'label': serializer.toJson<String?>(label),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  StudentPhone copyWith({
+    String? id,
+    String? studentId,
+    String? phoneNumber,
+    Value<String?> label = const Value.absent(),
+    DateTime? createdAt,
+    String? deviceId,
+  }) => StudentPhone(
+    id: id ?? this.id,
+    studentId: studentId ?? this.studentId,
+    phoneNumber: phoneNumber ?? this.phoneNumber,
+    label: label.present ? label.value : this.label,
+    createdAt: createdAt ?? this.createdAt,
+    deviceId: deviceId ?? this.deviceId,
+  );
+  StudentPhone copyWithCompanion(StudentPhonesCompanion data) {
+    return StudentPhone(
+      id: data.id.present ? data.id.value : this.id,
+      studentId: data.studentId.present ? data.studentId.value : this.studentId,
+      phoneNumber: data.phoneNumber.present
+          ? data.phoneNumber.value
+          : this.phoneNumber,
+      label: data.label.present ? data.label.value : this.label,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudentPhone(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('phoneNumber: $phoneNumber, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, studentId, phoneNumber, label, createdAt, deviceId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StudentPhone &&
+          other.id == this.id &&
+          other.studentId == this.studentId &&
+          other.phoneNumber == this.phoneNumber &&
+          other.label == this.label &&
+          other.createdAt == this.createdAt &&
+          other.deviceId == this.deviceId);
+}
+
+class StudentPhonesCompanion extends UpdateCompanion<StudentPhone> {
+  final Value<String> id;
+  final Value<String> studentId;
+  final Value<String> phoneNumber;
+  final Value<String?> label;
+  final Value<DateTime> createdAt;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const StudentPhonesCompanion({
+    this.id = const Value.absent(),
+    this.studentId = const Value.absent(),
+    this.phoneNumber = const Value.absent(),
+    this.label = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StudentPhonesCompanion.insert({
+    required String id,
+    required String studentId,
+    required String phoneNumber,
+    this.label = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       studentId = Value(studentId),
+       phoneNumber = Value(phoneNumber),
+       deviceId = Value(deviceId);
+  static Insertable<StudentPhone> custom({
+    Expression<String>? id,
+    Expression<String>? studentId,
+    Expression<String>? phoneNumber,
+    Expression<String>? label,
+    Expression<DateTime>? createdAt,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (studentId != null) 'student_id': studentId,
+      if (phoneNumber != null) 'phone_number': phoneNumber,
+      if (label != null) 'label': label,
+      if (createdAt != null) 'created_at': createdAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StudentPhonesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? studentId,
+    Value<String>? phoneNumber,
+    Value<String?>? label,
+    Value<DateTime>? createdAt,
+    Value<String>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return StudentPhonesCompanion(
+      id: id ?? this.id,
+      studentId: studentId ?? this.studentId,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      label: label ?? this.label,
+      createdAt: createdAt ?? this.createdAt,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (studentId.present) {
+      map['student_id'] = Variable<String>(studentId.value);
+    }
+    if (phoneNumber.present) {
+      map['phone_number'] = Variable<String>(phoneNumber.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudentPhonesCompanion(')
+          ..write('id: $id, ')
+          ..write('studentId: $studentId, ')
+          ..write('phoneNumber: $phoneNumber, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -14355,6 +14770,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FamiliesTable families = $FamiliesTable(this);
   late final $FamilyMembersTable familyMembers = $FamilyMembersTable(this);
   late final $SpecialCasesTable specialCases = $SpecialCasesTable(this);
+  late final $StudentPhonesTable studentPhones = $StudentPhonesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14383,6 +14799,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     families,
     familyMembers,
     specialCases,
+    studentPhones,
   ];
 }
 
@@ -14566,6 +14983,24 @@ final class $$StudentsTableReferences
     ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_specialCasesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$StudentPhonesTable, List<StudentPhone>>
+  _studentPhonesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.studentPhones,
+    aliasName: 'students__id__student_phones__student_id',
+  );
+
+  $$StudentPhonesTableProcessedTableManager get studentPhonesRefs {
+    final manager = $$StudentPhonesTableTableManager(
+      $_db,
+      $_db.studentPhones,
+    ).filter((f) => f.studentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_studentPhonesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -14847,6 +15282,31 @@ class $$StudentsTableFilterComposer
           }) => $$SpecialCasesTableFilterComposer(
             $db: $db,
             $table: $db.specialCases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> studentPhonesRefs(
+    Expression<bool> Function($$StudentPhonesTableFilterComposer f) f,
+  ) {
+    final $$StudentPhonesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.studentPhones,
+      getReferencedColumn: (t) => t.studentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentPhonesTableFilterComposer(
+            $db: $db,
+            $table: $db.studentPhones,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15229,6 +15689,31 @@ class $$StudentsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> studentPhonesRefs<T extends Object>(
+    Expression<T> Function($$StudentPhonesTableAnnotationComposer a) f,
+  ) {
+    final $$StudentPhonesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.studentPhones,
+      getReferencedColumn: (t) => t.studentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentPhonesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.studentPhones,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$StudentsTableTableManager
@@ -15252,6 +15737,7 @@ class $$StudentsTableTableManager
             bool studentCardsRefs,
             bool familyMembersRefs,
             bool specialCasesRefs,
+            bool studentPhonesRefs,
           })
         > {
   $$StudentsTableTableManager(_$AppDatabase db, $StudentsTable table)
@@ -15374,6 +15860,7 @@ class $$StudentsTableTableManager
                 studentCardsRefs = false,
                 familyMembersRefs = false,
                 specialCasesRefs = false,
+                studentPhonesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -15385,6 +15872,7 @@ class $$StudentsTableTableManager
                     if (studentCardsRefs) db.studentCards,
                     if (familyMembersRefs) db.familyMembers,
                     if (specialCasesRefs) db.specialCases,
+                    if (studentPhonesRefs) db.studentPhones,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -15536,6 +16024,27 @@ class $$StudentsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (studentPhonesRefs)
+                        await $_getPrefetchedData<
+                          Student,
+                          $StudentsTable,
+                          StudentPhone
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudentsTableReferences
+                              ._studentPhonesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).studentPhonesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.studentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -15564,6 +16073,7 @@ typedef $$StudentsTableProcessedTableManager =
         bool studentCardsRefs,
         bool familyMembersRefs,
         bool specialCasesRefs,
+        bool studentPhonesRefs,
       })
     >;
 typedef $$TeachersTableCreateCompanionBuilder =
@@ -26679,6 +27189,348 @@ typedef $$SpecialCasesTableProcessedTableManager =
       SpecialCase,
       PrefetchHooks Function({bool studentId, bool approvedByUserId})
     >;
+typedef $$StudentPhonesTableCreateCompanionBuilder =
+    StudentPhonesCompanion Function({
+      required String id,
+      required String studentId,
+      required String phoneNumber,
+      Value<String?> label,
+      Value<DateTime> createdAt,
+      required String deviceId,
+      Value<int> rowid,
+    });
+typedef $$StudentPhonesTableUpdateCompanionBuilder =
+    StudentPhonesCompanion Function({
+      Value<String> id,
+      Value<String> studentId,
+      Value<String> phoneNumber,
+      Value<String?> label,
+      Value<DateTime> createdAt,
+      Value<String> deviceId,
+      Value<int> rowid,
+    });
+
+final class $$StudentPhonesTableReferences
+    extends BaseReferences<_$AppDatabase, $StudentPhonesTable, StudentPhone> {
+  $$StudentPhonesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StudentsTable _studentIdTable(_$AppDatabase db) =>
+      db.students.createAlias('student_phones__student_id__students__id');
+
+  $$StudentsTableProcessedTableManager get studentId {
+    final $_column = $_itemColumn<String>('student_id')!;
+
+    final manager = $$StudentsTableTableManager(
+      $_db,
+      $_db.students,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_studentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$StudentPhonesTableFilterComposer
+    extends Composer<_$AppDatabase, $StudentPhonesTable> {
+  $$StudentPhonesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phoneNumber => $composableBuilder(
+    column: $table.phoneNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudentsTableFilterComposer get studentId {
+    final $$StudentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableFilterComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StudentPhonesTableOrderingComposer
+    extends Composer<_$AppDatabase, $StudentPhonesTable> {
+  $$StudentPhonesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phoneNumber => $composableBuilder(
+    column: $table.phoneNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudentsTableOrderingComposer get studentId {
+    final $$StudentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StudentPhonesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StudentPhonesTable> {
+  $$StudentPhonesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get phoneNumber => $composableBuilder(
+    column: $table.phoneNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  $$StudentsTableAnnotationComposer get studentId {
+    final $$StudentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.studentId,
+      referencedTable: $db.students,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.students,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StudentPhonesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StudentPhonesTable,
+          StudentPhone,
+          $$StudentPhonesTableFilterComposer,
+          $$StudentPhonesTableOrderingComposer,
+          $$StudentPhonesTableAnnotationComposer,
+          $$StudentPhonesTableCreateCompanionBuilder,
+          $$StudentPhonesTableUpdateCompanionBuilder,
+          (StudentPhone, $$StudentPhonesTableReferences),
+          StudentPhone,
+          PrefetchHooks Function({bool studentId})
+        > {
+  $$StudentPhonesTableTableManager(_$AppDatabase db, $StudentPhonesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StudentPhonesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StudentPhonesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StudentPhonesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> studentId = const Value.absent(),
+                Value<String> phoneNumber = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StudentPhonesCompanion(
+                id: id,
+                studentId: studentId,
+                phoneNumber: phoneNumber,
+                label: label,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String studentId,
+                required String phoneNumber,
+                Value<String?> label = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                required String deviceId,
+                Value<int> rowid = const Value.absent(),
+              }) => StudentPhonesCompanion.insert(
+                id: id,
+                studentId: studentId,
+                phoneNumber: phoneNumber,
+                label: label,
+                createdAt: createdAt,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$StudentPhonesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({studentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (studentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.studentId,
+                                referencedTable: $$StudentPhonesTableReferences
+                                    ._studentIdTable(db),
+                                referencedColumn: $$StudentPhonesTableReferences
+                                    ._studentIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$StudentPhonesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StudentPhonesTable,
+      StudentPhone,
+      $$StudentPhonesTableFilterComposer,
+      $$StudentPhonesTableOrderingComposer,
+      $$StudentPhonesTableAnnotationComposer,
+      $$StudentPhonesTableCreateCompanionBuilder,
+      $$StudentPhonesTableUpdateCompanionBuilder,
+      (StudentPhone, $$StudentPhonesTableReferences),
+      StudentPhone,
+      PrefetchHooks Function({bool studentId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -26729,4 +27581,6 @@ class $AppDatabaseManager {
       $$FamilyMembersTableTableManager(_db, _db.familyMembers);
   $$SpecialCasesTableTableManager get specialCases =>
       $$SpecialCasesTableTableManager(_db, _db.specialCases);
+  $$StudentPhonesTableTableManager get studentPhones =>
+      $$StudentPhonesTableTableManager(_db, _db.studentPhones);
 }
