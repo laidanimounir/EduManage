@@ -1444,7 +1444,9 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+    return Column(children: [
+      Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), color: const Color(0xFFE74C3C), child: Text('FROZEN=$_feeAmount', style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold))),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(widget.l10n.registrationFee, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
         const SizedBox(height: 2),
@@ -1454,7 +1456,7 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
         Text(widget.l10n.feePaid, style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600))
       else
         Text('\u063A\u064A\u0631 \u0645\u062F\u0641\u0648\u0639', style: const TextStyle(fontSize: 11, color: SemanticTokens.error, fontWeight: FontWeight.w600)),
-    ]);
+    ])]);
   }
 }
 
@@ -2517,6 +2519,8 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
     if (_loading) return const SizedBox(height: 80, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), color: const Color(0xFFE74C3C), child: Row(children: [const Icon(PhosphorIcons.warning, size: 12, color: Colors.white), const SizedBox(width: 4), Text('BUILD b78e6c6 | frozenFee=$_feeAmount | target=$_paymentTarget | SegmentedButton=YES', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))])),
+      const SizedBox(height: 4),
       _buildRegFeeSection(),
       const SizedBox(height: 12),
       _buildChargesSection(),
