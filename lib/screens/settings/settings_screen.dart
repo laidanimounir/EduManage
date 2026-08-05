@@ -21,6 +21,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final SettingsRepository _settingsRepo;
   int _sessionTimeout = AppConstants.defaultSessionTimeoutMinutes;
   double _registrationFeeAmount = 2000;
+  final _feeAmountCtrl = TextEditingController();
+  final _feeFormKey = GlobalKey<FormState>();
+  bool _feeSaving = false;
   List<int> _agingBuckets = [30, 60, 90];
   int _undoWindowMinutes = 10;
   Map<int, DayOperatingHours> _hours = {};
@@ -42,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     final prefs = await SharedPreferences.getInstance();
     _registrationFeeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    _feeAmountCtrl.text = _registrationFeeAmount.toStringAsFixed(0);
     final ag1 = prefs.getInt('aging_bucket_1') ?? 30;
     final ag2 = prefs.getInt('aging_bucket_2') ?? 60;
     final ag3 = prefs.getInt('aging_bucket_3') ?? 90;
@@ -49,6 +53,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _undoWindowMinutes = prefs.getInt('undo_window_minutes') ?? 10;
     _hours = await _settingsRepo.getOperatingHours();
     setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    _feeAmountCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _saveAgingBucket(int index, int days) async {
@@ -334,26 +344,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 4),
                   Text(l10n.registrationFeeDescription, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Text('DA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: _registrationFeeAmount.toStringAsFixed(0),
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(isDense: true),
-                          onChanged: (v) async {
-                            final amount = double.tryParse(v) ?? 2000.0;
-                            if (amount > 0) {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setDouble('registration_fee_amount', amount);
-                              setState(() => _registrationFeeAmount = amount);
+                  Form(
+                    key: _feeFormKey,
+                    child: Row(
+                      children: [
+                        const Text('DA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _feeAmountCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(isDense: true),
+                            validator: (v) {
+                              final parsed = double.tryParse(v ?? '');
+                              if (parsed == null || parsed <= 0) return '\u0642\u064A\u0645\u0629 \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u0629';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _feeSaving ? null : () async {
+                            if (!_feeFormKey.currentState!.validate()) return;
+                            setState(() => _feeSaving = true);
+                            final amount = double.tryParse(_feeAmountCtrl.text) ?? 2000.0;
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setDouble('registration_fee_amount', amount);
+                            setState(() { _registrationFeeAmount = amount; _feeSaving = false; });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0642\u064A\u0645\u0629'), backgroundColor: ShellTokens.accentMuted),
+                              );
                             }
                           },
+                          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase),
+                          child: Text('\u062D\u0641\u0638'),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
