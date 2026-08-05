@@ -1685,6 +1685,10 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         setState(() { _created = true; _saving = false; });
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) Navigator.pop(context, true);
+      } else if (_isEdit && mounted) {
+        setState(() { _created = true; _saving = false; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context, true);
       } else if (mounted) {
         Navigator.pop(context, true);
       }
@@ -1763,7 +1767,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
           builder: (_, v, __) => Transform.scale(scale: v, child: const Icon(PhosphorIcons.checkCircle, size: 48, color: SemanticTokens.success)),
         ),
         const SizedBox(height: 16),
-        const Text('\u062A\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u062A\u0644\u0645\u064A\u0630 \u0628\u0646\u062C\u0627\u062D', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+        Text(_isEdit ? '\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u062A\u0644\u0645\u064A\u0630 \u0628\u0646\u062C\u0627\u062D' : '\u062A\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u062A\u0644\u0645\u064A\u0630 \u0628\u0646\u062C\u0627\u062D', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
       ]),
     );
   }
