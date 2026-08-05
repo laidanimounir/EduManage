@@ -46,4 +46,11 @@ class PhosphorIcons {
   static const camera = IconData(0xe10e, fontFamily: _family);
   static const calendar = IconData(0xe104, fontFamily: _family);
   static const arrowsLeftRight = IconData(0xe080, fontFamily: _family);
+  static const mapPin = IconData(0xe31e, fontFamily: _family);
+  static const globe = IconData(0xe28e, fontFamily: _family);
+  static const genderMale = IconData(0xe274, fontFamily: _family);
+  static const genderFemale = IconData(0xe272, fontFamily: _family);
+  static const translate = IconData(0xe4a8, fontFamily: _family);
+  static const barcode = IconData(0xe0c4, fontFamily: _family);
+  static const phone = IconData(0xe3a6, fontFamily: _family);
 }

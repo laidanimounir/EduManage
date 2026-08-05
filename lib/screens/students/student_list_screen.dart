@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,7 @@ import '../../repositories/subject_group_repository.dart';
 import '../../repositories/session_repository.dart';
 import '../../repositories/transaction_service.dart';
 import '../../utils/pdf_generator.dart';
+import '../../utils/dz_material_localizations.dart';
 import '../../constants/app_constants.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -1351,6 +1353,9 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   late final GlobalKey<FormState> _formKey;
   late final StudentRepository _repo;
   bool _saving = false;
+  bool _created = false;
+  bool _showFrenchNames = false;
+  String? _detectedCarrier;
 
   late TextEditingController _codeCtrl;
   late TextEditingController _firstNameArCtrl;
@@ -1360,11 +1365,20 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   late TextEditingController _phoneCtrl;
   late TextEditingController _addressCtrl;
   late TextEditingController _birthPlaceCtrl;
+  late TextEditingController _dayCtrl;
+  late TextEditingController _monthCtrl;
+  late TextEditingController _yearCtrl;
+  late FocusNode _dayFocus;
+  late FocusNode _monthFocus;
+  late FocusNode _yearFocus;
   String _gender = 'male';
   String _status = 'active';
   String? _schoolLevel;
-  DateTime? _birthDate;
-  bool _isEdit = false;
+  int? _birthDay;
+  int? _birthMonth;
+  int? _birthYear;
+
+  bool get _isEdit => widget.student != null;
 
   @override
   void initState() {
@@ -1372,7 +1386,6 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _formKey = GlobalKey<FormState>();
     _repo = StudentRepository(widget.database);
     final s = widget.student;
-    _isEdit = s != null;
     _codeCtrl = TextEditingController(text: s?.code ?? '');
     _firstNameArCtrl = TextEditingController(text: s?.firstNameAr ?? '');
     _lastNameArCtrl = TextEditingController(text: s?.lastNameAr ?? '');
@@ -1381,11 +1394,27 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
     _addressCtrl = TextEditingController(text: s?.address ?? '');
     _birthPlaceCtrl = TextEditingController(text: s?.birthPlace ?? '');
+    _dayCtrl = TextEditingController();
+    _monthCtrl = TextEditingController();
+    _yearCtrl = TextEditingController();
+    _dayFocus = FocusNode();
+    _monthFocus = FocusNode();
+    _yearFocus = FocusNode();
+    _phoneCtrl.addListener(_onPhoneChanged);
     if (s != null) {
       _gender = s.gender ?? 'male';
       _status = s.status;
       _schoolLevel = s.schoolLevel;
-      _birthDate = s.birthDate;
+      if (s.birthDate != null) {
+        _birthDay = s.birthDate!.day;
+        _birthMonth = s.birthDate!.month;
+        _birthYear = s.birthDate!.year;
+        _dayCtrl.text = _birthDay!.toString().padLeft(2, '0');
+        _monthCtrl.text = _birthMonth!.toString().padLeft(2, '0');
+        _yearCtrl.text = _birthYear.toString();
+      }
+      if (s.firstNameFr != null && s.firstNameFr!.isNotEmpty) _showFrenchNames = true;
+      if (s.lastNameFr != null && s.lastNameFr!.isNotEmpty) _showFrenchNames = true;
       if (s.photoPath != null) {
         _photo = File(s.photoPath!);
       }
@@ -1394,8 +1423,23 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     }
   }
 
+  void _onPhoneChanged() {
+    final v = _phoneCtrl.text.trim();
+    if (v.startsWith('07')) {
+      _detectedCarrier = 'djezzy';
+    } else if (v.startsWith('06')) {
+      _detectedCarrier = 'mobilis';
+    } else if (v.startsWith('05')) {
+      _detectedCarrier = 'ooredoo';
+    } else {
+      _detectedCarrier = null;
+    }
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _phoneCtrl.removeListener(_onPhoneChanged);
     _codeCtrl.dispose();
     _firstNameArCtrl.dispose();
     _lastNameArCtrl.dispose();
@@ -1404,6 +1448,12 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _birthPlaceCtrl.dispose();
+    _dayCtrl.dispose();
+    _monthCtrl.dispose();
+    _yearCtrl.dispose();
+    _dayFocus.dispose();
+    _monthFocus.dispose();
+    _yearFocus.dispose();
     super.dispose();
   }
 
@@ -1418,6 +1468,10 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         final saved = await _photo!.copy('${dir.path}/$fileName');
         photoPath = saved.path;
       }
+      DateTime? birthDate;
+      if (_birthYear != null && _birthMonth != null && _birthDay != null) {
+        birthDate = DateTime(_birthYear!, _birthMonth!, _birthDay!);
+      }
       final entry = StudentsCompanion(
         code: Value(_codeCtrl.text.trim()),
         firstNameAr: Value(_firstNameArCtrl.text.trim()),
@@ -1429,7 +1483,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         gender: Value(_gender),
         status: Value(_status),
         schoolLevel: Value(_schoolLevel),
-        birthDate: Value(_birthDate),
+        birthDate: Value(birthDate),
         birthPlace: Value(_birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim()),
         photoPath: Value(photoPath),
       );
@@ -1442,7 +1496,13 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         final txService = TransactionService(widget.database);
         await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
       }
-      if (mounted) Navigator.pop(context, true);
+      if (!_isEdit && mounted) {
+        setState(() { _created = true; _saving = false; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context, true);
+      } else if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (_) {
       if (mounted) setState(() => _saving = false);
     }
@@ -1455,142 +1515,25 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       backgroundColor: ShellTokens.chromeSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 580, maxHeight: 700),
+        constraints: const BoxConstraints(maxWidth: 580),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder))),
-                child: Row(
-                  children: [
-                    Text(_isEdit ? l10n.editStudent : l10n.add, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-                    const Spacer(),
-                    IconButton(icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary), onPressed: () => Navigator.pop(context)),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionDivider(l10n.personalInfo),
-                      const SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: _pickPhoto,
-                            child: Container(
-                              width: 72, height: 88,
-                              decoration: BoxDecoration(
-                                color: ShellTokens.chromeBase,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: ShellTokens.chromeBorder),
-                              ),
-                              child: _photo != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(5),
-                                      child: Image.file(_photo!, width: 72, height: 88, fit: BoxFit.cover),
-                                    )
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(PhosphorIcons.camera, size: 18, color: ShellTokens.textDisabled),
-                                        const SizedBox(height: 2),
-                                        Text(l10n.takePhoto.substring(0, 4), style: const TextStyle(fontSize: 8, color: ShellTokens.textDisabled)),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _textField(_codeCtrl, required: true, readOnly: _isEdit),
-                                const SizedBox(height: 8),
-                                _textField(_firstNameArCtrl, required: true, hint: '${l10n.firstName} AR'),
-                                const SizedBox(height: 8),
-                                _textField(_firstNameFrCtrl, hint: '${l10n.firstName} FR'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(child: _textField(_lastNameArCtrl, required: true, hint: '${l10n.lastName} AR')),
-                          const SizedBox(width: 8),
-                          Expanded(child: _textField(_lastNameFrCtrl, hint: '${l10n.lastName} FR')),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      _sectionDivider(l10n.phone),
-                      const SizedBox(height: 8),
-                      _textField(_phoneCtrl),
-                      const SizedBox(height: 8),
-                      _textField(_addressCtrl, maxLines: 2, hint: l10n.address),
-                      const SizedBox(height: 14),
-                      _sectionDivider(l10n.schoolLevel),
-                      const SizedBox(height: 8),
-                      _schoolLevelAutocomplete(l10n),
-                      const SizedBox(height: 14),
-                      _sectionDivider('${l10n.gender} / ${l10n.birthDate}'),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _dropdown(
-                              value: _gender,
-                              items: [
-                                DropdownMenuItem(value: 'male', child: Text(l10n.male, style: const TextStyle(fontSize: 12))),
-                                DropdownMenuItem(value: 'female', child: Text(l10n.female, style: const TextStyle(fontSize: 12))),
-                              ],
-                              onChanged: (v) => setState(() => _gender = v!),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _dateField(l10n),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _textField(_birthPlaceCtrl, hint: l10n.birthPlace),
-                      if (_isEdit) ...[
-                        const SizedBox(height: 8),
-                        _dropdown(
-                          value: _status,
-                          items: [
-                            DropdownMenuItem(value: 'active', child: Text(l10n.active, style: const TextStyle(fontSize: 12))),
-                            DropdownMenuItem(value: 'inactive', child: Text(l10n.inactive, style: const TextStyle(fontSize: 12))),
-                            DropdownMenuItem(value: 'graduated', child: Text(l10n.graduated, style: const TextStyle(fontSize: 12))),
-                          ],
-                          onChanged: (v) => setState(() => _status = v!),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _saving ? null : _save,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: ShellTokens.accent,
-                            foregroundColor: ShellTokens.chromeBase,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(_isEdit ? l10n.update : l10n.create),
-                        ),
-                      ),
-                    ],
+              _buildHeader(l10n),
+              if (_created)
+                _buildSuccess(l10n)
+              else ...[
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(14),
+                    child: _buildFormContent(l10n),
                   ),
                 ),
-              ),
+                const Divider(height: 1, color: ShellTokens.chromeBorder),
+                _buildFooter(l10n),
+              ],
             ],
           ),
         ),
@@ -1598,85 +1541,354 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     );
   }
 
-  File? _photo;
-  Future<void> _pickPhoto() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 400);
-    if (image != null) setState(() => _photo = File(image.path));
+  Widget _buildHeader(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder))),
+      child: Row(children: [
+        Text(_isEdit ? l10n.editStudent : l10n.add, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+        const Spacer(),
+        IconButton(icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary), onPressed: () => Navigator.pop(context), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+      ]),
+    );
   }
 
-  Widget _sectionDivider(String text) {
-    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.5));
+  Widget _buildFooter(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(children: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+        const Spacer(),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10)),
+          child: Text(_isEdit ? l10n.update : l10n.create),
+        ),
+      ]),
+    );
   }
 
-  Widget _dateField(AppLocalizations l10n) {
-    return InkWell(
-      onTap: () async {
-        final d = await showDatePicker(
-          context: context,
-          initialDate: _birthDate ?? DateTime(2010, 1, 1),
-          firstDate: DateTime(1990),
-          lastDate: DateTime.now(),
-          locale: Localizations.localeOf(context),
-        );
-        if (!mounted) return;
-        if (d != null) setState(() => _birthDate = d);
-      },
+  Widget _buildSuccess(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 400),
+          builder: (_, v, __) => Transform.scale(scale: v, child: const Icon(PhosphorIcons.checkCircle, size: 48, color: SemanticTokens.success)),
+        ),
+        const SizedBox(height: 16),
+        const Text('\u062A\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u062A\u0644\u0645\u064A\u0630 \u0628\u0646\u062C\u0627\u062D', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+    );
+  }
+
+  Widget _buildFormContent(AppLocalizations l10n) {
+    return Column(children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _buildPhotoPicker(),
+        const SizedBox(width: 12),
+        Expanded(child: Column(children: [
+          _inputField(_codeCtrl, icon: PhosphorIcons.barcode, required: true, readOnly: _isEdit, hint: l10n.code),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: _inputField(_firstNameArCtrl, icon: PhosphorIcons.identificationCard, required: true, hint: '${l10n.firstName} AR')),
+            const SizedBox(width: 8),
+            Expanded(child: _inputField(_lastNameArCtrl, icon: PhosphorIcons.identificationCard, required: true, hint: '${l10n.lastName} AR')),
+          ]),
+        ])),
+      ]),
+      const SizedBox(height: 4),
+      InkWell(
+        onTap: () => setState(() => _showFrenchNames = !_showFrenchNames),
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(PhosphorIcons.translate, size: 13, color: _showFrenchNames ? ShellTokens.accent : ShellTokens.textDisabled),
+            const SizedBox(width: 4),
+            Text(_showFrenchNames ? '\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0628\u0627\u0644\u0641\u0631\u0646\u0633\u064A\u0629' : '\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0628\u0627\u0644\u0641\u0631\u0646\u0633\u064A\u0629', style: TextStyle(fontSize: 11, color: _showFrenchNames ? ShellTokens.accent : ShellTokens.textDisabled)),
+          ]),
+        ),
+      ),
+      if (_showFrenchNames) ...[
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(child: _inputField(_firstNameFrCtrl, icon: PhosphorIcons.translate, hint: '${l10n.firstName} FR')),
+          const SizedBox(width: 8),
+          Expanded(child: _inputField(_lastNameFrCtrl, icon: PhosphorIcons.translate, hint: '${l10n.lastName} FR')),
+        ]),
+      ],
+      const SizedBox(height: 8),
+      _buildPhoneField(l10n),
+      const SizedBox(height: 8),
+      _inputField(_addressCtrl, icon: PhosphorIcons.mapPin, maxLines: 2, hint: l10n.address),
+      const SizedBox(height: 8),
+      _buildSchoolLevel(l10n),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: _buildGenderSelector(l10n)),
+        const SizedBox(width: 8),
+        Expanded(child: _buildDateInput(l10n)),
+      ]),
+      const SizedBox(height: 8),
+      _inputField(_birthPlaceCtrl, icon: PhosphorIcons.globe, hint: l10n.birthPlace),
+      if (_isEdit) ...[
+        const SizedBox(height: 8),
+        _inputDropdown(
+          value: _status,
+          icon: PhosphorIcons.pushPinSimple,
+          items: [
+            DropdownMenuItem(value: 'active', child: Text(l10n.active, style: const TextStyle(fontSize: 12))),
+            DropdownMenuItem(value: 'inactive', child: Text(l10n.inactive, style: const TextStyle(fontSize: 12))),
+            DropdownMenuItem(value: 'graduated', child: Text(l10n.graduated, style: const TextStyle(fontSize: 12))),
+          ],
+          onChanged: (v) => setState(() => _status = v!),
+        ),
+      ],
+    ]);
+  }
+
+  Widget _buildPhotoPicker() {
+    return GestureDetector(
+      onTap: _pickPhoto,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        decoration: BoxDecoration(
-          color: ShellTokens.chromeBase,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: ShellTokens.chromeBorder),
-        ),
-        child: Text(
-          _birthDate != null ? _fmtDate(_birthDate!) : l10n.birthDate,
-          style: TextStyle(fontSize: 12, color: _birthDate != null ? ShellTokens.textPrimary : ShellTokens.textDisabled),
-        ),
+        width: 72, height: 88,
+        decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)),
+        child: _photo != null
+            ? ClipRRect(borderRadius: BorderRadius.circular(5), child: Image.file(_photo!, width: 72, height: 88, fit: BoxFit.cover))
+            : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(PhosphorIcons.camera, size: 18, color: ShellTokens.textDisabled),
+                const SizedBox(height: 2),
+                Text(widget.l10n.takePhoto.substring(0, 4), style: const TextStyle(fontSize: 8, color: ShellTokens.textDisabled)),
+              ]),
       ),
     );
   }
 
-  Widget _schoolLevelAutocomplete(AppLocalizations l10n) {
-    final repo = SchoolLevelRepository(widget.database);
+  Widget _buildPhoneField(AppLocalizations l10n) {
+    final isMobile = _detectedCarrier != null;
+    final isLandline = _phoneCtrl.text.trim().isNotEmpty && !isMobile;
+    return TextFormField(
+      controller: _phoneCtrl,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, if (isMobile) LengthLimitingTextInputFormatter(10)],
+      style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+      decoration: InputDecoration(
+        hintText: l10n.phone,
+        prefixIcon: const Padding(padding: EdgeInsets.all(10), child: Icon(PhosphorIcons.phone, size: 16, color: ShellTokens.textSecondary)),
+        suffixIcon: isMobile
+            ? Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/logos/$_detectedCarrier.png', width: 24, height: 24))
+            : isLandline
+                ? const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.phone, size: 12, color: ShellTokens.textDisabled), SizedBox(width: 4), Text('\u062E\u0637 \u0623\u0631\u0636\u064A \u062B\u0627\u0628\u062A', style: TextStyle(fontSize: 9, color: ShellTokens.textDisabled))]))
+                : null,
+        filled: true, fillColor: ShellTokens.chromeBase,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+        errorStyle: const TextStyle(fontSize: 10),
+      ),
+    );
+  }
+
+  Widget _buildGenderSelector(AppLocalizations l10n) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(l10n.gender, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+      SegmentedButton<String>(
+        segments: [
+          ButtonSegment(value: 'male', icon: const Icon(PhosphorIcons.genderMale, size: 16), label: Text(l10n.male, style: const TextStyle(fontSize: 11))),
+          ButtonSegment(value: 'female', icon: const Icon(PhosphorIcons.genderFemale, size: 16), label: Text(l10n.female, style: const TextStyle(fontSize: 11))),
+        ],
+        selected: {_gender},
+        onSelectionChanged: (v) => setState(() => _gender = v.first),
+        style: SegmentedButton.styleFrom(
+          backgroundColor: ShellTokens.chromeBase,
+          selectedBackgroundColor: ShellTokens.accent,
+          selectedForegroundColor: ShellTokens.chromeBase,
+          foregroundColor: ShellTokens.textSecondary,
+          side: const BorderSide(color: ShellTokens.chromeBorder),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildDateInput(AppLocalizations l10n) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(l10n.birthDate, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+      Row(children: [
+        SizedBox(width: 42, child: _dateSegment(_dayCtrl, _dayFocus, _monthFocus, 2, 'DD')),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 3), child: Text('/', style: TextStyle(fontSize: 12, color: ShellTokens.textDisabled))),
+        SizedBox(width: 42, child: _dateSegment(_monthCtrl, _monthFocus, _yearFocus, 2, 'MM')),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 3), child: Text('/', style: TextStyle(fontSize: 12, color: ShellTokens.textDisabled))),
+        SizedBox(width: 60, child: _dateSegment(_yearCtrl, _yearFocus, null, 4, 'YYYY')),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: _pickDate,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(width: 28, height: 36, decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)), alignment: Alignment.center, child: const Icon(PhosphorIcons.calendar, size: 14, color: ShellTokens.textSecondary)),
+        ),
+      ]),
+    ]);
+  }
+
+  Widget _dateSegment(TextEditingController ctrl, FocusNode focus, FocusNode? nextFocus, int maxLen, String hint) {
+    return TextFormField(
+      controller: ctrl,
+      focusNode: focus,
+      textAlign: TextAlign.center,
+      maxLength: maxLen,
+      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(maxLen)],
+      style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled),
+        filled: true, fillColor: ShellTokens.chromeBase,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.accent)),
+      ),
+      onChanged: (v) {
+        if (v.length == maxLen && nextFocus != null) {
+          FocusScope.of(context).requestFocus(nextFocus);
+        }
+        _parseDate();
+      },
+    );
+  }
+
+  void _parseDate() {
+    final d = int.tryParse(_dayCtrl.text);
+    final m = int.tryParse(_monthCtrl.text);
+    final y = int.tryParse(_yearCtrl.text);
+    if (d != null && m != null && y != null && d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= DateTime.now().year) {
+      setState(() { _birthDay = d; _birthMonth = m; _birthYear = y; });
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final initial = (_birthYear != null && _birthMonth != null && _birthDay != null) ? DateTime(_birthYear!, _birthMonth!, _birthDay!) : DateTime(2010, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1990),
+      lastDate: now,
+      locale: const Locale('ar'),
+      builder: (context, child) {
+        return Localizations.override(
+          context: context,
+          locale: const Locale('ar'),
+          delegates: [const DzMaterialLocalizationsDelegate()],
+          child: child!,
+        );
+      },
+    );
+    if (!mounted) return;
+    if (picked != null) {
+      setState(() {
+        _birthDay = picked.day; _birthMonth = picked.month; _birthYear = picked.year;
+        _dayCtrl.text = _birthDay!.toString().padLeft(2, '0');
+        _monthCtrl.text = _birthMonth!.toString().padLeft(2, '0');
+        _yearCtrl.text = _birthYear.toString();
+      });
+    }
+  }
+
+  Widget _buildSchoolLevel(AppLocalizations l10n) {
     return FutureBuilder<List<SchoolLevel>>(
-      future: repo.searchByName(''),
+      future: SchoolLevelRepository(widget.database).searchByName(''),
       builder: (ctx, snap) {
         final levels = snap.data ?? [];
-        final items = <DropdownMenuItem<String?>>[
-          DropdownMenuItem(value: null, child: Text(l10n.noData, style: const TextStyle(fontSize: 12, color: ShellTokens.textDisabled))),
-          ...levels.map((l) => DropdownMenuItem(value: l.name, child: Text(l.name, style: const TextStyle(fontSize: 12)))),
-          const DropdownMenuItem(value: '__new__', child: Row(children: [Icon(PhosphorIcons.plus, size: 12, color: ShellTokens.accent), SizedBox(width: 4), Text('New...', style: TextStyle(fontSize: 12, color: ShellTokens.accent))])),
-        ];
-        return _dropdown(
-          value: _schoolLevel,
-          items: items,
-          onChanged: (v) async {
-            if (v == '__new__') {
-              final ctrl = TextEditingController();
-              final name = await showDialog<String>(context: context, builder: (c) => AlertDialog(
-                backgroundColor: ShellTokens.chromeSurface,
-                title: Text(l10n.add, style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary)),
-                content: TextField(controller: ctrl, autofocus: true, style: const TextStyle(color: ShellTokens.textPrimary)),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
-                  TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: Text(l10n.add)),
-                ],
-              ));
-              if (name != null && name.isNotEmpty) {
-                await repo.create(name);
-                setState(() => _schoolLevel = name);
-              }
-            } else {
-              setState(() => _schoolLevel = v);
-            }
+        return Autocomplete<SchoolLevel>(
+          displayStringForOption: (l) => l.name,
+          optionsBuilder: (textEditingValue) {
+            if (textEditingValue.text.isEmpty) return levels;
+            return levels.where((l) => l.name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
           },
+          fieldViewBuilder: (ctx, ctrl, focus, onSubmitted) {
+            ctrl.text = _schoolLevel ?? '';
+            return TextFormField(
+              controller: ctrl,
+              focusNode: focus,
+              style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+              decoration: InputDecoration(
+                hintText: l10n.schoolLevel,
+                prefixIcon: const Padding(padding: EdgeInsets.all(10), child: Icon(PhosphorIcons.graduationCap, size: 16, color: ShellTokens.textSecondary)),
+                suffixIcon: _schoolLevel != null ? IconButton(icon: const Icon(PhosphorIcons.x, size: 14, color: ShellTokens.textSecondary), onPressed: () => setState(() => _schoolLevel = null)) : null,
+                filled: true, fillColor: ShellTokens.chromeBase,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.accent)),
+              ),
+            );
+          },
+          optionsViewBuilder: (ctx, onSelected, options) {
+            final items = options.toList();
+            return Align(alignment: Alignment.topLeft, child: Material(
+              color: ShellTokens.chromeSurface,
+              borderRadius: BorderRadius.circular(6),
+              elevation: 4,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: items.length + 1,
+                  itemBuilder: (_, i) {
+                    if (i == items.length) {
+                      return InkWell(
+                        onTap: () => _addNewLevel(l10n),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: const BoxDecoration(border: Border(top: BorderSide(color: ShellTokens.chromeBorder))),
+                          child: Row(children: [
+                            const Icon(PhosphorIcons.plus, size: 14, color: ShellTokens.accent),
+                            const SizedBox(width: 8),
+                            Text('\u0625\u0636\u0627\u0641\u0629 \u0645\u0633\u062A\u0648\u0649 \u062C\u062F\u064A\u062F', style: TextStyle(fontSize: 12, color: ShellTokens.accent, fontWeight: FontWeight.w600)),
+                          ]),
+                        ),
+                      );
+                    }
+                    return ListTile(
+                      dense: true,
+                      title: Text(items[i].name, style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+                      onTap: () => onSelected(items[i]),
+                    );
+                  },
+                ),
+              ),
+            ));
+          },
+          onSelected: (l) => setState(() => _schoolLevel = l.name),
         );
       },
     );
   }
 
-  Widget _textField(TextEditingController ctrl, {bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
+  Future<void> _addNewLevel(AppLocalizations l10n) async {
+    final ctrl = TextEditingController();
+    final repo = SchoolLevelRepository(widget.database);
+    final name = await showDialog<String>(context: context, builder: (c) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text('\u0625\u0636\u0627\u0641\u0629 \u0645\u0633\u062A\u0648\u0649 \u062C\u062F\u064A\u062F', style: const TextStyle(fontSize: 14, color: ShellTokens.textPrimary)),
+      content: TextField(controller: ctrl, autofocus: true, style: const TextStyle(color: ShellTokens.textPrimary), decoration: InputDecoration(hintText: '\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u0648\u0649')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
+        TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: Text(l10n.add)),
+      ],
+    ));
+    if (name != null && name.isNotEmpty) {
+      await repo.create(name);
+      setState(() => _schoolLevel = name);
+    }
+  }
+
+  Widget _inputField(TextEditingController ctrl, {IconData? icon, bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
     return TextFormField(
       controller: ctrl,
       readOnly: readOnly,
@@ -1684,6 +1896,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
       decoration: InputDecoration(
         hintText: hint,
+        prefixIcon: icon != null ? Padding(padding: const EdgeInsets.all(10), child: Icon(icon, size: 16, color: ShellTokens.textSecondary)) : null,
         filled: true,
         fillColor: ShellTokens.chromeBase,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -1696,13 +1909,14 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     );
   }
 
-  Widget _dropdown({required String? value, required List<DropdownMenuItem<String?>> items, required ValueChanged<String?> onChanged}) {
-    return DropdownButtonFormField<String?>(
+  Widget _inputDropdown({required String? value, required IconData icon, required List<DropdownMenuItem<String>> items, required ValueChanged<String?> onChanged}) {
+    return DropdownButtonFormField<String>(
       value: value,
       items: items,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
       decoration: InputDecoration(
+        prefixIcon: Padding(padding: const EdgeInsets.all(10), child: Icon(icon, size: 16, color: ShellTokens.textSecondary)),
         filled: true,
         fillColor: ShellTokens.chromeBase,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1712,7 +1926,12 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     );
   }
 
-  String _fmtDate(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  File? _photo;
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 400);
+    if (image != null) setState(() => _photo = File(image.path));
+  }
 }
 
 class _FamilyInfo extends StatefulWidget {

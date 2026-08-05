@@ -39,6 +39,9 @@ flutter:
   uses-material-design: true
   generate: true
 
+  assets:
+    - assets/logos/
+
   fonts:
     - family: Phosphor
       fonts:
