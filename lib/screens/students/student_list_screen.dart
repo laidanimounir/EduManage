@@ -506,6 +506,19 @@ class _StudentListScreenState extends State<StudentListScreen> {
         backgroundColor: ShellTokens.accentMuted, duration: const Duration(seconds: 2),
       ));
     }
+    final dir = await getApplicationDocumentsDirectory();
+    final fileName = 'students_export.xlsx';
+    final filePath = '${dir.path}/$fileName';
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text(l10n.exportExcel, style: const TextStyle(color: ShellTokens.textPrimary)),
+      content: Text('\u0633\u064A\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A:\n$filePath', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 12)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u062D\u0641\u0638')),
+      ],
+    ));
+    if (confirmed != true || !mounted) return;
     final excel = Excel.createExcel();
     final sheet = excel['Students'];
     sheet.appendRow([
@@ -524,18 +537,10 @@ class _StudentListScreenState extends State<StudentListScreen> {
         TextCellValue(s.phone ?? ''),
       ]);
     }
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/students_export.xlsx');
+    final file = File(filePath);
     await file.writeAsBytes(excel.encode()!);
     if (mounted) {
-      showDialog(context: context, builder: (ctx) => AlertDialog(
-        backgroundColor: ShellTokens.chromeSurface,
-        title: Text(l10n.exportExcel, style: const TextStyle(color: ShellTokens.textPrimary)),
-        content: Text('\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A:\n${file.path}', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 11)),
-        actions: [
-          FilledButton(onPressed: () => Navigator.pop(ctx), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: Text('\u062D\u0633\u0646\u0627\u064B')),
-        ],
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062A\u0645 \u0627\u0644\u062D\u0641\u0638: $filePath'), backgroundColor: ShellTokens.chromeSurface));
     }
   }
 
@@ -1753,8 +1758,11 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       } else if (mounted) {
         Navigator.pop(context, true);
       }
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u062D\u0641\u0638: $e'), backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 
@@ -2373,7 +2381,10 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
       );
       setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u0627\u0644\u062F\u0641\u0639 \u0628\u0646\u062C\u0627\u062D'; });
       await Future.delayed(const Duration(milliseconds: 1000));
-      if (mounted) { _load(); setState(() => _success = false); _amountCtrl.clear(); _noteCtrl.clear(); }
+      if (mounted) {
+        await _load();
+        if (mounted) setState(() { _success = false; _amountCtrl.clear(); _noteCtrl.clear(); });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
