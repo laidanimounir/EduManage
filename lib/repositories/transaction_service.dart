@@ -536,6 +536,12 @@ class TransactionService extends BaseRepository {
     if (note.trim().isEmpty) throw ArgumentError('Reversal reason is mandatory');
     final original = await _txRepo.getById(referenceTransactionId);
     if (original == null) throw ArgumentError('Original transaction not found');
+    final existing = await (db.select(db.transactions)
+      ..where((t) =>
+          t.referenceTransactionId.equals(referenceTransactionId) &
+          t.type.equals('reversal')))
+        .getSingleOrNull();
+    if (existing != null) throw StateError('Transaction already reversed');
 
     final id = await _txRepo.insert(TransactionsCompanion(
       studentId: Value(original.studentId),

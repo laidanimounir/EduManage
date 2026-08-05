@@ -2366,7 +2366,9 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
     final now = DateTime.now();
     final cutoff = now.subtract(const Duration(hours: 48));
     final allTxns = await (db.select(db.transactions)..where((t) => t.studentId.equals(widget.student.id) & t.type.isIn(['student_payment', 'registration_fee_payment']))..orderBy([(t) => OrderingTerm.desc(t.transactionDate)])).get();
-    _recentPayments = allTxns.where((t) => t.transactionDate.isAfter(cutoff) && t.referenceTransactionId == null).toList();
+    final reversals = await (db.select(db.transactions)..where((t) => t.studentId.equals(widget.student.id) & t.type.equals('reversal'))).get();
+    final reversedIds = reversals.where((r) => r.referenceTransactionId != null).map((r) => r.referenceTransactionId!).toSet();
+    _recentPayments = allTxns.where((t) => t.transactionDate.isAfter(cutoff) && t.referenceTransactionId == null && !reversedIds.contains(t.id)).toList();
     if (mounted) setState(() => _loading = false);
   }
 
