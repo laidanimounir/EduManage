@@ -203,6 +203,7 @@ class TransactionService extends BaseRepository {
     String? createdByUserId,
     String? paymentMethod,
     Map<String, double>? allocations,
+    List<String>? chargeTypes,
   }) async {
     if (amount <= 0) throw ArgumentError('Amount must be positive');
     await _checkPeriodOpen(DateTime.now());
@@ -222,7 +223,7 @@ class TransactionService extends BaseRepository {
     if (allocations != null && allocations.isNotEmpty) {
       resolvedAllocations = allocations;
     } else {
-      resolvedAllocations = await _fifoAllocate(studentId, amount);
+      resolvedAllocations = await _fifoAllocate(studentId, amount, chargeTypes: chargeTypes);
     }
 
     for (final entry in resolvedAllocations.entries) {
@@ -246,11 +247,12 @@ class TransactionService extends BaseRepository {
     return id;
   }
 
-  Future<Map<String, double>> _fifoAllocate(String studentId, double paymentAmount) async {
+  Future<Map<String, double>> _fifoAllocate(String studentId, double paymentAmount, {List<String>? chargeTypes}) async {
+    final types = chargeTypes ?? ['session_charge', 'registration_fee', 'correction'];
     final charges = await (db.select(db.transactions)
       ..where((t) =>
           t.studentId.equals(studentId) &
-          t.type.isIn(['session_charge', 'registration_fee', 'correction']))
+          t.type.isIn(types))
       ..orderBy([(t) => OrderingTerm.asc(t.transactionDate)]))
         .get();
 

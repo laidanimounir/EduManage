@@ -1433,13 +1433,12 @@ class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
 
   Future<void> _load() async {
     final db = widget.database;
-    final row = await (db.select(db.students)..where((t) => t.id.equals(widget.studentId))).getSingleOrNull();
-    final prefs = await SharedPreferences.getInstance();
-    final globalFee = prefs.getDouble('registration_fee_amount') ?? 2000.0;
-    final amount = row?.registrationFeeOverride ?? globalFee;
-    debugPrint('[REGFEEBLOCK] student=${widget.studentId} override=${row?.registrationFeeOverride} global=$globalFee final=$amount');
-    final feePaid = await db.isRegistrationFeePaid(widget.studentId);
-    if (mounted) setState(() { _feeAmount = amount; _feePaid = feePaid; _loading = false; });
+    final feeChargeAmount = await db.getRegistrationFeeChargeAmount(widget.studentId);
+    final feeRemaining = await db.getRegistrationFeeRemaining(widget.studentId);
+    _feeAmount = feeChargeAmount ?? 0;
+    _feePaid = feeChargeAmount != null && (feeRemaining ?? 0) <= 0;
+    debugPrint('[REGFEEBLOCK] student=${widget.studentId} frozenFee=$_feeAmount remaining=$feeRemaining paid=$_feePaid');
+    if (mounted) setState(() { _loading = false; });
   }
 
   @override
@@ -2332,8 +2331,10 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   List<Transaction> _recentPayments = [];
   bool _feePaid = false;
   double _feeAmount = 0;
+  double _feeRemaining = 0;
   double _totalUnpaid = 0;
   bool _loading = true;
+  String _paymentTarget = 'sessions';
 
   List<Map<String, dynamic>> get _sessionCharges {
     return _charges.where((c) {
@@ -2354,15 +2355,15 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   Future<void> _load() async {
     final db = widget.database;
     final txService = TransactionService(db);
-    final prefs = await SharedPreferences.getInstance();
-    final globalFee = prefs.getDouble('registration_fee_amount') ?? 2000.0;
-    final studentRow = await (db.select(db.students)..where((t) => t.id.equals(widget.student.id))).getSingleOrNull();
-    final override = studentRow?.registrationFeeOverride;
-    _feeAmount = override ?? globalFee;
-    debugPrint('[PAYLOAD] student=${widget.student.id} override=$override global=$globalFee _feeAmount=$_feeAmount');
-    _feePaid = await db.isRegistrationFeePaid(widget.student.id);
+    final feeChargeAmount = await db.getRegistrationFeeChargeAmount(widget.student.id);
+    final feeRemaining = await db.getRegistrationFeeRemaining(widget.student.id);
+    _feeAmount = feeChargeAmount ?? 0;
+    _feeRemaining = feeRemaining ?? 0;
+    _feePaid = feeChargeAmount != null && (_feeRemaining <= 0);
+    debugPrint('[PAYLOAD] student=${widget.student.id} frozenFee=$_feeAmount remaining=$_feeRemaining paid=$_feePaid');
     _charges = await txService.getUnpaidCharges(widget.student.id);
-    _totalUnpaid = _charges.fold(0.0, (s, c) => s + ((c['remaining'] as double?) ?? 0));
+    final sessionCharges = _charges.where((c) => (c['transaction'] as Transaction).type != 'registration_fee').toList();
+    _totalUnpaid = sessionCharges.fold(0.0, (s, c) => s + ((c['remaining'] as double?) ?? 0));
     final now = DateTime.now();
     final cutoff = now.subtract(const Duration(hours: 48));
     final allTxns = await (db.select(db.transactions)..where((t) => t.studentId.equals(widget.student.id) & t.type.isIn(['student_payment', 'registration_fee_payment']))..orderBy([(t) => OrderingTerm.desc(t.transactionDate)])).get();
@@ -2378,13 +2379,23 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
     setState(() => _saving = true);
     try {
       final txService = TransactionService(widget.database);
-      await txService.createStudentPayment(
-        studentId: widget.student.id,
-        amount: amount,
-        paymentMethod: _method,
-        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-      );
-      setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u0627\u0644\u062F\u0641\u0639 \u0628\u0646\u062C\u0627\u062D'; });
+      if (_paymentTarget == 'registration_fee') {
+        await txService.createRegistrationFeePayment(
+          studentId: widget.student.id,
+          amount: amount,
+        );
+        _successMsg = '\u062A\u0645 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0646\u062C\u0627\u062D';
+      } else {
+        await txService.createStudentPayment(
+          studentId: widget.student.id,
+          amount: amount,
+          paymentMethod: _method,
+          note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+          chargeTypes: ['session_charge', 'correction'],
+        );
+        _successMsg = '\u062A\u0645 \u0627\u0644\u062F\u0641\u0639 \u0628\u0646\u062C\u0627\u062D';
+      }
+      setState(() { _saving = false; _success = true; });
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) {
         await _load();
@@ -2399,13 +2410,13 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   }
 
   Future<void> _payRegistrationFee() async {
-    debugPrint('[PAYREGFEE] _payRegistrationFee called, _feePaid=$_feePaid _feeAmount=$_feeAmount');
-    if (_feePaid) return;
+    debugPrint('[PAYREGFEE] _payRegistrationFee called, _feePaid=$_feePaid _feeAmount=$_feeAmount remaining=$_feeRemaining');
+    if (_feePaid || _feeRemaining <= 0) return;
     setState(() => _saving = true);
     try {
       final txService = TransactionService(widget.database);
-      debugPrint('[PAYREGFEE] Calling createRegistrationFeePayment amount=$_feeAmount');
-      await txService.createRegistrationFeePayment(studentId: widget.student.id, amount: _feeAmount);
+      debugPrint('[PAYREGFEE] Calling createRegistrationFeePayment amount=$_feeRemaining');
+      await txService.createRegistrationFeePayment(studentId: widget.student.id, amount: _feeRemaining);
       debugPrint('[PAYREGFEE] Payment succeeded');
       setState(() { _saving = false; _success = true; _successMsg = '\u062A\u0645 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0646\u062C\u0627\u062D'; });
       await Future.delayed(const Duration(milliseconds: 1000));
@@ -2528,7 +2539,11 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
       child: Row(children: [
         const Icon(PhosphorIcons.identificationCard, size: 16, color: ShellTokens.textSecondary),
         const SizedBox(width: 8),
-        Expanded(child: Text('\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644: ${_feeAmount.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary))),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644: ${_feeAmount.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary)),
+          if (!_feePaid && _feeRemaining > 0 && _feeRemaining < _feeAmount)
+            Text('\u0628\u0627\u0642\u064A: ${_feeRemaining.toStringAsFixed(0)} \u062F\u062C', style: const TextStyle(fontSize: 10, color: SemanticTokens.warning, fontWeight: FontWeight.w600)),
+        ])),
         if (_feePaid)
           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: SemanticTokens.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: const Text('\u0645\u062F\u0641\u0648\u0639', style: TextStyle(fontSize: 10, color: SemanticTokens.success, fontWeight: FontWeight.w600)))
         else if (!_saving)
@@ -2561,10 +2576,35 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
   }
 
   Widget _buildPaymentForm() {
+    final hasSessions = _sessionCharges.isNotEmpty;
+    final hasRegFee = !_feePaid && _feeAmount > 0;
+    if (!hasSessions && _paymentTarget == 'sessions') {
+      _paymentTarget = 'registration_fee';
+    }
+    if (hasSessions && !hasRegFee && _paymentTarget == 'registration_fee') {
+      _paymentTarget = 'sessions';
+    }
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(8), border: Border.all(color: ShellTokens.chromeBorder)),
       child: Column(children: [
+        if (hasSessions && hasRegFee)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              Expanded(
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'sessions', label: Text('\u0631\u0633\u0648\u0645 \u0627\u0644\u062D\u0635\u0635', style: TextStyle(fontSize: 10))),
+                    ButtonSegment(value: 'registration_fee', label: Text('\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644', style: TextStyle(fontSize: 10))),
+                  ],
+                  selected: {_paymentTarget},
+                  onSelectionChanged: (v) => setState(() => _paymentTarget = v.first),
+                  style: ButtonStyle(visualDensity: VisualDensity.compact),
+                ),
+              ),
+            ]),
+          ),
         Row(children: [
           Expanded(
             child: TextFormField(
@@ -2582,13 +2622,13 @@ class _StudentPayDialogState extends State<_StudentPayDialog> {
           const SizedBox(width: 8),
           InkWell(
             onTap: () {
-              final total = _totalUnpaid + (_feePaid ? 0 : _feeAmount);
+              final total = _paymentTarget == 'registration_fee' ? _feeRemaining : _totalUnpaid;
               _amountCtrl.text = total.toStringAsFixed(0);
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(color: ShellTokens.accentMuted, borderRadius: BorderRadius.circular(4)),
-              child: Text('\u062F\u0641\u0639 \u0627\u0644\u0643\u0644', style: TextStyle(fontSize: 10, color: ShellTokens.accent)),
+              child: Text('\u062F\u0641\u0639 \u0627\u0644\u0643\u0644', style: const TextStyle(fontSize: 10, color: ShellTokens.accent)),
             ),
           ),
         ]),

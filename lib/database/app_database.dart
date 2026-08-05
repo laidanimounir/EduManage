@@ -585,13 +585,38 @@ deviceId: Value(await DeviceId.get()),
   }
 
   Future<bool> isRegistrationFeePaid(String studentId) async {
+    final remaining = await getRegistrationFeeRemaining(studentId);
+    return remaining != null && remaining <= 0;
+  }
+
+  Future<double?> getRegistrationFeeChargeAmount(String studentId) async {
     final result = await customSelect(
-      'SELECT '
-      '(SELECT COUNT(*) FROM transactions WHERE student_id = ? AND type = \'registration_fee_payment\') AS paid, '
-      '(SELECT COUNT(*) FROM transactions WHERE student_id = ? AND type = \'registration_fee\') AS charged',
-      variables: [Variable.withString(studentId), Variable.withString(studentId)],
+      'SELECT COALESCE(SUM(amount), 0.0) AS total FROM transactions WHERE student_id = ? AND type = \'registration_fee\'',
+      variables: [Variable.withString(studentId)],
     ).getSingle();
-    return result.read<int>('paid') >= result.read<int>('charged');
+    final amount = result.read<double>('total');
+    return amount > 0 ? amount : null;
+  }
+
+  Future<double?> getRegistrationFeeRemaining(String studentId) async {
+    final chargedResult = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0.0) AS total FROM transactions WHERE student_id = ? AND type = \'registration_fee\'',
+      variables: [Variable.withString(studentId)],
+    ).getSingle();
+    final charged = chargedResult.read<double>('total');
+    if (charged <= 0) return null;
+    final paidResult = await customSelect(
+      'SELECT '
+      'COALESCE((SELECT SUM(amount) FROM transactions WHERE student_id = ?2 AND type = \'registration_fee_payment\'), 0.0) '
+      '- COALESCE((SELECT SUM(r.amount) FROM transactions r WHERE r.student_id = ?2 AND r.type = \'reversal\' AND r.reference_transaction_id IN (SELECT id FROM transactions WHERE student_id = ?2 AND type = \'registration_fee_payment\')), 0.0) '
+      '+ COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa '
+      'JOIN transactions t ON t.id = pa.payment_transaction_id '
+      'WHERE t.student_id = ?2 AND t.type = \'student_payment\' '
+      'AND pa.charge_transaction_id IN (SELECT id FROM transactions WHERE student_id = ?2 AND type = \'registration_fee\')), 0.0) AS total',
+      variables: [Variable.withString(studentId)],
+    ).getSingle();
+    final paid = paidResult.read<double>('total');
+    return charged - paid;
   }
 
   Future<Map<String, dynamic>?> getLastStudentPayment(String studentId) async {
