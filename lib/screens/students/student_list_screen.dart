@@ -1104,18 +1104,11 @@ class _StudentDetailDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _buildAvatar(),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${student.firstNameAr} ${student.lastNameAr}',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
-                        Text(student.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-                      ],
-                    ),
-                  ),
+                  Text('${student.firstNameAr} ${student.lastNameAr}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                  const SizedBox(width: 8),
+                  Text(student.code, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+                  const Spacer(),
                   IconButton(
                     icon: const Icon(PhosphorIcons.receipt, size: 18, color: ShellTokens.accent),
                     onPressed: () async {
@@ -1135,7 +1128,7 @@ class _StudentDetailDialog extends StatelessWidget {
                         }
                       }
                     },
-                    tooltip: 'Generate Receipt',
+                    tooltip: '\u0637\u0628\u0627\u0639\u0629 \u0648\u0635\u0644',
                   ),
                   IconButton(
                     icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary),
@@ -1148,34 +1141,23 @@ class _StudentDetailDialog extends StatelessWidget {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _FamilyInfo(database: database, studentId: student.id, l10n: l10n),
                     _SpecialCaseBanner(database: database, studentId: student.id),
-                    _sectionHeader(l10n.personalInfo),
-                    const SizedBox(height: 8),
-                    _infoRow(l10n.firstName, '${student.firstNameAr} / ${student.firstNameFr ?? '—'}'),
-                    _infoRow(l10n.lastName, '${student.lastNameAr} / ${student.lastNameFr ?? '—'}'),
-                    _infoRow(l10n.phone, student.phone ?? '—'),
-                    _infoRow(l10n.address, student.address ?? '—'),
-                    _infoRow(l10n.gender, student.gender == 'male' ? l10n.male : student.gender == 'female' ? l10n.female : '—'),
-                    _infoRow(l10n.birthDate, _fmtDate(student.birthDate)),
-                    _infoRow(l10n.birthPlace, student.birthPlace ?? '—'),
-                    _infoRow(l10n.schoolLevel, _levelLabel(student.schoolLevel, l10n)),
-                    const SizedBox(height: 16),
-                    _sectionHeader(l10n.financialStatus),
-                    const SizedBox(height: 8),
-                    _FinancialSummary(database: database, studentId: student.id, l10n: l10n),
+                    _buildPhotoAndName(),
+                    const SizedBox(height: 12),
+                    _buildSectionCard(l10n.personalInfo, _buildPersonalInfoGrid(l10n)),
+                    const SizedBox(height: 10),
+                    _buildSectionCard('\u0631\u0633\u0648\u0645 \u0627\u0644\u062D\u0635\u0635', _SessionChargesBlock(database: database, studentId: student.id, l10n: l10n)),
+                    const SizedBox(height: 10),
+                    _buildSectionCard('\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644', _RegistrationFeeBlock(database: database, studentId: student.id, l10n: l10n)),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () async {
                         try {
-                          final path = await PdfGenerator.generateStudentStatement(
-                            database: database, studentId: student.id,
-                          );
+                          final path = await PdfGenerator.generateStudentStatement(database: database, studentId: student.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Statement saved: $path'), backgroundColor: ShellTokens.chromeSurface));
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Statement saved: $path'), backgroundColor: ShellTokens.chromeSurface));
                           }
                         } catch (e) {
                           if (context.mounted) {
@@ -1184,13 +1166,11 @@ class _StudentDetailDialog extends StatelessWidget {
                         }
                       },
                       icon: const Icon(PhosphorIcons.file, size: 14, color: ShellTokens.textSecondary),
-                      label: Text('Print Statement', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+                      label: Text('\u0637\u0628\u0627\u0639\u0629 \u0643\u0634\u0641 \u0627\u0644\u062D\u0633\u0627\u0628', style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
                       style: OutlinedButton.styleFrom(side: const BorderSide(color: ShellTokens.chromeBorder), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                     ),
-                    const SizedBox(height: 16),
-                    _sectionHeader(l10n.enrollments),
-                    const SizedBox(height: 8),
-                    _EnrollmentList(database: database, studentId: student.id, l10n: l10n),
+                    const SizedBox(height: 12),
+                    _buildSectionCard(l10n.enrollments, _EnrollmentList(database: database, studentId: student.id, l10n: l10n)),
                   ],
                 ),
               ),
@@ -1201,100 +1181,170 @@ class _StudentDetailDialog extends StatelessWidget {
     );
   }
 
-  Widget _sectionHeader(String text) {
-    return Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.3));
-  }
-
-  Widget _buildAvatar() {
-    if (student.photoPath != null && student.photoPath!.isNotEmpty) {
-      return ClipOval(
-        child: Image.file(
-          File(student.photoPath!),
-          width: 44,
-          height: 44,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _defaultAvatar(),
-        ),
-      );
-    }
-    return _defaultAvatar();
-  }
-
-  Widget _defaultAvatar() {
-    return CircleAvatar(
-      radius: 22,
-      backgroundColor: ShellTokens.accentMuted,
-      child: Text(
-        student.firstNameAr[0],
-        style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+  Widget _buildSectionCard(String header, Widget child) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ShellTokens.chromeBase,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ShellTokens.chromeBorder),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(header, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ShellTokens.textDisabled, letterSpacing: 0.3))),
+        child,
+      ]),
     );
   }
 
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary))),
-        ],
+  Widget _buildPhotoAndName() {
+    return Row(children: [
+      ClipOval(
+        child: student.photoPath != null && student.photoPath!.isNotEmpty
+            ? Image.file(File(student.photoPath!), width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildInitialsAvatar())
+            : _buildInitialsAvatar(),
       ),
+      const SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${student.firstNameAr} ${student.lastNameAr}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary)),
+        const SizedBox(height: 2),
+        Text(student.code, style: const TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+        if (student.schoolLevel != null && student.schoolLevel!.isNotEmpty)
+          Text(_levelLabel(student.schoolLevel, l10n), style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled)),
+      ])),
+    ]);
+  }
+
+  Widget _buildInitialsAvatar() {
+    return Container(
+      width: 64, height: 64,
+      decoration: const BoxDecoration(color: ShellTokens.accentMuted, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text(student.firstNameAr[0], style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
     );
   }
 
-  String _fmtDate(DateTime? dt) => dt == null ? '—' : '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  Widget _buildPersonalInfoGrid(AppLocalizations l10n) {
+    final items = <MapEntry<String, String>>[
+      MapEntry('${l10n.firstName} / ${l10n.lastName}', '${student.firstNameAr} ${student.lastNameAr}\n${student.firstNameFr ?? ''} ${student.lastNameFr ?? ''}'.trim()),
+      MapEntry(l10n.phone, student.phone ?? '\u2014'),
+      MapEntry(l10n.gender, student.gender == 'male' ? l10n.male : student.gender == 'female' ? l10n.female : '\u2014'),
+      MapEntry(l10n.birthDate, _fmtDate(student.birthDate)),
+      MapEntry(l10n.address, student.address ?? '\u2014'),
+      MapEntry(l10n.birthPlace, student.birthPlace ?? '\u2014'),
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 5, mainAxisSpacing: 2, crossAxisSpacing: 12),
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final e = items[i];
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 80, child: Text(e.key, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+          Expanded(child: Text(e.value, style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis)),
+        ]);
+      },
+    );
+  }
+
+  String _fmtDate(DateTime? dt) => dt == null ? '\u2014' : '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   String _levelLabel(String? level, AppLocalizations l10n) {
     switch (level) {
       case 'primary': return l10n.schoolLevelPrimary;
       case 'middle': return l10n.schoolLevelMiddle;
       case 'secondary': return l10n.schoolLevelSecondary;
-      default: return level ?? '—';
+      default: return level ?? '\u2014';
     }
   }
 }
 
-class _FinancialSummary extends StatefulWidget {
+class _SessionChargesBlock extends StatefulWidget {
   final AppDatabase database;
   final String studentId;
   final AppLocalizations l10n;
-
-  const _FinancialSummary({required this.database, required this.studentId, required this.l10n});
-
+  const _SessionChargesBlock({required this.database, required this.studentId, required this.l10n});
   @override
-  State<_FinancialSummary> createState() => _FinancialSummaryState();
+  State<_SessionChargesBlock> createState() => _SessionChargesBlockState();
 }
 
-class _FinancialSummaryState extends State<_FinancialSummary> {
+class _SessionChargesBlockState extends State<_SessionChargesBlock> {
   double _charged = 0;
   double _paid = 0;
-  double _balance = 0;
-  bool _feePaid = false;
   bool _loading = true;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    final r1 = await widget.database.getStudentTotalCharged(widget.studentId);
-    final r2 = await widget.database.getStudentTotalPaid(widget.studentId);
-    final r3 = await widget.database.getStudentBalance(widget.studentId);
-    final r4 = await widget.database.isRegistrationFeePaid(widget.studentId);
-    if (mounted) setState(() { _charged = r1; _paid = r2; _balance = r3; _feePaid = r4; _loading = false; });
+    final charged = await _querySum(widget.database, widget.studentId, ['session_charge', 'correction']);
+    final paid = await _querySum(widget.database, widget.studentId, ['student_payment', 'discount', 'reversal']);
+    if (mounted) setState(() { _charged = charged; _paid = paid; _loading = false; });
+  }
+
+  Future<double> _querySum(AppDatabase db, String sid, List<String> types) async {
+    final rows = await db.customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions '
+      'WHERE student_id = ? AND type IN (${types.map((t) => '?').join(',')}) '
+      'AND IFNULL(reference_transaction_id, \'\') = \'\'',
+      variables: [Variable.withString(sid), ...types.map((t) => Variable.withString(t))],
+    ).get();
+    return (rows.singleOrNull?.read<double>('total')) ?? 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
+    final balance = _charged - _paid;
+    return Column(children: [
+      _row(widget.l10n.totalCharged, _charged, ShellTokens.textPrimary),
+      _row(widget.l10n.totalPaid, _paid, SemanticTokens.success),
+      const SizedBox(height: 4),
+      _row(widget.l10n.balance, balance, balance > 0 ? SemanticTokens.error : SemanticTokens.success, bold: true),
+    ]);
+  }
+
+  Widget _row(String label, double amount, Color color, {bool bold = false}) {
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 1), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+      Text('${amount.toStringAsFixed(0)} DA', style: TextStyle(fontSize: 11, fontWeight: bold ? FontWeight.w700 : FontWeight.w400, color: color)),
+    ]));
+  }
+}
+
+class _RegistrationFeeBlock extends StatefulWidget {
+  final AppDatabase database;
+  final String studentId;
+  final AppLocalizations l10n;
+  const _RegistrationFeeBlock({required this.database, required this.studentId, required this.l10n});
+  @override
+  State<_RegistrationFeeBlock> createState() => _RegistrationFeeBlockState();
+}
+
+class _RegistrationFeeBlockState extends State<_RegistrationFeeBlock> {
+  bool _feePaid = false;
+  double _feeAmount = 0;
+  bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    final db = widget.database;
+    final row = await (db.select(db.students)..where((t) => t.id.equals(widget.studentId))).getSingleOrNull();
+    final prefs = await SharedPreferences.getInstance();
+    final globalFee = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final amount = row?.registrationFeeOverride ?? globalFee;
+    final feePaid = await db.isRegistrationFeePaid(widget.studentId);
+    if (mounted) setState(() { _feeAmount = amount; _feePaid = feePaid; _loading = false; });
   }
 
   Future<void> _markFeePaid() async {
-    final prefs = await SharedPreferences.getInstance();
-    final row = await (widget.database.select(widget.database.students)..where((t) => t.id.equals(widget.studentId))).getSingleOrNull();
-    final amount = row?.registrationFeeOverride ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
-    final l10n = AppLocalizations.of(context);
+    final l10n = widget.l10n;
     final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: ShellTokens.chromeSurface,
       title: Text('\u062A\u0623\u0643\u064A\u062F \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
-      content: Text('\u0633\u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0642\u064A\u0645\u0629 ${amount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      content: Text('\u0633\u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0642\u064A\u0645\u0629 ${_feeAmount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
         FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: Text('\u062A\u0623\u0643\u064A\u062F')),
@@ -1302,53 +1352,28 @@ class _FinancialSummaryState extends State<_FinancialSummary> {
     ));
     if (confirmed != true) return;
     final txService = TransactionService(widget.database);
-    await txService.createRegistrationFeePayment(studentId: widget.studentId, amount: amount);
+    await txService.createRegistrationFeePayment(studentId: widget.studentId, amount: _feeAmount);
     _load();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const SizedBox(height: 40, child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
-    return Column(
-      children: [
-        _finRow(widget.l10n.totalCharged, _charged, ShellTokens.textPrimary),
-        _finRow(widget.l10n.totalPaid, _paid, SemanticTokens.success),
-        const Divider(height: 16, color: ShellTokens.chromeBorder),
-        _finRow(widget.l10n.balance, _balance, _balance > 0 ? SemanticTokens.error : SemanticTokens.success, bold: true),
-        const Divider(height: 16, color: ShellTokens.chromeBorder),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(widget.l10n.registrationFee, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-              if (_feePaid)
-                Text(widget.l10n.feePaid, style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600))
-              else
-                TextButton(
-                  onPressed: _markFeePaid,
-                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), minimumSize: Size.zero),
-                  child: Text(widget.l10n.markAsPaid, style: const TextStyle(fontSize: 10, color: ShellTokens.accent)),
-                ),
-            ],
-          ),
+    if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(widget.l10n.registrationFee, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
+        const SizedBox(height: 2),
+        Text('${_feeAmount.toStringAsFixed(0)} DA', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+      if (_feePaid)
+        Text(widget.l10n.feePaid, style: const TextStyle(fontSize: 11, color: SemanticTokens.success, fontWeight: FontWeight.w600))
+      else
+        FilledButton(
+          onPressed: _markFeePaid,
+          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+          child: Text(widget.l10n.markAsPaid, style: const TextStyle(fontSize: 11)),
         ),
-      ],
-    );
-  }
-
-  Widget _finRow(String label, double amount, Color color, {bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: ShellTokens.textSecondary)),
-          Text('${amount.toStringAsFixed(0)} DA',
-            style: TextStyle(fontSize: 11, fontWeight: bold ? FontWeight.w700 : FontWeight.w400, color: color)),
-        ],
-      ),
-    );
+    ]);
   }
 }
 
