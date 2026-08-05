@@ -110,7 +110,8 @@ class _StudentListScreenState extends State<StudentListScreen> {
           
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[FETCHPAGE] ERROR: $e');
       if (mounted) setState(() => _loading = false);
     }
   }

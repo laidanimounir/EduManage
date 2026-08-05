@@ -607,13 +607,13 @@ deviceId: Value(await DeviceId.get()),
     if (charged <= 0) return null;
     final paidResult = await customSelect(
       'SELECT '
-      'COALESCE((SELECT SUM(amount) FROM transactions WHERE student_id = ?2 AND type = \'registration_fee_payment\'), 0.0) '
-      '- COALESCE((SELECT SUM(r.amount) FROM transactions r WHERE r.student_id = ?2 AND r.type = \'reversal\' AND r.reference_transaction_id IN (SELECT id FROM transactions WHERE student_id = ?2 AND type = \'registration_fee_payment\')), 0.0) '
+      'COALESCE((SELECT SUM(amount) FROM transactions WHERE student_id = ? AND type = \'registration_fee_payment\'), 0.0) '
+      '- COALESCE((SELECT SUM(r.amount) FROM transactions r WHERE r.student_id = ? AND r.type = \'reversal\' AND r.reference_transaction_id IN (SELECT id FROM transactions WHERE student_id = ? AND type = \'registration_fee_payment\')), 0.0) '
       '+ COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa '
       'JOIN transactions t ON t.id = pa.payment_transaction_id '
-      'WHERE t.student_id = ?2 AND t.type = \'student_payment\' '
-      'AND pa.charge_transaction_id IN (SELECT id FROM transactions WHERE student_id = ?2 AND type = \'registration_fee\')), 0.0) AS total',
-      variables: [Variable.withString(studentId)],
+      'WHERE t.student_id = ? AND t.type = \'student_payment\' '
+      'AND pa.charge_transaction_id IN (SELECT id FROM transactions WHERE student_id = ? AND type = \'registration_fee\')), 0.0) AS total',
+      variables: [Variable.withString(studentId), Variable.withString(studentId), Variable.withString(studentId), Variable.withString(studentId), Variable.withString(studentId)],
     ).getSingle();
     final paid = paidResult.read<double>('total');
     return charged - paid;
