@@ -1288,7 +1288,19 @@ class _FinancialSummaryState extends State<_FinancialSummary> {
 
   Future<void> _markFeePaid() async {
     final prefs = await SharedPreferences.getInstance();
-    final amount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final row = await (widget.database.select(widget.database.students)..where((t) => t.id.equals(widget.studentId))).getSingleOrNull();
+    final amount = row?.registrationFeeOverride ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text('\u062A\u0623\u0643\u064A\u062F \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644', style: const TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
+      content: Text('\u0633\u064A\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u062F\u0641\u0639 \u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0628\u0642\u064A\u0645\u0629 ${amount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: Text('\u062A\u0623\u0643\u064A\u062F')),
+      ],
+    ));
+    if (confirmed != true) return;
     final txService = TransactionService(widget.database);
     await txService.createRegistrationFeePayment(studentId: widget.studentId, amount: amount);
     _load();
@@ -1480,6 +1492,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   bool _created = false;
   bool _showFrenchNames = false;
   String? _detectedCarrier;
+  double? _registrationFeeOverride;
 
   late TextEditingController _codeCtrl;
   late TextEditingController _firstNameArCtrl;
@@ -1489,6 +1502,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
   late TextEditingController _phoneCtrl;
   late TextEditingController _addressCtrl;
   late TextEditingController _birthPlaceCtrl;
+  late TextEditingController _feeOverrideCtrl;
   late TextEditingController _dayCtrl;
   late TextEditingController _monthCtrl;
   late TextEditingController _yearCtrl;
@@ -1525,6 +1539,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _monthFocus = FocusNode();
     _yearFocus = FocusNode();
     _phoneCtrl.addListener(_onPhoneChanged);
+    _feeOverrideCtrl = TextEditingController();
     if (s != null) {
       _gender = s.gender ?? 'male';
       _status = s.status;
@@ -1541,6 +1556,10 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       if (s.lastNameFr != null && s.lastNameFr!.isNotEmpty) _showFrenchNames = true;
       if (s.photoPath != null) {
         _photo = File(s.photoPath!);
+      }
+      _registrationFeeOverride = s.registrationFeeOverride;
+      if (s.registrationFeeOverride != null) {
+        _feeOverrideCtrl.text = s.registrationFeeOverride!.toStringAsFixed(0);
       }
     } else {
       _repo.generateCode().then((c) { try { if (mounted) _codeCtrl.text = c; } catch (_) {} });
@@ -1575,6 +1594,7 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     _dayCtrl.dispose();
     _monthCtrl.dispose();
     _yearCtrl.dispose();
+    _feeOverrideCtrl.dispose();
     _dayFocus.dispose();
     _monthFocus.dispose();
     _yearFocus.dispose();
@@ -1610,13 +1630,14 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
         birthDate: Value(birthDate),
         birthPlace: Value(_birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim()),
         photoPath: Value(photoPath),
+        registrationFeeOverride: Value(_registrationFeeOverride),
       );
       if (_isEdit) {
         await _repo.update(widget.student!.id, entry);
       } else {
         final newId = await _repo.create(entry);
         final prefs = await SharedPreferences.getInstance();
-        final feeAmount = prefs.getDouble('registration_fee_amount') ?? 2000.0;
+        final feeAmount = _registrationFeeOverride ?? prefs.getDouble('registration_fee_amount') ?? 2000.0;
         final txService = TransactionService(widget.database);
         await txService.createRegistrationFee(studentId: newId, amount: feeAmount);
       }
@@ -1768,6 +1789,17 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
             DropdownMenuItem(value: 'graduated', child: Text(l10n.graduated, style: const TextStyle(fontSize: 12))),
           ],
           onChanged: (v) => setState(() => _status = v!),
+        ),
+        const SizedBox(height: 8),
+        _inputField(
+          _feeOverrideCtrl,
+          icon: PhosphorIcons.currencyCircleDollar,
+          hint: '\u062D\u0642\u0648\u0642 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 (\u0627\u062E\u062A\u064A\u0627\u0631\u064A)',
+          keyboardType: TextInputType.number,
+          onChanged: (v) {
+            final parsed = double.tryParse(v);
+            setState(() => _registrationFeeOverride = parsed);
+          },
         ),
       ],
     ]);
@@ -2012,11 +2044,13 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
     }
   }
 
-  Widget _inputField(TextEditingController ctrl, {IconData? icon, bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
+  Widget _inputField(TextEditingController ctrl, {IconData? icon, bool required = false, bool readOnly = false, int maxLines = 1, String? hint, TextInputType? keyboardType, ValueChanged<String>? onChanged}) {
     return TextFormField(
       controller: ctrl,
       readOnly: readOnly,
       maxLines: maxLines,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
       style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
       decoration: InputDecoration(
         hintText: hint,

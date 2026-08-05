@@ -31,6 +31,7 @@ class Students extends Table {
   TextColumn get schoolLevel => text().nullable()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   TextColumn get photoPath => text().nullable()();
+  RealColumn get registrationFeeOverride => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -408,7 +409,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -544,6 +545,11 @@ deviceId: Value(await DeviceId.get()),
           'UPDATE subject_groups SET subject_id = '
           '(SELECT s.id FROM subjects s WHERE s.name_ar = subject_groups.subject_ar LIMIT 1) '
           'WHERE subject_id IS NULL');
+      }
+      if (from < 17) {
+        await m.alterTable(TableMigration(students,
+          newColumns: [students.registrationFeeOverride],
+        ));
       }
     },
   );

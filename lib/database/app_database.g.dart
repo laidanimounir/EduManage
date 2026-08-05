@@ -217,6 +217,17 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _registrationFeeOverrideMeta =
+      const VerificationMeta('registrationFeeOverride');
+  @override
+  late final GeneratedColumn<double> registrationFeeOverride =
+      GeneratedColumn<double>(
+        'registration_fee_override',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -238,6 +249,7 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     schoolLevel,
     isArchived,
     photoPath,
+    registrationFeeOverride,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -390,6 +402,15 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
         photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
       );
     }
+    if (data.containsKey('registration_fee_override')) {
+      context.handle(
+        _registrationFeeOverrideMeta,
+        registrationFeeOverride.isAcceptableOrUnknown(
+          data['registration_fee_override']!,
+          _registrationFeeOverrideMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -475,6 +496,10 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
         DriftSqlType.string,
         data['${effectivePrefix}photo_path'],
       ),
+      registrationFeeOverride: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}registration_fee_override'],
+      ),
     );
   }
 
@@ -504,6 +529,7 @@ class Student extends DataClass implements Insertable<Student> {
   final String? schoolLevel;
   final bool isArchived;
   final String? photoPath;
+  final double? registrationFeeOverride;
   const Student({
     required this.id,
     required this.code,
@@ -524,6 +550,7 @@ class Student extends DataClass implements Insertable<Student> {
     this.schoolLevel,
     required this.isArchived,
     this.photoPath,
+    this.registrationFeeOverride,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -564,6 +591,11 @@ class Student extends DataClass implements Insertable<Student> {
     map['is_archived'] = Variable<bool>(isArchived);
     if (!nullToAbsent || photoPath != null) {
       map['photo_path'] = Variable<String>(photoPath);
+    }
+    if (!nullToAbsent || registrationFeeOverride != null) {
+      map['registration_fee_override'] = Variable<double>(
+        registrationFeeOverride,
+      );
     }
     return map;
   }
@@ -607,6 +639,9 @@ class Student extends DataClass implements Insertable<Student> {
       photoPath: photoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(photoPath),
+      registrationFeeOverride: registrationFeeOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(registrationFeeOverride),
     );
   }
 
@@ -635,6 +670,9 @@ class Student extends DataClass implements Insertable<Student> {
       schoolLevel: serializer.fromJson<String?>(json['schoolLevel']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       photoPath: serializer.fromJson<String?>(json['photoPath']),
+      registrationFeeOverride: serializer.fromJson<double?>(
+        json['registrationFeeOverride'],
+      ),
     );
   }
   @override
@@ -660,6 +698,9 @@ class Student extends DataClass implements Insertable<Student> {
       'schoolLevel': serializer.toJson<String?>(schoolLevel),
       'isArchived': serializer.toJson<bool>(isArchived),
       'photoPath': serializer.toJson<String?>(photoPath),
+      'registrationFeeOverride': serializer.toJson<double?>(
+        registrationFeeOverride,
+      ),
     };
   }
 
@@ -683,6 +724,7 @@ class Student extends DataClass implements Insertable<Student> {
     Value<String?> schoolLevel = const Value.absent(),
     bool? isArchived,
     Value<String?> photoPath = const Value.absent(),
+    Value<double?> registrationFeeOverride = const Value.absent(),
   }) => Student(
     id: id ?? this.id,
     code: code ?? this.code,
@@ -703,6 +745,9 @@ class Student extends DataClass implements Insertable<Student> {
     schoolLevel: schoolLevel.present ? schoolLevel.value : this.schoolLevel,
     isArchived: isArchived ?? this.isArchived,
     photoPath: photoPath.present ? photoPath.value : this.photoPath,
+    registrationFeeOverride: registrationFeeOverride.present
+        ? registrationFeeOverride.value
+        : this.registrationFeeOverride,
   );
   Student copyWithCompanion(StudentsCompanion data) {
     return Student(
@@ -741,6 +786,9 @@ class Student extends DataClass implements Insertable<Student> {
           ? data.isArchived.value
           : this.isArchived,
       photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
+      registrationFeeOverride: data.registrationFeeOverride.present
+          ? data.registrationFeeOverride.value
+          : this.registrationFeeOverride,
     );
   }
 
@@ -765,7 +813,8 @@ class Student extends DataClass implements Insertable<Student> {
           ..write('deviceId: $deviceId, ')
           ..write('schoolLevel: $schoolLevel, ')
           ..write('isArchived: $isArchived, ')
-          ..write('photoPath: $photoPath')
+          ..write('photoPath: $photoPath, ')
+          ..write('registrationFeeOverride: $registrationFeeOverride')
           ..write(')'))
         .toString();
   }
@@ -791,6 +840,7 @@ class Student extends DataClass implements Insertable<Student> {
     schoolLevel,
     isArchived,
     photoPath,
+    registrationFeeOverride,
   );
   @override
   bool operator ==(Object other) =>
@@ -814,7 +864,8 @@ class Student extends DataClass implements Insertable<Student> {
           other.deviceId == this.deviceId &&
           other.schoolLevel == this.schoolLevel &&
           other.isArchived == this.isArchived &&
-          other.photoPath == this.photoPath);
+          other.photoPath == this.photoPath &&
+          other.registrationFeeOverride == this.registrationFeeOverride);
 }
 
 class StudentsCompanion extends UpdateCompanion<Student> {
@@ -837,6 +888,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
   final Value<String?> schoolLevel;
   final Value<bool> isArchived;
   final Value<String?> photoPath;
+  final Value<double?> registrationFeeOverride;
   final Value<int> rowid;
   const StudentsCompanion({
     this.id = const Value.absent(),
@@ -858,6 +910,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     this.schoolLevel = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.registrationFeeOverride = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StudentsCompanion.insert({
@@ -880,6 +933,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     this.schoolLevel = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.registrationFeeOverride = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        code = Value(code),
@@ -906,6 +960,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     Expression<String>? schoolLevel,
     Expression<bool>? isArchived,
     Expression<String>? photoPath,
+    Expression<double>? registrationFeeOverride,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -928,6 +983,8 @@ class StudentsCompanion extends UpdateCompanion<Student> {
       if (schoolLevel != null) 'school_level': schoolLevel,
       if (isArchived != null) 'is_archived': isArchived,
       if (photoPath != null) 'photo_path': photoPath,
+      if (registrationFeeOverride != null)
+        'registration_fee_override': registrationFeeOverride,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -952,6 +1009,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     Value<String?>? schoolLevel,
     Value<bool>? isArchived,
     Value<String?>? photoPath,
+    Value<double?>? registrationFeeOverride,
     Value<int>? rowid,
   }) {
     return StudentsCompanion(
@@ -974,6 +1032,8 @@ class StudentsCompanion extends UpdateCompanion<Student> {
       schoolLevel: schoolLevel ?? this.schoolLevel,
       isArchived: isArchived ?? this.isArchived,
       photoPath: photoPath ?? this.photoPath,
+      registrationFeeOverride:
+          registrationFeeOverride ?? this.registrationFeeOverride,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1038,6 +1098,11 @@ class StudentsCompanion extends UpdateCompanion<Student> {
     if (photoPath.present) {
       map['photo_path'] = Variable<String>(photoPath.value);
     }
+    if (registrationFeeOverride.present) {
+      map['registration_fee_override'] = Variable<double>(
+        registrationFeeOverride.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1066,6 +1131,7 @@ class StudentsCompanion extends UpdateCompanion<Student> {
           ..write('schoolLevel: $schoolLevel, ')
           ..write('isArchived: $isArchived, ')
           ..write('photoPath: $photoPath, ')
+          ..write('registrationFeeOverride: $registrationFeeOverride, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -14341,6 +14407,7 @@ typedef $$StudentsTableCreateCompanionBuilder =
       Value<String?> schoolLevel,
       Value<bool> isArchived,
       Value<String?> photoPath,
+      Value<double?> registrationFeeOverride,
       Value<int> rowid,
     });
 typedef $$StudentsTableUpdateCompanionBuilder =
@@ -14364,6 +14431,7 @@ typedef $$StudentsTableUpdateCompanionBuilder =
       Value<String?> schoolLevel,
       Value<bool> isArchived,
       Value<String?> photoPath,
+      Value<double?> registrationFeeOverride,
       Value<int> rowid,
     });
 
@@ -14605,6 +14673,11 @@ class $$StudentsTableFilterComposer
 
   ColumnFilters<String> get photoPath => $composableBuilder(
     column: $table.photoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get registrationFeeOverride => $composableBuilder(
+    column: $table.registrationFeeOverride,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14887,6 +14960,11 @@ class $$StudentsTableOrderingComposer
     column: $table.photoPath,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get registrationFeeOverride => $composableBuilder(
+    column: $table.registrationFeeOverride,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StudentsTableAnnotationComposer
@@ -14970,6 +15048,11 @@ class $$StudentsTableAnnotationComposer
 
   GeneratedColumn<String> get photoPath =>
       $composableBuilder(column: $table.photoPath, builder: (column) => column);
+
+  GeneratedColumn<double> get registrationFeeOverride => $composableBuilder(
+    column: $table.registrationFeeOverride,
+    builder: (column) => column,
+  );
 
   Expression<T> enrollmentsRefs<T extends Object>(
     Expression<T> Function($$EnrollmentsTableAnnotationComposer a) f,
@@ -15203,6 +15286,7 @@ class $$StudentsTableTableManager
                 Value<String?> schoolLevel = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<double?> registrationFeeOverride = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StudentsCompanion(
                 id: id,
@@ -15224,6 +15308,7 @@ class $$StudentsTableTableManager
                 schoolLevel: schoolLevel,
                 isArchived: isArchived,
                 photoPath: photoPath,
+                registrationFeeOverride: registrationFeeOverride,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -15247,6 +15332,7 @@ class $$StudentsTableTableManager
                 Value<String?> schoolLevel = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<double?> registrationFeeOverride = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StudentsCompanion.insert(
                 id: id,
@@ -15268,6 +15354,7 @@ class $$StudentsTableTableManager
                 schoolLevel: schoolLevel,
                 isArchived: isArchived,
                 photoPath: photoPath,
+                registrationFeeOverride: registrationFeeOverride,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

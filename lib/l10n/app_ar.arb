@@ -320,7 +320,7 @@
   "registrationFee": "رسوم التسجيل",
   "registrationFeeDescription": "رسوم تسجيل سنوية يحددها المدير",
   "markAsPaid": "تأكيد الدفع",
-  "feeUnpaid": "رسوم غير مدفوعة",
+  "feeUnpaid": "حقوق التسجيل غير مدفوعة",
   "feePaid": "رسوم مدفوعة",
   "addNewLevel": "إضافة \"{name}\" +",
   "@addNewLevel": { "placeholders": { "name": {} } },

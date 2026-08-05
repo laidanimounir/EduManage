@@ -320,7 +320,7 @@
   "registrationFee": "Registration Fee",
   "registrationFeeDescription": "One-time registration fee set by administration",
   "markAsPaid": "Mark as Paid",
-  "feeUnpaid": "Fee Unpaid",
+  "feeUnpaid": "Registration Fee Unpaid",
   "feePaid": "Fee Paid",
   "addNewLevel": "+ Add \"{name}\"",
   "@addNewLevel": { "placeholders": { "name": {} } },

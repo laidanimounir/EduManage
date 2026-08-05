@@ -320,7 +320,7 @@
   "registrationFee": "Frais d'inscription",
   "registrationFeeDescription": "Frais d'inscription annuels fixés par l'administration",
   "markAsPaid": "Marquer comme payé",
-  "feeUnpaid": "Frais impayés",
+  "feeUnpaid": "Frais d'inscription impayés",
   "feePaid": "Frais payés",
   "addNewLevel": "+ Ajouter \"{name}\"",
   "@addNewLevel": { "placeholders": { "name": {} } },
