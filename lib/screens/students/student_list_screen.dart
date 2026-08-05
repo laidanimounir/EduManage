@@ -1878,8 +1878,8 @@ class _StudentEditDialogState extends State<_StudentEditDialog> {
       Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(l10n.gender, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
       SegmentedButton<String>(
         segments: [
-          ButtonSegment(value: 'male', icon: const Icon(PhosphorIcons.genderMale, size: 16), label: Text(l10n.male, style: const TextStyle(fontSize: 11))),
-          ButtonSegment(value: 'female', icon: const Icon(PhosphorIcons.genderFemale, size: 16), label: Text(l10n.female, style: const TextStyle(fontSize: 11))),
+          ButtonSegment(value: 'male', icon: const Icon(Icons.male, size: 16), label: Text(l10n.male, style: const TextStyle(fontSize: 11))),
+          ButtonSegment(value: 'female', icon: const Icon(Icons.female, size: 16), label: Text(l10n.female, style: const TextStyle(fontSize: 11))),
         ],
         selected: {_gender},
         onSelectionChanged: (v) => setState(() => _gender = v.first),
