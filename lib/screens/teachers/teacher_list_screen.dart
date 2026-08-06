@@ -729,7 +729,24 @@ class _TeacherDetailDialog extends StatelessWidget {
               teacherName: '${teacher.firstNameAr} ${teacher.lastNameAr}',
             ));
           },
-          tooltip: 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³',
+          tooltip: '\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u062F\u0631\u064A\u0633',
+        ),
+        const SizedBox(width: 4),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            showDialog(context: context, builder: (_) => _TeacherPaymentDialog(
+              database: database, teacherId: teacher.id,
+              teacherName: '${teacher.firstNameAr} ${teacher.lastNameAr}',
+            ));
+          },
+          icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 14),
+          label: const Text('\u0627\u0644\u062F\u0641\u0639\u0627\u062A', style: TextStyle(fontSize: 11)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: ShellTokens.accent,
+            side: const BorderSide(color: ShellTokens.accent, width: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          ),
         ),
         IconButton(
           icon: const Icon(PhosphorIcons.file, size: 16), color: ShellTokens.accent,
