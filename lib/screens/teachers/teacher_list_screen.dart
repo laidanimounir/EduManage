@@ -1061,8 +1061,13 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
       await _junctionRepo.setAssignments(teacherId, _assignedGroupIds.toList());
 
       if (mounted) Navigator.pop(context, true);
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u062D\u0641\u0638: $e'),
+          backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 
