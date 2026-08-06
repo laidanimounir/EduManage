@@ -1,5 +1,6 @@
 ﻿import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:excel/excel.dart' hide Border;
 import 'package:image_picker/image_picker.dart';
@@ -948,6 +949,9 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
   late TextEditingController _codeCtrl, _firstNameArCtrl, _lastNameArCtrl, _firstNameFrCtrl, _lastNameFrCtrl;
   late TextEditingController _phoneCtrl, _addressCtrl, _emailCtrl, _idCardCtrl;
   late TextEditingController _sharePctCtrl, _fixedAmountCtrl, _overdueThresholdCtrl;
+  late TextEditingController _startDayCtrl, _startMonthCtrl, _startYearCtrl;
+  late FocusNode _startDayFocus, _startMonthFocus, _startYearFocus;
+  int? _startDay, _startMonth, _startYear;
   String _gender = 'male';
   String _salaryType = 'percentage';
   DateTime? _startDate, _endDate;
@@ -973,10 +977,18 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
     _sharePctCtrl = TextEditingController(text: t?.teacherSharePct?.toString() ?? '70');
     _fixedAmountCtrl = TextEditingController(text: t?.teacherFixedAmount?.toString() ?? '');
     _overdueThresholdCtrl = TextEditingController(text: t?.overdueThresholdDays?.toString() ?? '');
+    _startDayCtrl = TextEditingController(); _startMonthCtrl = TextEditingController(); _startYearCtrl = TextEditingController();
+    _startDayFocus = FocusNode(); _startMonthFocus = FocusNode(); _startYearFocus = FocusNode();
     if (t != null) {
       _gender = t.gender ?? 'male';
       _salaryType = t.salaryType;
       _startDate = t.employmentStartDate;
+      if (t.employmentStartDate != null) {
+        _startDay = t.employmentStartDate!.day; _startMonth = t.employmentStartDate!.month; _startYear = t.employmentStartDate!.year;
+        _startDayCtrl.text = _startDay.toString().padLeft(2, '0');
+        _startMonthCtrl.text = _startMonth.toString().padLeft(2, '0');
+        _startYearCtrl.text = _startYear.toString();
+      }
       _endDate = t.employmentEndDate;
       if (t.photoPath != null) _photo = File(t.photoPath!);
       if (t.firstNameFr != null && t.firstNameFr!.isNotEmpty) _showFrenchNames = true;
@@ -1004,6 +1016,8 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
     _firstNameFrCtrl.dispose(); _lastNameFrCtrl.dispose(); _phoneCtrl.dispose();
     _addressCtrl.dispose(); _emailCtrl.dispose(); _idCardCtrl.dispose();
     _sharePctCtrl.dispose(); _fixedAmountCtrl.dispose(); _overdueThresholdCtrl.dispose();
+    _startDayCtrl.dispose(); _startMonthCtrl.dispose(); _startYearCtrl.dispose();
+    _startDayFocus.dispose(); _startMonthFocus.dispose(); _startYearFocus.dispose();
     super.dispose();
   }
 
@@ -1200,7 +1214,18 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         ShellSectionHeader(text: '${l10n.employmentStartDate} / ${l10n.employmentEndDate}', withBorder: false),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _dateField(_startDate, l10n.employmentStartDate, (d) => setState(() => _startDate = d))),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(l10n.employmentStartDate, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled))),
+            Row(children: [
+              SizedBox(width: 38, child: _dateSegment(_startDayCtrl, _startDayFocus, _startMonthFocus, 2, 'DD')),
+              Text('/', style: TextStyle(fontSize: 12, color: ShellTokens.textDisabled)),
+              SizedBox(width: 38, child: _dateSegment(_startMonthCtrl, _startMonthFocus, _startYearFocus, 2, 'MM')),
+              Text('/', style: TextStyle(fontSize: 12, color: ShellTokens.textDisabled)),
+              SizedBox(width: 55, child: _dateSegment(_startYearCtrl, _startYearFocus, null, 4, 'YYYY')),
+              SizedBox(width: 4),
+              InkWell(onTap: _pickStartDate, borderRadius: BorderRadius.circular(4), child: Container(width: 28, height: 34, decoration: BoxDecoration(color: ShellTokens.chromeBase, borderRadius: BorderRadius.circular(6), border: Border.all(color: ShellTokens.chromeBorder)), alignment: Alignment.center, child: const Icon(PhosphorIcons.calendar, size: 14, color: ShellTokens.textSecondary))),
+            ]),
+          ])),
           const SizedBox(width: 8),
           Expanded(child: _dateField(_endDate, l10n.employmentEndDate, (d) => setState(() => _endDate = d))),
         ]),
@@ -1231,6 +1256,47 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         ),
       ),
     );
+  }
+
+  Widget _dateSegment(TextEditingController ctrl, FocusNode focus, FocusNode? nextFocus, int maxLen, String hint) {
+    return TextFormField(
+      controller: ctrl, focusNode: focus, textAlign: TextAlign.center, maxLength: maxLen,
+      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(maxLen)],
+      style: const TextStyle(fontSize: 12, color: ShellTokens.textPrimary),
+      decoration: InputDecoration(
+        hintText: hint, hintStyle: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled),
+        filled: true, fillColor: ShellTokens.chromeBase,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: ShellTokens.accent)),
+      ),
+      onChanged: (v) {
+        if (v.length == maxLen && nextFocus != null) FocusScope.of(context).requestFocus(nextFocus);
+        _parseStartDate();
+      },
+    );
+  }
+
+  void _parseStartDate() {
+    final d = int.tryParse(_startDayCtrl.text); final m = int.tryParse(_startMonthCtrl.text); final y = int.tryParse(_startYearCtrl.text);
+    if (d != null && m != null && y != null && d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= DateTime.now().year + 5) {
+      setState(() { _startDay = d; _startMonth = m; _startYear = y; _startDate = DateTime(y, m, d); });
+    }
+  }
+
+  Future<void> _pickStartDate() async {
+    final initial = (_startYear != null && _startMonth != null && _startDay != null) ? DateTime(_startYear!, _startMonth!, _startDay!) : DateTime(2024, 1, 1);
+    final picked = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 365)));
+    if (picked != null && mounted) {
+      setState(() {
+        _startDay = picked.day; _startMonth = picked.month; _startYear = picked.year;
+        _startDate = picked;
+        _startDayCtrl.text = _startDay!.toString().padLeft(2, '0'); _startMonthCtrl.text = _startMonth!.toString().padLeft(2, '0'); _startYearCtrl.text = _startYear.toString();
+      });
+    }
   }
 
   Widget _textField(TextEditingController ctrl, {bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
