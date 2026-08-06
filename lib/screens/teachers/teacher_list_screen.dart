@@ -944,6 +944,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
   bool _saving = false;
   bool _isEdit = false;
   bool _showFrenchNames = false;
+  bool _showEndDate = false;
   File? _photo;
 
   late TextEditingController _codeCtrl, _firstNameArCtrl, _lastNameArCtrl, _firstNameFrCtrl, _lastNameFrCtrl;
@@ -990,6 +991,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         _startYearCtrl.text = _startYear.toString();
       }
       _endDate = t.employmentEndDate;
+      if (t.employmentEndDate != null) _showEndDate = true;
       if (t.photoPath != null) _photo = File(t.photoPath!);
       if (t.firstNameFr != null && t.firstNameFr!.isNotEmpty) _showFrenchNames = true;
       if (t.lastNameFr != null && t.lastNameFr!.isNotEmpty) _showFrenchNames = true;
@@ -1211,7 +1213,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         const SizedBox(height: 8),
         _SubjectGroupMultiSelect(database: widget.database, selectedIds: _assignedGroupIds, onChanged: (ids) => setState(() => _assignedGroupIds = ids)),
         const SizedBox(height: 14),
-        ShellSectionHeader(text: '${l10n.employmentStartDate} / ${l10n.employmentEndDate}', withBorder: false),
+        ShellSectionHeader(text: l10n.employmentStartDate, withBorder: false),
         const SizedBox(height: 8),
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1227,7 +1229,21 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
             ]),
           ])),
           const SizedBox(width: 8),
-          Expanded(child: _dateField(_endDate, l10n.employmentEndDate, (d) => setState(() => _endDate = d))),
+          if (_showEndDate)
+            Expanded(child: _dateField(_endDate, l10n.employmentEndDate, (d) => setState(() => _endDate = d)))
+          else
+            Expanded(child: InkWell(
+              onTap: () => setState(() => _showEndDate = true),
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(PhosphorIcons.plus, size: 12, color: ShellTokens.textDisabled),
+                  const SizedBox(width: 4),
+                  Text('\u0625\u0636\u0627\u0641\u0629 \u062A\u0627\u0631\u064A\u062E \u0646\u0647\u0627\u064A\u0629 \u0627\u0644\u0639\u0645\u0644', style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled)),
+                ]),
+              ),
+            )),
         ]),
         const SizedBox(height: 14),
         ShellSectionHeader(text: l10n.overdueThresholdDays, withBorder: false),
