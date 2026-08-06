@@ -831,7 +831,8 @@ deviceId: Value(await DeviceId.get()),
       'sg.name_ar AS group_name, '
       '(SELECT t.teacher_share_pct FROM teachers t WHERE t.id = ?) AS teacher_default_pct, '
       '(SELECT t.teacher_fixed_amount FROM teachers t WHERE t.id = ?) AS teacher_default_fixed, '
-      '(SELECT t.salary_type FROM teachers t WHERE t.id = ?) AS teacher_salary_type '
+      '(SELECT t.salary_type FROM teachers t WHERE t.id = ?) AS teacher_salary_type, '
+      '(SELECT t2.rate_snapshot FROM transactions t2 WHERE t2.teacher_id = s.teacher_id AND t2.session_id = a.session_id AND t2.type = \'teacher_payout\' AND date(t2.transaction_date) = date(a.attendance_date) ORDER BY t2.transaction_date DESC LIMIT 1) AS frozen_rate '
       'FROM attendance a '
       'JOIN sessions s ON a.session_id = s.id '
       'JOIN subject_groups sg ON s.subject_group_id = sg.id '
@@ -856,6 +857,7 @@ deviceId: Value(await DeviceId.get()),
       'teacher_default_pct': r.read<double?>('teacher_default_pct'),
       'teacher_default_fixed': r.read<double?>('teacher_default_fixed'),
       'teacher_salary_type': r.read<String>('teacher_salary_type'),
+      'frozen_rate': r.read<String?>('frozen_rate'),
     }).toList();
   }
 

@@ -1406,6 +1406,10 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   }
 
   double _calcFullAmount(Map<String, dynamic> row) {
+    final frozenRate = row['frozen_rate'] as String?;
+    if (frozenRate != null && frozenRate.isNotEmpty && frozenRate != 'none') {
+      return _calcFromRateSnapshot(frozenRate, row);
+    }
     final sessionFixed = row['session_fixed_amount'] as double?;
     final sessionPct = row['session_share_pct'] as double?;
     final defaultFixed = row['teacher_default_fixed'] as double?;
@@ -1425,6 +1429,24 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
     if (effPct != null && sessionsPerMonth > 0) {
       final perSession = monthlyPrice / sessionsPerMonth;
       return perSession * effPct / 100 * attendance;
+    }
+    return 0;
+  }
+
+  double _calcFromRateSnapshot(String snapshot, Map<String, dynamic> row) {
+    if (snapshot.startsWith('fixed:')) {
+      return double.tryParse(snapshot.substring(6)) ?? 0;
+    }
+    if (snapshot.startsWith('pct:')) {
+      final parts = snapshot.split(',');
+      if (parts.length < 4) return 0;
+      final pct = double.tryParse(parts[0].substring(4)) ?? 0;
+      final base = double.tryParse(parts[1].split(':').last) ?? 0;
+      final sessions = int.tryParse(parts[2].split(':').last) ?? 1;
+      if (sessions <= 0) return 0;
+      final attendance = row['attendance_count'] as int;
+      final perSession = base / sessions;
+      return perSession * pct / 100 * attendance;
     }
     return 0;
   }
