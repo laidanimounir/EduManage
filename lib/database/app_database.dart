@@ -389,8 +389,20 @@ class StudentPhones extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class TeacherPhones extends Table {
+  TextColumn get id => text()();
+  TextColumn get teacherId => text().references(Teachers, #id)();
+  TextColumn get phoneNumber => text()();
+  TextColumn get label => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [Students, Teachers, Classrooms, SubjectGroups, Subjects, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers, SpecialCases, StudentPhones],
+  tables: [Students, Teachers, Classrooms, SubjectGroups, Subjects, Sessions, Enrollments, EnrollmentWaitlist, Cancellations, Transactions, Attendance, Users, AuditLog, StudentCards, Settings, TeacherSubjectGroups, SchoolClosures, SchoolLevels, PaymentAllocations, ClosedPeriods, Families, FamilyMembers, SpecialCases, StudentPhones, TeacherPhones],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.e);
@@ -421,7 +433,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -574,6 +586,22 @@ deviceId: Value(await DeviceId.get()),
           await into(studentPhones).insert(StudentPhonesCompanion(
             id: Value(UuidHelper.generate()),
             studentId: Value(studentId),
+            phoneNumber: Value(phone),
+            deviceId: Value(await DeviceId.get()),
+          ));
+        }
+      }
+      if (from < 19) {
+        await m.createTable(teacherPhones);
+        final rows = await customSelect(
+          'SELECT id, phone FROM teachers WHERE phone IS NOT NULL AND TRIM(phone) != \'\''
+        ).get();
+        for (final row in rows) {
+          final teacherId = row.read<String>('id');
+          final phone = row.read<String>('phone');
+          await into(teacherPhones).insert(TeacherPhonesCompanion(
+            id: Value(UuidHelper.generate()),
+            teacherId: Value(teacherId),
             phoneNumber: Value(phone),
             deviceId: Value(await DeviceId.get()),
           ));
