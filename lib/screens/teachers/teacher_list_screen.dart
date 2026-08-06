@@ -943,6 +943,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
   late final TeacherSubjectGroupRepository _junctionRepo;
   bool _saving = false;
   bool _isEdit = false;
+  bool _created = false;
   bool _showFrenchNames = false;
   bool _showEndDate = false;
   File? _photo;
@@ -1112,7 +1113,11 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
 
       await _junctionRepo.setAssignments(teacherId, _assignedGroupIds.toList());
 
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        setState(() { _created = true; _saving = false; });
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
@@ -1145,6 +1150,9 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
                   IconButton(icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary), onPressed: () => Navigator.pop(context), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
                 ]),
               ),
+              if (_created)
+                _buildSuccess()
+              else ...[
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(14),
@@ -1301,6 +1309,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
                 ]),
               ),
             ],
+            ],
           ),
         ),
       ),
@@ -1400,6 +1409,20 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
     final v = entry.controller.text.trim();
     final carrier = _carrierFor(v);
     if (entry.carrier != carrier) setState(() => entry.carrier = carrier);
+  }
+
+  Widget _buildSuccess() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0), duration: const Duration(milliseconds: 400),
+          builder: (_, v, __) => Transform.scale(scale: v, child: const Icon(PhosphorIcons.checkCircle, size: 48, color: SemanticTokens.success)),
+        ),
+        const SizedBox(height: 16),
+        Text(_isEdit ? '\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0639\u0644\u0645 \u0628\u0646\u062C\u0627\u062D' : '\u062A\u0645 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0639\u0644\u0645 \u0628\u0646\u062C\u0627\u062D', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+      ]),
+    );
   }
 
   Widget _textField(TextEditingController ctrl, {bool required = false, bool readOnly = false, int maxLines = 1, String? hint}) {
