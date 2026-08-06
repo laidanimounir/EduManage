@@ -1074,11 +1074,29 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = widget.l10n;
-    return ShellDialog(
-      maxWidth: 580,
-      maxHeight: 700,
-      title: _isEdit ? l10n.editTeacher : l10n.add,
-      body: Form(key: _formKey, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Dialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 580),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: ShellTokens.chromeBorder))),
+                child: Row(children: [
+                  Text(_isEdit ? l10n.editTeacher : l10n.add, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(PhosphorIcons.x, size: 18, color: ShellTokens.textSecondary), onPressed: () => Navigator.pop(context), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28)),
+                ]),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           GestureDetector(
             onTap: _pickPhoto,
@@ -1165,13 +1183,26 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         Text(l10n.overdueThresholdDescription, style: const TextStyle(fontSize: 10, color: ShellTokens.textDisabled)),
         const SizedBox(height: 6),
         _textField(_overdueThresholdCtrl, hint: l10n.overdueThresholdDays),
-        const SizedBox(height: 20),
-        SizedBox(width: double.infinity, child: FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
-          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : Text(_isEdit ? l10n.update : l10n.create),
-        )),
-      ])),
+                  ]),
+                ),
+              ),
+              const Divider(height: 1, color: ShellTokens.chromeBorder),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+                  const Spacer(),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10)),
+                    child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase)) : Text(_isEdit ? l10n.update : l10n.create),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
