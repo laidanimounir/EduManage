@@ -56,6 +56,9 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   Set<String> _teachingNowIds = {};
   final _searchCtrl = TextEditingController();
   Timer? _searchDebounce;
+  final _barcodeCtrl = TextEditingController();
+  final _barcodeFocus = FocusNode();
+  bool _barcodePaused = false;
 
   @override
   void initState() {
@@ -64,11 +67,16 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     _junctionRepo = TeacherSubjectGroupRepository(widget.database);
     _groupRepo = SubjectGroupRepository(widget.database);
     _fetchPage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_barcodePaused) _barcodeFocus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _barcodeCtrl.dispose();
+    _barcodeFocus.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
@@ -99,6 +107,20 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       _fetchPage();
     });
   }
+  void _onBarcodeSubmit(String v) {
+    if (v.trim().isEmpty) return;
+    _searchDebounce?.cancel();
+    _searchQuery = v.trim();
+    _searchCtrl.text = v.trim();
+    _page = 0;
+    _barcodeCtrl.clear();
+    _fetchPage();
+  }
+
+  void _restoreBarcodeFocus() {
+    if (!_barcodePaused) _barcodeFocus.requestFocus();
+  }
+
   void _clearFilters() { _searchDebounce?.cancel(); _searchCtrl.clear(); _searchQuery = ''; _statusFilter = 'all'; _page = 0; _fetchPage(); }
 
   void _toggleSelectAll() {
@@ -112,6 +134,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   }
 
   void _openDetail(Teacher t) {
+    _barcodePaused = true;
     showDialog(
       context: context,
       builder: (_) => _TeacherDetailDialog(
@@ -119,10 +142,11 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         teacher: t,
         l10n: AppLocalizations.of(context),
       ),
-    ).then((_) { try { _fetchPage(); } catch (_) {} });
+    ).then((_) { try { _barcodePaused = false; _restoreBarcodeFocus(); _fetchPage(); } catch (_) {} });
   }
 
   void _openEdit(Teacher? t) async {
+    _barcodePaused = true;
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => _TeacherEditDialog(
@@ -131,6 +155,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         l10n: AppLocalizations.of(context),
       ),
     );
+    _barcodePaused = false;
+    _restoreBarcodeFocus();
     if (result == true) _fetchPage();
   }
 
@@ -261,6 +287,36 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
             onChanged: _onSearchChanged,
           ))),
           const SizedBox(width: 8),
+          Container(
+            width: 130, height: 34,
+            decoration: BoxDecoration(
+              color: _barcodePaused ? ShellTokens.chromeSurface.withValues(alpha: 0.4) : ShellTokens.chromeSurface,
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: _barcodePaused ? ShellTokens.chromeBorder.withValues(alpha: 0.3) : ShellTokens.chromeBorder),
+            ),
+            child: Row(children: [
+              const SizedBox(width: 8),
+              Icon(PhosphorIcons.barcode, size: 14, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
+              const SizedBox(width: 4),
+              Expanded(child: TextField(
+                controller: _barcodeCtrl, focusNode: _barcodeFocus, enabled: !_barcodePaused,
+                style: TextStyle(fontSize: 11, color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.textSecondary),
+                decoration: const InputDecoration(hintText: 'Barcode', hintStyle: TextStyle(color: ShellTokens.textDisabled, fontSize: 10), border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8)),
+                onSubmitted: _onBarcodeSubmit,
+              )),
+            ]),
+          ),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () { setState(() => _barcodePaused = !_barcodePaused); if (!_barcodePaused) _restoreBarcodeFocus(); },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 24, height: 24,
+              decoration: BoxDecoration(color: _barcodePaused ? Colors.transparent : ShellTokens.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: _barcodePaused ? ShellTokens.chromeBorder.withValues(alpha: 0.4) : ShellTokens.accent.withValues(alpha: 0.5))),
+              child: Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: _barcodePaused ? ShellTokens.textDisabled : ShellTokens.accent, shape: BoxShape.circle))),
+            ),
+          ),
+          const SizedBox(width: 6),
           SizedBox(height: 34, child: FilledButton.icon(
             onPressed: () => _openEdit(null),
             icon: const Icon(PhosphorIcons.plus, size: 14),
@@ -488,17 +544,19 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   }
 
   void _openTeachingInfo(Teacher t) {
+    _barcodePaused = true;
     showDialog(context: context, builder: (_) => _TeacherTeachingInfoDialog(
       database: widget.database, teacherId: t.id,
       teacherName: '${t.firstNameAr} ${t.lastNameAr}',
-    ));
+    )).then((_) { _barcodePaused = false; _restoreBarcodeFocus(); });
   }
 
   void _openPayment(Teacher t) {
+    _barcodePaused = true;
     showDialog(context: context, builder: (_) => _TeacherPaymentDialog(
       database: widget.database, teacherId: t.id,
       teacherName: '${t.firstNameAr} ${t.lastNameAr}',
-    )).then((_) => _preloadOverdueStatus());
+    )).then((_) { _barcodePaused = false; _restoreBarcodeFocus(); _preloadOverdueStatus(); });
   }
 
   Widget _statusChip(String label, Color fg, Color bg) {
