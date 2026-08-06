@@ -1510,7 +1510,8 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
             backgroundColor: ShellTokens.chromeSurface));
         }
       } else {
-        int success = 0, skipped = 0;
+        int success = 0;
+        final failedNames = <String>[];
         for (final r in _displayed) {
           try {
             await txService.createTeacherPayoutOverride(
@@ -1521,12 +1522,19 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
               date: r['attendance_date'] as DateTime,
             );
             success++;
-          } catch (_) { skipped++; }
+          } catch (e) { failedNames.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): $e'); }
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('تم الدفع: $success حصة${skipped > 0 ? ' ($skipped تم تجاوزها)' : ''}'),
-            backgroundColor: ShellTokens.chromeSurface));
+          final msg = 'تم الدفع: $success حصة';
+          if (failedNames.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('$msg\nفشل: ${failedNames.join(', ')}'),
+              backgroundColor: SemanticTokens.warning, duration: const Duration(seconds: 6)));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(msg),
+              backgroundColor: ShellTokens.chromeSurface));
+          }
         }
       }
       if (mounted) {
