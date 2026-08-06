@@ -395,6 +395,11 @@ class TransactionService extends BaseRepository {
       throw StateError('Cannot pay out for a cancelled session');
     }
 
+    final duplicate = await _isDuplicatePayout(teacherId, sessionId, date);
+    if (duplicate) {
+      throw StateError('Payout already recorded for this session on this date');
+    }
+
     final fullNote = note != null ? '$rateSnapshotStr | $note' : rateSnapshotStr;
 
     final id = await _txRepo.insert(TransactionsCompanion(
