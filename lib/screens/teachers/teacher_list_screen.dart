@@ -1,4 +1,5 @@
-﻿import 'dart:io';
+﻿import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' hide Column, Table;
@@ -54,6 +55,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   Map<String, bool> _overdueCache = {};
   Set<String> _teachingNowIds = {};
   final _searchCtrl = TextEditingController();
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -67,6 +69,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -88,8 +91,15 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   }
 
   void _onStatusFilterChanged(String v) { _statusFilter = v; _page = 0; _fetchPage(); }
-  void _onSearchChanged(String v) { _searchQuery = v; _page = 0; _fetchPage(); }
-  void _clearFilters() { _searchCtrl.clear(); _searchQuery = ''; _statusFilter = 'all'; _page = 0; _fetchPage(); }
+  void _onSearchChanged(String v) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _searchQuery = v;
+      _page = 0;
+      _fetchPage();
+    });
+  }
+  void _clearFilters() { _searchDebounce?.cancel(); _searchCtrl.clear(); _searchQuery = ''; _statusFilter = 'all'; _page = 0; _fetchPage(); }
 
   void _toggleSelectAll() {
     setState(() {
