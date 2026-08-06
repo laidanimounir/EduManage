@@ -942,6 +942,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
   late final TeacherSubjectGroupRepository _junctionRepo;
   bool _saving = false;
   bool _isEdit = false;
+  bool _showFrenchNames = false;
   File? _photo;
 
   late TextEditingController _codeCtrl, _firstNameArCtrl, _lastNameArCtrl, _firstNameFrCtrl, _lastNameFrCtrl;
@@ -978,6 +979,8 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
       _startDate = t.employmentStartDate;
       _endDate = t.employmentEndDate;
       if (t.photoPath != null) _photo = File(t.photoPath!);
+      if (t.firstNameFr != null && t.firstNameFr!.isNotEmpty) _showFrenchNames = true;
+      if (t.lastNameFr != null && t.lastNameFr!.isNotEmpty) _showFrenchNames = true;
       _loadAssignments();
     } else {
       _repo.generateCode().then((c) { try { if (mounted) _codeCtrl.text = c; } catch (_) {} });
@@ -1117,15 +1120,32 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
             _textField(_codeCtrl, required: true, readOnly: _isEdit),
             const SizedBox(height: 8),
             _textField(_firstNameArCtrl, required: true, hint: '${l10n.firstName} AR'),
-            const SizedBox(height: 8),
-            _textField(_firstNameFrCtrl, hint: '${l10n.firstName} FR'),
           ])),
         ]),
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: () => setState(() => _showFrenchNames = !_showFrenchNames),
+          borderRadius: BorderRadius.circular(4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(PhosphorIcons.translate, size: 13, color: _showFrenchNames ? ShellTokens.accent : ShellTokens.textDisabled),
+              const SizedBox(width: 4),
+              Text(_showFrenchNames ? '\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0628\u0627\u0644\u0641\u0631\u0646\u0633\u064A\u0629' : '\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0623\u0633\u0645\u0627\u0621 \u0628\u0627\u0644\u0641\u0631\u0646\u0633\u064A\u0629', style: TextStyle(fontSize: 11, color: _showFrenchNames ? ShellTokens.accent : ShellTokens.textDisabled)),
+            ]),
+          ),
+        ),
+        if (_showFrenchNames) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(child: _textField(_firstNameFrCtrl, hint: '${l10n.firstName} FR')),
+            const SizedBox(width: 8),
+            Expanded(child: _textField(_lastNameFrCtrl, hint: '${l10n.lastName} FR')),
+          ]),
+        ],
         const SizedBox(height: 8),
         Row(children: [
           Expanded(child: _textField(_lastNameArCtrl, required: true, hint: '${l10n.lastName} AR')),
-          const SizedBox(width: 8),
-          Expanded(child: _textField(_lastNameFrCtrl, hint: '${l10n.lastName} FR')),
         ]),
         const SizedBox(height: 14),
         ShellSectionHeader(text: l10n.gender, withBorder: false),
