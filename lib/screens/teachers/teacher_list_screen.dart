@@ -396,9 +396,15 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     setState(() {
       if (_sortColumn == column) { _sortAsc = !_sortAsc; } else { _sortColumn = column; _sortAsc = true; }
       _rows.sort((a, b) {
-        int cmp = switch (column) {
-          _ => a.firstNameAr.compareTo(b.firstNameAr),
-        };
+        int cmp;
+        switch (column) {
+          case 'الاسم': cmp = a.firstNameAr.compareTo(b.firstNameAr);
+          case 'الرمز': cmp = a.code.compareTo(b.code);
+          case 'الراتب': cmp = a.salaryType.compareTo(b.salaryType);
+          case 'الدفع': cmp = (_overdueCache[a.id] == true ? 1 : 0).compareTo(_overdueCache[b.id] == true ? 1 : 0);
+          case 'المواد': cmp = (_subjectNamesCache[a.id] ?? '').compareTo(_subjectNamesCache[b.id] ?? '');
+          default: return 0;
+        }
         return _sortAsc ? cmp : -cmp;
       });
     });
