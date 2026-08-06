@@ -129,4 +129,32 @@ class TeacherRepository extends BaseRepository {
       ..where((t) => t.teacherId.equals(teacherId)))
         .get();
   }
+
+  Future<void> savePhones(String teacherId, List<({String number, String? label})> entries) async {
+    await (db.delete(db.teacherPhones)..where((p) => p.teacherId.equals(teacherId))).go();
+    for (final entry in entries) {
+      await db.into(db.teacherPhones).insert(TeacherPhonesCompanion(
+        id: Value(UuidHelper.generate()),
+        teacherId: Value(teacherId),
+        phoneNumber: Value(entry.number),
+        label: Value(entry.label),
+        deviceId: Value(await DeviceId.get()),
+      ));
+    }
+  }
+
+  Future<List<({String phoneNumber, String? label})>> getPhones(String teacherId) async {
+    final rows = await (db.select(db.teacherPhones)..where((p) => p.teacherId.equals(teacherId))).get();
+    return rows.map((r) => (phoneNumber: r.phoneNumber, label: r.label)).toList();
+  }
+
+  Future<Map<String, List<({String phoneNumber, String? label})>>> getPhonesForTeachers(List<String> teacherIds) async {
+    if (teacherIds.isEmpty) return {};
+    final rows = await (db.select(db.teacherPhones)..where((p) => p.teacherId.isIn(teacherIds))).get();
+    final map = <String, List<({String phoneNumber, String? label})>>{};
+    for (final r in rows) {
+      map.putIfAbsent(r.teacherId, () => []).add((phoneNumber: r.phoneNumber, label: r.label));
+    }
+    return map;
+  }
 }
