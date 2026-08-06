@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' hide Column, Table;
 import 'package:excel/excel.dart' hide Border;
@@ -158,7 +158,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                   const Icon(PhosphorIcons.warning, size: 16, color: SemanticTokens.error),
                   const SizedBox(width: 8),
                   Expanded(child: Text(
-                    '$unpaidAttendance حصة غير مدفوعة المستحقات لهذا الأستاذ',
+                    '$unpaidAttendance Ø­ØµØ© ØºÙŠØ± Ù…Ø¯ÙÙˆØ¹Ø© Ø§Ù„Ù…Ø³ØªØ­Ù‚Ø§Øª Ù„Ù‡Ø°Ø§ Ø§Ù„Ø£Ø³ØªØ§Ø°',
                     style: const TextStyle(color: SemanticTokens.error, fontSize: 12, fontWeight: FontWeight.w500),
                   )),
                 ]),
@@ -398,11 +398,11 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       _rows.sort((a, b) {
         int cmp;
         switch (column) {
-          case 'الاسم': cmp = a.firstNameAr.compareTo(b.firstNameAr);
-          case 'الرمز': cmp = a.code.compareTo(b.code);
-          case 'الراتب': cmp = a.salaryType.compareTo(b.salaryType);
-          case 'الدفع': cmp = (_overdueCache[a.id] == true ? 1 : 0).compareTo(_overdueCache[b.id] == true ? 1 : 0);
-          case 'المواد': cmp = (_subjectNamesCache[a.id] ?? '').compareTo(_subjectNamesCache[b.id] ?? '');
+          case 'Ø§Ù„Ø§Ø³Ù…': cmp = a.firstNameAr.compareTo(b.firstNameAr);
+          case 'Ø§Ù„Ø±Ù…Ø²': cmp = a.code.compareTo(b.code);
+          case 'Ø§Ù„Ø±Ø§ØªØ¨': cmp = a.salaryType.compareTo(b.salaryType);
+          case 'Ø§Ù„Ø¯ÙØ¹': cmp = (_overdueCache[a.id] == true ? 1 : 0).compareTo(_overdueCache[b.id] == true ? 1 : 0);
+          case 'Ø§Ù„Ù…ÙˆØ§Ø¯': cmp = (_subjectNamesCache[a.id] ?? '').compareTo(_subjectNamesCache[b.id] ?? '');
           default: return 0;
         }
         return _sortAsc ? cmp : -cmp;
@@ -431,9 +431,9 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_salaryLabel(t.salaryType, l10n))),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: _buildTextCell(_subjectNamesCache[t.id] ?? '...')),
         GestureDetector(onTap: () => _openDetail(t), behavior: HitTestBehavior.opaque, child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (isTeachingNow) _statusChip('الآن', SemanticTokens.success, SemanticTokens.success.withValues(alpha: 0.12)),
+            if (isTeachingNow) _statusChip('Ø§Ù„Ø¢Ù†', SemanticTokens.success, SemanticTokens.success.withValues(alpha: 0.12)),
             if (isTeachingNow && overdue) const SizedBox(width: 4),
-            if (overdue) _statusChip('متأخر', const Color(0xFFC2823A), const Color(0xFF3D2E18)),
+            if (overdue) _statusChip('Ù…ØªØ£Ø®Ø±', const Color(0xFFC2823A), const Color(0xFF3D2E18)),
           ])),
         _buildActionsCell(t),
       ],
@@ -500,8 +500,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
 
   Widget _buildActionsCell(Teacher t) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      IconButton(icon: const Icon(PhosphorIcons.info, size: 13), onPressed: () => _openTeachingInfo(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.accent, tooltip: 'معلومات التدريس'),
-      IconButton(icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 13), onPressed: () => _openPayment(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: SemanticTokens.success, tooltip: 'الدفع'),
+      IconButton(icon: const Icon(PhosphorIcons.info, size: 13), onPressed: () => _openTeachingInfo(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.accent, tooltip: 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³'),
+      IconButton(icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 13), onPressed: () => _openPayment(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: SemanticTokens.success, tooltip: 'Ø§Ù„Ø¯ÙØ¹'),
       IconButton(icon: const Icon(PhosphorIcons.pencilSimple, size: 13), onPressed: () => _openEdit(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: ShellTokens.textSecondary),
       IconButton(icon: Icon(t.isArchived ? PhosphorIcons.arrowRight : PhosphorIcons.archive, size: 13), onPressed: () => _confirmArchive(t), constraints: const BoxConstraints(minWidth: 28, minHeight: 28), padding: EdgeInsets.zero, color: t.isArchived ? ShellTokens.accent : ShellTokens.textSecondary),
     ]);
@@ -512,7 +512,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       final junctions = _junctionCache[t.id] ?? await _junctionRepo.getByTeacher(t.id);
       _junctionCache[t.id] = junctions;
       if (junctions.isEmpty) {
-        _subjectNamesCache[t.id] = '—';
+        _subjectNamesCache[t.id] = 'â€”';
         continue;
       }
       final names = <String>[];
@@ -520,7 +520,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         final g = await _groupRepo.getById(j.subjectGroupId);
         if (g != null) names.add(g.nameAr);
       }
-      _subjectNamesCache[t.id] = names.isEmpty ? '—' : names.join(', ');
+      _subjectNamesCache[t.id] = names.isEmpty ? 'â€”' : names.join(', ');
     }
     if (mounted) setState(() {});
   }
@@ -587,15 +587,15 @@ class _TeacherDetailDialog extends StatelessWidget {
         ShellSectionHeader(text: l10n.personalInfo),
         const SizedBox(height: 8),
         _infoRow(l10n.code, teacher.code),
-        _infoRow(l10n.firstName, '${teacher.firstNameAr} / ${teacher.firstNameFr ?? '—'}'),
-        _infoRow(l10n.lastName, '${teacher.lastNameAr} / ${teacher.lastNameFr ?? '—'}'),
-        _infoRow(l10n.phone, teacher.phone ?? '—'),
-        _infoRow(l10n.email, teacher.email ?? '—'),
-        _infoRow(l10n.idCard, teacher.idCard ?? '—'),
-        _infoRow(l10n.gender, teacher.gender == 'male' ? l10n.male : teacher.gender == 'female' ? l10n.female : '—'),
+        _infoRow(l10n.firstName, '${teacher.firstNameAr} / ${teacher.firstNameFr ?? 'â€”'}'),
+        _infoRow(l10n.lastName, '${teacher.lastNameAr} / ${teacher.lastNameFr ?? 'â€”'}'),
+        _infoRow(l10n.phone, teacher.phone ?? 'â€”'),
+        _infoRow(l10n.email, teacher.email ?? 'â€”'),
+        _infoRow(l10n.idCard, teacher.idCard ?? 'â€”'),
+        _infoRow(l10n.gender, teacher.gender == 'male' ? l10n.male : teacher.gender == 'female' ? l10n.female : 'â€”'),
         _infoRow(l10n.salaryType, teacher.salaryType == 'percentage' ? l10n.salaryTypePercentage : l10n.salaryTypeFixed),
-        _infoRow(l10n.employmentStartDate, teacher.employmentStartDate != null ? _fmtDate(teacher.employmentStartDate!) : '—'),
-        _infoRow(l10n.employmentEndDate, teacher.employmentEndDate != null ? _fmtDate(teacher.employmentEndDate!) : '—'),
+        _infoRow(l10n.employmentStartDate, teacher.employmentStartDate != null ? _fmtDate(teacher.employmentStartDate!) : 'â€”'),
+        _infoRow(l10n.employmentEndDate, teacher.employmentEndDate != null ? _fmtDate(teacher.employmentEndDate!) : 'â€”'),
         if (teacher.overdueThresholdDays != null) _infoRow(l10n.overdueThresholdDays, '${teacher.overdueThresholdDays}'),
         const SizedBox(height: 16),
         ShellSectionHeader(text: l10n.teacherSubjects),
@@ -628,7 +628,7 @@ class _TeacherDetailDialog extends StatelessWidget {
               teacherName: '${teacher.firstNameAr} ${teacher.lastNameAr}',
             ));
           },
-          tooltip: 'معلومات التدريس',
+          tooltip: 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³',
         ),
         IconButton(
           icon: const Icon(PhosphorIcons.file, size: 16), color: ShellTokens.accent,
@@ -741,7 +741,7 @@ class _SubjectListState extends State<_SubjectList> {
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox(height: 20, child: Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent))));
     if (_groups.isEmpty) return Text(widget.l10n.noData, style: const TextStyle(fontSize: 11, color: ShellTokens.textDisabled));
-    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    final days = ['', 'Ø§Ù„Ø§Ø«Ù†ÙŠÙ†', 'Ø§Ù„Ø«Ù„Ø§Ø«Ø§Ø¡', 'Ø§Ù„Ø£Ø±Ø¨Ø¹Ø§Ø¡', 'Ø§Ù„Ø®Ù…ÙŠØ³', 'Ø§Ù„Ø¬Ù…Ø¹Ø©', 'Ø§Ù„Ø³Ø¨Øª', 'Ø§Ù„Ø£Ø­Ø¯'];
     return Column(children: _groups.map((g) {
       final groupSessions = _groupSessions[g.id] ?? [];
       return Padding(
@@ -771,7 +771,7 @@ class _SubjectListState extends State<_SubjectList> {
       'primary' => l10n.schoolLevelPrimary,
       'middle' => l10n.schoolLevelMiddle,
       'secondary' => l10n.schoolLevelSecondary,
-      _ => level ?? '—',
+      _ => level ?? 'â€”',
     };
   }
 }
@@ -864,7 +864,7 @@ class _PayoutHistoryListState extends State<_PayoutHistoryList> {
       FilledButton.icon(
         onPressed: () => _payNow(),
         icon: const Icon(PhosphorIcons.currencyCircleDollar, size: 14),
-        label: const Text('الدفع', style: TextStyle(fontSize: 12)),
+        label: const Text('Ø§Ù„Ø¯ÙØ¹', style: TextStyle(fontSize: 12)),
         style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
       ),
     ]);
@@ -1051,7 +1051,7 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
             action: const Value('teacher_salary_changed'),
             entityType: const Value('teacher'),
             entityId: Value(teacherId),
-            details: Value('${widget.teacher!.salaryType}→$_salaryType, pct:${widget.teacher!.teacherSharePct}→${_salaryType == 'percentage' ? _sharePctCtrl.text : 'null'}, fixed:${widget.teacher!.teacherFixedAmount}→${_salaryType == 'fixed' ? _fixedAmountCtrl.text : 'null'}'),
+            details: Value('${widget.teacher!.salaryType}â†’$_salaryType, pct:${widget.teacher!.teacherSharePct}â†’${_salaryType == 'percentage' ? _sharePctCtrl.text : 'null'}, fixed:${widget.teacher!.teacherFixedAmount}â†’${_salaryType == 'fixed' ? _fixedAmountCtrl.text : 'null'}'),
           ));
         }
       } else {
@@ -1279,35 +1279,35 @@ class _TeacherTeachingInfoDialogState extends State<_TeacherTeachingInfoDialog> 
   String _effectiveRate(Map<String, dynamic> s) {
     final sessionFixed = s['session_fixed_amount'] as double?;
     final sessionPct = s['session_share_pct'] as double?;
-    if (sessionFixed != null) return 'مبلغ ثابت ${sessionFixed.toStringAsFixed(0)} دج';
-    if (sessionPct != null) return 'نسبة ${sessionPct.toStringAsFixed(0)}%';
+    if (sessionFixed != null) return 'Ù…Ø¨Ù„Øº Ø«Ø§Ø¨Øª ${sessionFixed.toStringAsFixed(0)} Ø¯Ø¬';
+    if (sessionPct != null) return 'Ù†Ø³Ø¨Ø© ${sessionPct.toStringAsFixed(0)}%';
     final defaultFixed = s['teacher_default_fixed'] as double?;
     final defaultPct = s['teacher_default_pct'] as double?;
     final defaultType = s['teacher_salary_type'] as String;
-    if (defaultType == 'fixed' && defaultFixed != null) return 'مبلغ ثابت ${defaultFixed.toStringAsFixed(0)} دج (افتراضي)';
-    if (defaultPct != null) return 'نسبة ${defaultPct.toStringAsFixed(0)}% (افتراضي)';
-    return 'غير محدد';
+    if (defaultType == 'fixed' && defaultFixed != null) return 'Ù…Ø¨Ù„Øº Ø«Ø§Ø¨Øª ${defaultFixed.toStringAsFixed(0)} Ø¯Ø¬ (Ø§ÙØªØ±Ø§Ø¶ÙŠ)';
+    if (defaultPct != null) return 'Ù†Ø³Ø¨Ø© ${defaultPct.toStringAsFixed(0)}% (Ø§ÙØªØ±Ø§Ø¶ÙŠ)';
+    return 'ØºÙŠØ± Ù…Ø­Ø¯Ø¯';
   }
 
   String _levelLabel(String? level) {
     return switch (level) {
-      'primary' => 'ابتدائي',
-      'middle' => 'متوسط',
-      'secondary' => 'ثانوي',
-      _ => level ?? '—',
+      'primary' => 'Ø§Ø¨ØªØ¯Ø§Ø¦ÙŠ',
+      'middle' => 'Ù…ØªÙˆØ³Ø·',
+      'secondary' => 'Ø«Ø§Ù†ÙˆÙŠ',
+      _ => level ?? 'â€”',
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    final days = ['', 'Ø§Ù„Ø§Ø«Ù†ÙŠÙ†', 'Ø§Ù„Ø«Ù„Ø§Ø«Ø§Ø¡', 'Ø§Ù„Ø£Ø±Ø¨Ø¹Ø§Ø¡', 'Ø§Ù„Ø®Ù…ÙŠØ³', 'Ø§Ù„Ø¬Ù…Ø¹Ø©', 'Ø§Ù„Ø³Ø¨Øª', 'Ø§Ù„Ø£Ø­Ø¯'];
     return ShellDialog(
       maxWidth: 520, maxHeight: 600,
-      title: 'معلومات التدريس — ${widget.teacherName}',
+      title: 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ³ â€” ${widget.teacherName}',
       body: _loading
           ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
           : _sessions.isEmpty
-              ? const Center(child: Text('لا توجد حصص نشطة لهذا الأستاذ', style: TextStyle(fontSize: 13, color: ShellTokens.textDisabled)))
+              ? const Center(child: Text('Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­ØµØµ Ù†Ø´Ø·Ø© Ù„Ù‡Ø°Ø§ Ø§Ù„Ø£Ø³ØªØ§Ø°', style: TextStyle(fontSize: 13, color: ShellTokens.textDisabled)))
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: _sessions.length,
@@ -1335,11 +1335,11 @@ class _TeacherTeachingInfoDialogState extends State<_TeacherTeachingInfoDialog> 
                             ),
                           ]),
                           const SizedBox(height: 10),
-                          _teachRow('اليوم والتوقيت', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}–${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
+                          _teachRow('Ø§Ù„ÙŠÙˆÙ… ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØª', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}â€“${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
                           const SizedBox(height: 4),
-                          _teachRow('الطلاب المسجلين', '$enrolled طالب'),
+                          _teachRow('Ø§Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ù…Ø³Ø¬Ù„ÙŠÙ†', '$enrolled Ø·Ø§Ù„Ø¨'),
                           const SizedBox(height: 4),
-                          _teachRow('الأجرة', _effectiveRate(s)),
+                          _teachRow('Ø§Ù„Ø£Ø¬Ø±Ø©', _effectiveRate(s)),
                         ]),
                       ),
                     );
@@ -1387,6 +1387,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   bool _paying = false;
   String? _error;
   String? _payError;
+  String _method = 'cash';
   final _partialCtrl = TextEditingController();
 
   @override
@@ -1464,11 +1465,11 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
     final defaultPct = row['teacher_default_pct'] as double?;
     final salaryType = row['teacher_salary_type'] as String;
 
-    if (sessionFixed != null) return '${sessionFixed.toStringAsFixed(0)} دج';
+    if (sessionFixed != null) return '${sessionFixed.toStringAsFixed(0)} Ø¯Ø¬';
     if (sessionPct != null) return '${sessionPct.toStringAsFixed(0)}%';
-    if (salaryType == 'fixed' && defaultFixed != null) return '${defaultFixed.toStringAsFixed(0)} دج';
+    if (salaryType == 'fixed' && defaultFixed != null) return '${defaultFixed.toStringAsFixed(0)} Ø¯Ø¬';
     if (defaultPct != null) return '${defaultPct.toStringAsFixed(0)}%';
-    return '—';
+    return 'â€”';
   }
 
   String _rateSnapshotStr(Map<String, dynamic> row) {
@@ -1497,8 +1498,8 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   Future<void> _pay() async {
     if (_isPartial) {
       final v = double.tryParse(_partialCtrl.text.trim());
-      if (v == null || v <= 0) { setState(() => _payError = 'المبلغ يجب أن يكون أكبر من صفر'); return; }
-      if (v > _grandTotal) { setState(() => _payError = 'المبلغ لا يمكن أن يتجاوز الإجمالي المستحق'); return; }
+      if (v == null || v <= 0) { setState(() => _payError = 'Ø§Ù„Ù…Ø¨Ù„Øº ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø£ÙƒØ¨Ø± Ù…Ù† ØµÙØ±'); return; }
+      if (v > _grandTotal) { setState(() => _payError = 'Ø§Ù„Ù…Ø¨Ù„Øº Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø£Ù† ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø³ØªØ­Ù‚'); return; }
     }
 
     setState(() { _paying = true; _payError = null; });
@@ -1521,14 +1522,15 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
             amount: payNow,
             rateSnapshotStr: '${_rateSnapshotStr(r)},partial:${payNow.toStringAsFixed(0)}',
             date: r['attendance_date'] as DateTime,
+            paymentMethod: _method,
           );
-          paid.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): ${payNow.toStringAsFixed(0)} دج');
+          paid.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): ${payNow.toStringAsFixed(0)} Ø¯Ø¬');
           totalPaid += payNow;
           remaining -= payNow;
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('تم الدفع الجزئي: ${totalPaid.toStringAsFixed(0)} دج'),
+            content: Text('ØªÙ… Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¬Ø²Ø¦ÙŠ: ${totalPaid.toStringAsFixed(0)} Ø¯Ø¬'),
             backgroundColor: ShellTokens.chromeSurface));
         }
       } else {
@@ -1542,15 +1544,17 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
               amount: _calcRemaining(r),
               rateSnapshotStr: _rateSnapshotStr(r),
               date: r['attendance_date'] as DateTime,
+              paymentMethod: _method,
             );
+
             success++;
           } catch (e) { failedNames.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): $e'); }
         }
         if (mounted) {
-          final msg = 'تم الدفع: $success حصة';
+          final msg = 'ØªÙ… Ø§Ù„Ø¯ÙØ¹: $success Ø­ØµØ©';
           if (failedNames.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('$msg\nفشل: ${failedNames.join(', ')}'),
+              content: Text('$msg\nÙØ´Ù„: ${failedNames.join(', ')}'),
               backgroundColor: SemanticTokens.warning, duration: const Duration(seconds: 6)));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1571,10 +1575,10 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final days = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    final days = ['', 'Ø§Ù„Ø§Ø«Ù†ÙŠÙ†', 'Ø§Ù„Ø«Ù„Ø§Ø«Ø§Ø¡', 'Ø§Ù„Ø£Ø±Ø¨Ø¹Ø§Ø¡', 'Ø§Ù„Ø®Ù…ÙŠØ³', 'Ø§Ù„Ø¬Ù…Ø¹Ø©', 'Ø§Ù„Ø³Ø¨Øª', 'Ø§Ù„Ø£Ø­Ø¯'];
     return ShellDialog(
       maxWidth: 550, maxHeight: 650,
-      title: 'الدفع — ${widget.teacherName}',
+      title: 'Ø§Ù„Ø¯ÙØ¹ â€” ${widget.teacherName}',
       body: _loading
           ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.accent)))
           : _error != null
@@ -1584,9 +1588,9 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                   Text(_error!, style: const TextStyle(fontSize: 12, color: SemanticTokens.error)),
                 ]))
               : _displayed.isEmpty
-                  ? const Center(child: Text('لا توجد حصص غير مدفوعة', style: TextStyle(fontSize: 14, color: ShellTokens.textDisabled)))
+                  ? const Center(child: Text('Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­ØµØµ ØºÙŠØ± Ù…Ø¯ÙÙˆØ¹Ø©', style: TextStyle(fontSize: 14, color: ShellTokens.textDisabled)))
                   : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('المستحقات غير المدفوعة (الحصص المنتهية)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                      Text('Ø§Ù„Ù…Ø³ØªØ­Ù‚Ø§Øª ØºÙŠØ± Ø§Ù„Ù…Ø¯ÙÙˆØ¹Ø© (Ø§Ù„Ø­ØµØµ Ø§Ù„Ù…Ù†ØªÙ‡ÙŠØ©)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
                       const SizedBox(height: 8),
                       Expanded(
                         child: ListView.builder(
@@ -1614,18 +1618,18 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                                     Expanded(child: Text(r['group_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary))),
                                   ]),
                                   const SizedBox(height: 8),
-                                  _payRow('التاريخ', _fmtDate(attDate)),
+                                  _payRow('Ø§Ù„ØªØ§Ø±ÙŠØ®', _fmtDate(attDate)),
                                   const SizedBox(height: 3),
-                                  _payRow('اليوم والتوقيت', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}–${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
+                                  _payRow('Ø§Ù„ÙŠÙˆÙ… ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØª', '$day ${start.hour}:${start.minute.toString().padLeft(2, '0')}â€“${end.hour}:${end.minute.toString().padLeft(2, '0')}'),
                                   const SizedBox(height: 3),
-                                  _payRow('عدد الطلاب', '${r['attendance_count']}'),
+                                  _payRow('Ø¹Ø¯Ø¯ Ø§Ù„Ø·Ù„Ø§Ø¨', '${r['attendance_count']}'),
                                   const SizedBox(height: 3),
-                                  _payRow('الأجرة', _rateLabel(r)),
+                                  _payRow('Ø§Ù„Ø£Ø¬Ø±Ø©', _rateLabel(r)),
                                   const SizedBox(height: 3),
                                   if (alreadyPaid > 0)
-                                    _payRow('المبلغ المدفوع سابقاً', '${alreadyPaid.toStringAsFixed(0)} دج'),
+                                    _payRow('Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹ Ø³Ø§Ø¨Ù‚Ø§Ù‹', '${alreadyPaid.toStringAsFixed(0)} Ø¯Ø¬'),
                                   const SizedBox(height: 3),
-                                  _payRow('المبلغ المستحق', '${remaining.toStringAsFixed(0)} دج${alreadyPaid > 0 ? ' (الإجمالي: ${full.toStringAsFixed(0)})' : ''}'),
+                                  _payRow('Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø³ØªØ­Ù‚', '${remaining.toStringAsFixed(0)} Ø¯Ø¬${alreadyPaid > 0 ? ' (Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ: ${full.toStringAsFixed(0)})' : ''}'),
                                 ]),
                               ),
                             );
@@ -1634,13 +1638,33 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                       ),
                       const Divider(color: ShellTokens.chromeBorder, height: 24),
                       Row(children: [
-                        const Text('الإجمالي المستحق', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary)),
+                        const Text('Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø³ØªØ­Ù‚', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ShellTokens.textPrimary)),
                         const Spacer(),
-                        Text('${_grandTotal.toStringAsFixed(0)} دج', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SemanticTokens.success)),
+                        Text('${_grandTotal.toStringAsFixed(0)} Ø¯Ø¬', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: SemanticTokens.success)),
                       ]),
                       const SizedBox(height: 12),
                       Row(children: [
-                        const Text('دفع جزئي', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+                        const Text('Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _method,
+                            isDense: true,
+                            items: ['cash', 'card', 'bank_transfer', 'mobile_payment'].map((m) =>
+                              DropdownMenuItem(value: m, child: Text(_methodLabel(m), style: const TextStyle(fontSize: 11)))).toList(),
+                            onChanged: (v) => setState(() => _method = v!),
+                            style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+                            decoration: InputDecoration(
+                              filled: true, fillColor: ShellTokens.chromeBase,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: ShellTokens.chromeBorder)),
+                            ),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const Text('Ø¯ÙØ¹ Ø¬Ø²Ø¦ÙŠ', style: TextStyle(fontSize: 12, color: ShellTokens.textSecondary)),
                         Switch(value: _isPartial, onChanged: (v) => setState(() { _isPartial = v; _payError = null; })),
                       ]),
                       if (_isPartial) ...[
@@ -1652,7 +1676,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 13, color: ShellTokens.textPrimary),
                             decoration: InputDecoration(
-                              hintText: 'أدخل المبلغ (الأقصى: ${_grandTotal.toStringAsFixed(0)} دج)',
+                              hintText: 'Ø£Ø¯Ø®Ù„ Ø§Ù„Ù…Ø¨Ù„Øº (Ø§Ù„Ø£Ù‚ØµÙ‰: ${_grandTotal.toStringAsFixed(0)} Ø¯Ø¬)',
                               isDense: true,
                               filled: true,
                               fillColor: ShellTokens.chromeBase,
@@ -1672,10 +1696,19 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                         style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
                         child: _paying
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase))
-                            : Text(_isPartial ? 'تأكيد الدفع الجزئي' : 'دفع كامل المبلغ', style: const TextStyle(fontSize: 14)),
+                            : Text(_isPartial ? 'ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¬Ø²Ø¦ÙŠ' : 'Ø¯ÙØ¹ ÙƒØ§Ù…Ù„ Ø§Ù„Ù…Ø¨Ù„Øº', style: const TextStyle(fontSize: 14)),
                       )),
                     ]),
     );
+  }
+
+  String _methodLabel(String m) {
+    switch (m) {
+      case 'card': return '\u0634\u064A\u0643';
+      case 'bank_transfer': return '\u062A\u062D\u0648\u064A\u0644';
+      case 'mobile_payment': return '\u062F\u0641\u0639 \u062C\u0648\u0627\u0644';
+      default: return '\u0646\u0642\u062F\u064A';
+    }
   }
 
   Widget _payRow(String label, String value) {

@@ -311,6 +311,7 @@ class TransactionService extends BaseRepository {
     DateTime? date,
     String? note,
     String? createdByUserId,
+    String? paymentMethod,
   }) async {
     final txDate = date ?? DateTime.now();
     final session = await _sessionRepo.getById(sessionId);
@@ -366,6 +367,7 @@ class TransactionService extends BaseRepository {
       note: Value(fullNote),
       rateSnapshot: Value(rateSnapshotStr),
       createdByUserId: Value(createdByUserId),
+      paymentMethod: Value(paymentMethod),
     ));
 
     await _auditRepo.create(AuditLogCompanion(
@@ -387,6 +389,7 @@ class TransactionService extends BaseRepository {
     required DateTime date,
     String? note,
     String? createdByUserId,
+    String? paymentMethod,
   }) async {
     await _checkPeriodOpen(date);
 
@@ -411,6 +414,7 @@ class TransactionService extends BaseRepository {
       note: Value(fullNote),
       rateSnapshot: Value(rateSnapshotStr),
       createdByUserId: Value(createdByUserId),
+      paymentMethod: Value(paymentMethod),
     ));
 
     await _auditRepo.create(AuditLogCompanion(
