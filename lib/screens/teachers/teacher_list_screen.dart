@@ -1,5 +1,6 @@
 ﻿import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' hide Column, Table;
@@ -373,7 +374,27 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         ),
       ],
     ));
-    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+    final bytes = await pdf.save();
+    if (!mounted) return;
+    _showPrintOrSave(bytes, 'teachers_export.pdf', l10n);
+  }
+
+  void _showPrintOrSave(Uint8List bytes, String defaultName, AppLocalizations l10n) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text(l10n.exportPdf, style: const TextStyle(color: ShellTokens.textPrimary)),
+      content: Text('\u0627\u062E\u062A\u0631 \u0637\u0631\u064A\u0642\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      actions: [
+        TextButton(onPressed: () async {
+          Navigator.pop(ctx);
+          final dir = await getApplicationDocumentsDirectory();
+          final file = File('${dir.path}/$defaultName');
+          await file.writeAsBytes(bytes);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062A\u0645 \u0627\u0644\u062D\u0641\u0638 \u0641\u064A: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+        }, child: Text(l10n.save, style: const TextStyle(color: ShellTokens.textSecondary))),
+        FilledButton(onPressed: () { Navigator.pop(ctx); Printing.layoutPdf(onLayout: (_) => bytes); }, style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u0637\u0628\u0627\u0639\u0629')),
+      ],
+    ));
   }
 
   void _exportExcel(AppLocalizations l10n) async {
@@ -393,9 +414,20 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       ]);
     }
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/teachers_export.xlsx');
+    final filePath = '${dir.path}/teachers_export.xlsx';
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: Text(l10n.exportExcel, style: const TextStyle(color: ShellTokens.textPrimary)),
+      content: Text('\u0633\u064A\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641 \u0641\u064A:\n$filePath', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 12)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel, style: const TextStyle(color: ShellTokens.textSecondary))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase), child: const Text('\u062D\u0641\u0638')),
+      ],
+    ));
+    if (confirmed != true || !mounted) return;
+    final file = File(filePath);
     await file.writeAsBytes(excel.encode()!);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.exportExcel}: ${file.path}'), backgroundColor: ShellTokens.chromeSurface));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\u062A\u0645 \u0627\u0644\u062D\u0641\u0638: $filePath'), backgroundColor: ShellTokens.chromeSurface));
   }
 
   Widget _buildBody(AppLocalizations l10n) {
