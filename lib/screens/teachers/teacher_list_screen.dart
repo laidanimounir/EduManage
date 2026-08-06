@@ -1389,12 +1389,13 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   String? _payError;
   String _method = 'cash';
   final _partialCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
 
   @override
   void initState() { super.initState(); _load(); }
 
   @override
-  void dispose() { _partialCtrl.dispose(); super.dispose(); }
+  void dispose() { _partialCtrl.dispose(); _noteCtrl.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     try {
@@ -1523,6 +1524,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
             rateSnapshotStr: '${_rateSnapshotStr(r)},partial:${payNow.toStringAsFixed(0)}',
             date: r['attendance_date'] as DateTime,
             paymentMethod: _method,
+            note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
           );
           paid.add('${r['group_name']} (${_fmtDate(r['attendance_date'] as DateTime)}): ${payNow.toStringAsFixed(0)} Ø¯Ø¬');
           totalPaid += payNow;
@@ -1545,6 +1547,7 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
               rateSnapshotStr: _rateSnapshotStr(r),
               date: r['attendance_date'] as DateTime,
               paymentMethod: _method,
+              note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
             );
 
             success++;
@@ -1690,6 +1693,20 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                         const SizedBox(height: 8),
                         Text(_payError!, style: const TextStyle(fontSize: 12, color: SemanticTokens.error)),
                       ],
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 34,
+                        child: TextField(
+                          controller: _noteCtrl,
+                          style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary),
+                          decoration: const InputDecoration(
+                            hintText: '\u0645\u0644\u0627\u062D\u0638\u0629',
+                            filled: true, fillColor: ShellTokens.chromeBase,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(6)), borderSide: BorderSide(color: ShellTokens.chromeBorder)),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(width: double.infinity, child: FilledButton(
                         onPressed: _paying ? null : _pay,
