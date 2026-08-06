@@ -1150,13 +1150,20 @@ class _TeacherEditDialogState extends State<_TeacherEditDialog> {
         const SizedBox(height: 14),
         ShellSectionHeader(text: l10n.gender, withBorder: false),
         const SizedBox(height: 8),
-        _dropdown<String?>(
-          value: _gender,
-          items: [
-            DropdownMenuItem(value: 'male', child: Text(l10n.male, style: const TextStyle(fontSize: 12))),
-            DropdownMenuItem(value: 'female', child: Text(l10n.female, style: const TextStyle(fontSize: 12))),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'male', icon: const Icon(Icons.male, size: 16), label: Text(l10n.male, style: const TextStyle(fontSize: 11))),
+            ButtonSegment(value: 'female', icon: const Icon(Icons.female, size: 16), label: Text(l10n.female, style: const TextStyle(fontSize: 11))),
           ],
-          onChanged: (v) => setState(() => _gender = v!),
+          selected: {_gender},
+          onSelectionChanged: (v) => setState(() => _gender = v.first),
+          style: SegmentedButton.styleFrom(
+            backgroundColor: ShellTokens.chromeBase,
+            selectedBackgroundColor: ShellTokens.accent,
+            selectedForegroundColor: ShellTokens.chromeBase,
+            foregroundColor: ShellTokens.textSecondary,
+            side: const BorderSide(color: ShellTokens.chromeBorder),
+          ),
         ),
         const SizedBox(height: 8),
         _textField(_phoneCtrl, hint: l10n.phone),
