@@ -1382,6 +1382,7 @@ class _TeacherPaymentDialog extends StatefulWidget {
 class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
   List<Map<String, dynamic>> _unpaid = [];
   List<Map<String, dynamic>> _displayed = [];
+  List<Transaction> _recentPayouts = [];
   bool _loading = true;
   bool _isPartial = false;
   bool _paying = false;
@@ -1402,8 +1403,48 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
       final raw = await widget.database.getTeacherUnpaidAttendance(widget.teacherId);
       final filtered = raw.where((r) => _calcRemaining(r) > 0).toList();
       if (mounted) setState(() { _unpaid = raw; _displayed = filtered; _loading = false; _error = null; });
+      _loadRecentPayouts();
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.toString(); });
+    }
+  }
+
+  Future<void> _loadRecentPayouts() async {
+    final db = widget.database;
+    final now = DateTime.now();
+    final cutoff = now.subtract(const Duration(hours: 48));
+    final payouts = await (db.select(db.transactions)
+      ..where((t) => t.teacherId.equals(widget.teacherId) & t.type.equals('teacher_payout'))
+      ..orderBy([(t) => OrderingTerm.desc(t.transactionDate)]))
+        .get();
+    final reversals = await (db.select(db.transactions)
+      ..where((t) => t.teacherId.equals(widget.teacherId) & t.type.equals('reversal')))
+        .get();
+    final reversedIds = reversals.where((r) => r.referenceTransactionId != null).map((r) => r.referenceTransactionId!).toSet();
+    _recentPayouts = payouts.where((t) => t.transactionDate.isAfter(cutoff) && t.referenceTransactionId == null && !reversedIds.contains(t.id)).toList();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _undoPayout(Transaction t) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: ShellTokens.chromeSurface,
+      title: const Text('\u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062A\u0631\u0627\u062C\u0639', style: TextStyle(color: ShellTokens.textPrimary, fontSize: 14)),
+      content: Text('\u0633\u064A\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0639\u0645\u0644\u064A\u0629 \u0639\u0643\u0633 \u0644\u0644\u062F\u0641\u0639\u0629 \u0628\u0642\u064A\u0645\u0629 ${t.amount.toStringAsFixed(0)} \u062F\u062C\u060C \u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F\u061F', style: const TextStyle(color: ShellTokens.textSecondary, fontSize: 13)),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('\u0625\u0644\u063A\u0627\u0621', style: TextStyle(color: ShellTokens.textSecondary))), FilledButton(onPressed: () => Navigator.pop(ctx, true), style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent), child: const Text('\u062A\u0623\u0643\u064A\u062F'))],
+    ));
+    if (confirmed != true) return;
+    try {
+      final txService = TransactionService(widget.database);
+      await txService.createReversal(referenceTransactionId: t.id, note: '\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0627\u0644\u062F\u0641\u0639');
+      await _load();
+      await _loadRecentPayouts();
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u062A\u0631\u0627\u062C\u0639: $e'),
+          backgroundColor: ShellTokens.chromeSurface));
+      }
     }
   }
 
@@ -1713,8 +1754,28 @@ class _TeacherPaymentDialogState extends State<_TeacherPaymentDialog> {
                         style: FilledButton.styleFrom(backgroundColor: ShellTokens.accent, foregroundColor: ShellTokens.chromeBase, padding: const EdgeInsets.symmetric(vertical: 12)),
                         child: _paying
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ShellTokens.chromeBase))
-                            : Text(_isPartial ? 'ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¬Ø²Ø¦ÙŠ' : 'Ø¯ÙØ¹ ÙƒØ§Ù…Ù„ Ø§Ù„Ù…Ø¨Ù„Øº', style: const TextStyle(fontSize: 14)),
+                            : Text(_isPartial ? 'تأكيد الدفع الجزئي' : 'دفع كامل المبلغ', style: const TextStyle(fontSize: 14)),
                       )),
+                      if (_recentPayouts.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text('المدفوعات الأخيرة', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ShellTokens.textPrimary)),
+                        const SizedBox(height: 6),
+                        ..._recentPayouts.map((t) {
+                          final hoursSince = DateTime.now().difference(t.transactionDate).inHours;
+                          final canUndo = hoursSince < 48;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(children: [
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('${t.amount.toStringAsFixed(0)} دج', style: const TextStyle(fontSize: 11, color: ShellTokens.textPrimary)),
+                                Text('${t.transactionDate.year}-${t.transactionDate.month.toString().padLeft(2,'0')}-${t.transactionDate.day.toString().padLeft(2,'0')} ${t.transactionDate.hour.toString().padLeft(2,'0')}:${t.transactionDate.minute.toString().padLeft(2,'0')}', style: const TextStyle(fontSize: 9, color: ShellTokens.textDisabled)),
+                              ])),
+                              if (canUndo)
+                                TextButton(onPressed: () => _undoPayout(t), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), minimumSize: Size.zero), child: const Text('تراجع', style: TextStyle(fontSize: 10, color: SemanticTokens.error))),
+                            ]),
+                          );
+                        }),
+                      ],
                     ]),
     );
   }
