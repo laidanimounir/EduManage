@@ -708,16 +708,28 @@ deviceId: Value(await DeviceId.get()),
     }).toList();
   }
 
-  Future<double> getTeacherPayoutBalance(String teacherId) {
+  Future<double> getTeacherPayoutBalance(String teacherId) =>
+      _teacherPayoutSum(teacherId, alias: 'balance');
+
+  Future<double> getTeacherTotalEarned(String teacherId) =>
+      _teacherPayoutSum(teacherId, alias: 'total');
+
+  Future<double> getTeacherTotalPaid(String teacherId) =>
+      _teacherPayoutSum(teacherId, alias: 'total');
+
+  Future<double> _teacherPayoutSum(String teacherId,
+      {required String alias}) {
     final query = customSelect(
       'SELECT COALESCE(SUM(CASE '
       'WHEN type IN (\'teacher_payout\', \'correction\') THEN amount '
-      'WHEN type IN (\'reversal\') THEN -amount '
-      'ELSE 0 END), 0) AS balance '
+      'WHEN type IN (\'reversal\', \'session_cancellation_reversal\') THEN -amount '
+      'ELSE 0 END), 0) AS $alias '
       'FROM transactions WHERE teacher_id = ?',
       variables: [Variable.withString(teacherId)],
     );
-    return query.map((row) => row.read<double>('balance')).getSingle();
+    return query
+        .map((row) => row.read<double>(alias))
+        .getSingle();
   }
 
   Future<Map<String, double>> getStudentBalancesForIds(List<String> ids) async {
@@ -741,27 +753,6 @@ deviceId: Value(await DeviceId.get()),
       map.putIfAbsent(id, () => 0);
     }
     return map;
-  }
-
-  Future<double> getTeacherTotalEarned(String teacherId) {
-    final query = customSelect(
-      'SELECT COALESCE(SUM(CASE '
-      'WHEN type IN (\'teacher_payout\', \'correction\') THEN amount '
-      'WHEN type IN (\'reversal\', \'session_cancellation_reversal\') THEN -amount '
-      'ELSE 0 END), 0) AS total '
-      'FROM transactions WHERE teacher_id = ?',
-      variables: [Variable.withString(teacherId)],
-    );
-    return query.map((row) => row.read<double>('total')).getSingle();
-  }
-
-  Future<double> getTeacherTotalPaid(String teacherId) {
-    final query = customSelect(
-      'SELECT COALESCE(SUM(amount), 0) AS total '
-      'FROM transactions WHERE teacher_id = ? AND type = \'teacher_payout\'',
-      variables: [Variable.withString(teacherId)],
-    );
-    return query.map((row) => row.read<double>('total')).getSingle();
   }
 
   Future<int> getTeacherAttendanceCount(String teacherId) {
