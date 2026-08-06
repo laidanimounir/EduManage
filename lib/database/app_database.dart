@@ -596,6 +596,7 @@ deviceId: Value(await DeviceId.get()),
         final rows = await customSelect(
           'SELECT id, phone FROM teachers WHERE phone IS NOT NULL AND TRIM(phone) != \'\''
         ).get();
+        debugPrint('[DB] TeacherPhones migration: found ${rows.length} teachers with non-empty phone column');
         for (final row in rows) {
           final teacherId = row.read<String>('id');
           final phone = row.read<String>('phone');
@@ -606,6 +607,7 @@ deviceId: Value(await DeviceId.get()),
             deviceId: Value(await DeviceId.get()),
           ));
         }
+        debugPrint('[DB] TeacherPhones migration: inserted ${rows.length} rows into teacher_phones');
       }
     },
   );
